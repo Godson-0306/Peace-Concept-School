@@ -1,13 +1,25 @@
-/** Empty string = same-origin (Next.js rewrites proxy /api → Django). */
+/** Empty string = same-origin (Next.js `/api/[...path]` proxies to Django). */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+function normalizeApiPath(path: string): string {
+  if (path.startsWith("http")) return path;
+  const withSlash = path.startsWith("/") ? path : `/${path}`;
+  // Next.js redirects trailing-slash API routes with 308; strip before fetch.
+  // The server proxy re-appends a slash for Django/DRF.
+  if (withSlash.startsWith("/api/") && withSlash.length > 5 && withSlash.endsWith("/")) {
+    return withSlash.slice(0, -1);
+  }
+  return withSlash;
+}
 
 export async function apiFetch(
   path: string,
   options: RequestInit = {},
 ): Promise<Response> {
-  const url = path.startsWith("http")
-    ? path
-    : `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const normalized = normalizeApiPath(path);
+  const url = normalized.startsWith("http")
+    ? normalized
+    : `${API_URL}${normalized}`;
   const headers = new Headers(options.headers);
 
   if (

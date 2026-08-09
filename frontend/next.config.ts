@@ -12,11 +12,8 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    // Media still proxied via rewrite; JSON API uses app/api/[...path]/route.ts
     return [
-      {
-        source: "/api/:path*",
-        destination: `${apiOrigin}/api/:path*`,
-      },
       {
         source: "/media/:path*",
         destination: `${apiOrigin}/media/:path*`,
