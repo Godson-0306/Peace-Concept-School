@@ -161,7 +161,7 @@ export default function AdminPage() {
       </header>
 
       {message ? (
-        <p className="rounded-sm bg-[rgba(11,61,46,0.08)] px-4 py-3 text-sm text-[var(--brand-green)]">
+        <p className="rounded-sm bg-[rgba(20,80,163,0.08)] px-4 py-3 text-sm text-[var(--brand-green)]">
           {message}
         </p>
       ) : null}

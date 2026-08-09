@@ -89,7 +89,7 @@ export default function AppSidebar() {
               className={`block rounded-sm px-3 py-2.5 text-sm transition-colors ${
                 active
                   ? "bg-[var(--brand-green)] text-white"
-                  : "text-[var(--ink)] hover:bg-[rgba(11,61,46,0.06)]"
+                  : "text-[var(--ink)] hover:bg-[rgba(20,80,163,0.06)]"
               }`}
             >
               {link.label}

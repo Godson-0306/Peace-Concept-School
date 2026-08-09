@@ -25,7 +25,7 @@ export default function SignaturePad({ onChange, className = "" }: Props) {
     ctx.scale(ratio, ratio);
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
-    ctx.strokeStyle = "#0B3D2E";
+    ctx.strokeStyle = "#1450A3";
   }, []);
 
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {

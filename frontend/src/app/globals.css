@@ -1,16 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --brand-green: #0b3d2e;
-  --brand-green-deep: #072820;
-  --brand-green-soft: #1a5c45;
-  --brand-gold: #c4a35a;
-  --brand-gold-soft: #d4bc7e;
-  --mist: #f3f6f4;
-  --mist-warm: #eef2ef;
-  --ink: #14201b;
-  --muted: #5a6b63;
-  --line: rgba(11, 61, 46, 0.12);
+  /* Primary: blue · Accent: pink (legacy names kept for existing class refs) */
+  --brand-green: #1450a3;
+  --brand-green-deep: #0b3575;
+  --brand-green-soft: #2a6bc4;
+  --brand-gold: #e85a8c;
+  --brand-gold-soft: #f07aa8;
+  --brand-blue: var(--brand-green);
+  --brand-blue-deep: var(--brand-green-deep);
+  --brand-blue-soft: var(--brand-green-soft);
+  --brand-pink: var(--brand-gold);
+  --brand-pink-soft: var(--brand-gold-soft);
+  --mist: #f4f7fc;
+  --mist-warm: #faf4f7;
+  --ink: #142033;
+  --muted: #5a6578;
+  --line: rgba(20, 80, 163, 0.14);
   --background: var(--mist);
   --foreground: var(--ink);
   --surface: rgba(255, 255, 255, 0.72);
@@ -24,6 +30,8 @@
   --color-brand-green-soft: var(--brand-green-soft);
   --color-brand-gold: var(--brand-gold);
   --color-brand-gold-soft: var(--brand-gold-soft);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-pink: var(--brand-pink);
   --color-mist: var(--mist);
   --color-mist-warm: var(--mist-warm);
   --color-ink: var(--ink);
@@ -44,9 +52,9 @@ html {
 
 body {
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(196, 163, 90, 0.14), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(11, 61, 46, 0.08), transparent 50%),
-    linear-gradient(180deg, #f7f9f7 0%, var(--mist) 40%, var(--mist-warm) 100%);
+    radial-gradient(1200px 600px at 10% -10%, rgba(232, 90, 140, 0.14), transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, rgba(20, 80, 163, 0.1), transparent 50%),
+    linear-gradient(180deg, #f7f9fd 0%, var(--mist) 40%, var(--mist-warm) 100%);
   color: var(--foreground);
   font-family: var(--font-manrope), system-ui, sans-serif;
   min-height: 100%;
@@ -59,8 +67,8 @@ body::before {
   pointer-events: none;
   opacity: 0.035;
   background-image:
-    linear-gradient(rgba(11, 61, 46, 0.35) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(11, 61, 46, 0.35) 1px, transparent 1px);
+    linear-gradient(rgba(20, 80, 163, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 80, 163, 0.35) 1px, transparent 1px);
   background-size: 48px 48px;
   z-index: 0;
 }
@@ -93,18 +101,18 @@ a {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: var(--brand-gold);
-  color: var(--brand-green-deep);
+  background: var(--brand-pink);
+  color: #fff;
   font-weight: 650;
   letter-spacing: 0.01em;
   padding: 0.85rem 1.35rem;
   border-radius: 0.35rem;
   transition: transform 220ms ease, background 220ms ease, box-shadow 220ms ease;
-  box-shadow: 0 10px 24px rgba(11, 61, 46, 0.12);
+  box-shadow: 0 10px 24px rgba(20, 80, 163, 0.14);
 }
 
 .btn-primary:hover {
-  background: var(--brand-gold-soft);
+  background: var(--brand-pink-soft);
   transform: translateY(-1px);
 }
 
@@ -132,8 +140,8 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--brand-green);
-  color: var(--brand-green);
+  border: 1px solid var(--brand-blue);
+  color: var(--brand-blue);
   font-weight: 600;
   padding: 0.8rem 1.25rem;
   border-radius: 0.35rem;
@@ -141,7 +149,7 @@ a {
 }
 
 .btn-outline:hover {
-  background: var(--brand-green);
+  background: var(--brand-blue);
   color: #fff;
 }
 
@@ -154,7 +162,7 @@ a {
 .field label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--brand-green);
+  color: var(--brand-blue);
 }
 
 .field input,
@@ -173,8 +181,8 @@ a {
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  border-color: var(--brand-green-soft);
-  box-shadow: 0 0 0 3px rgba(11, 61, 46, 0.1);
+  border-color: var(--brand-blue-soft);
+  box-shadow: 0 0 0 3px rgba(20, 80, 163, 0.12);
 }
 
 .form-status {
@@ -184,9 +192,9 @@ a {
 }
 
 .form-status.success {
-  background: rgba(26, 92, 69, 0.1);
-  color: var(--brand-green);
-  border: 1px solid rgba(26, 92, 69, 0.2);
+  background: rgba(20, 80, 163, 0.1);
+  color: var(--brand-blue);
+  border: 1px solid rgba(20, 80, 163, 0.2);
 }
 
 .form-status.error {

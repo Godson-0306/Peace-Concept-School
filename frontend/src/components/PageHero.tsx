@@ -6,13 +6,13 @@ type PageHeroProps = {
 
 export default function PageHero({ eyebrow, title, description }: PageHeroProps) {
   return (
-    <section className="relative overflow-hidden border-b border-[var(--line)] bg-[linear-gradient(135deg,#0B3D2E_0%,#124F3B_55%,#1A5C45_100%)] text-white">
+    <section className="relative overflow-hidden border-b border-[var(--line)] bg-[linear-gradient(135deg,#0B3575_0%,#1450A3_55%,#2A6BC4_100%)] text-white">
       <div
         aria-hidden
         className="absolute inset-0 opacity-30"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 20% 20%, rgba(196,163,90,0.35), transparent 40%), radial-gradient(circle at 80% 0%, rgba(255,255,255,0.12), transparent 35%)",
+            "radial-gradient(circle at 20% 20%, rgba(232,90,140,0.35), transparent 40%), radial-gradient(circle at 80% 0%, rgba(255,255,255,0.12), transparent 35%)",
         }}
       />
       <div className="site-container relative py-16 sm:py-20">

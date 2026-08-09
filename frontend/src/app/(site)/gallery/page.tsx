@@ -45,12 +45,12 @@ const gallery: GalleryItem[] = [
   {
     kind: "gradient",
     title: "Science practicals",
-    gradient: "from-[#0B3D2E] to-[#1A5C45]",
+    gradient: "from-[#0B3575] to-[#2A6BC4]",
   },
   {
     kind: "gradient",
     title: "Cultural day",
-    gradient: "from-[#124F3B] to-[#C4A35A]",
+    gradient: "from-[#1450A3] to-[#E85A8C]",
   },
 ];
 

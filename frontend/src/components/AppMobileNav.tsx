@@ -43,7 +43,7 @@ export default function AppMobileNav() {
               className={`shrink-0 rounded-sm px-3 py-1.5 text-xs font-medium ${
                 active
                   ? "bg-[var(--brand-green)] text-white"
-                  : "bg-[rgba(11,61,46,0.06)] text-[var(--brand-green)]"
+                  : "bg-[rgba(20,80,163,0.08)] text-[var(--brand-green)]"
               }`}
             >
               {link.label}

@@ -144,7 +144,7 @@ export default function TeacherPage() {
       </header>
 
       {message ? (
-        <p className="bg-[rgba(11,61,46,0.08)] px-4 py-3 text-sm text-[var(--brand-green)]">
+        <p className="bg-[rgba(20,80,163,0.08)] px-4 py-3 text-sm text-[var(--brand-green)]">
           {message}
         </p>
       ) : null}
@@ -182,7 +182,7 @@ export default function TeacherPage() {
 
       <form onSubmit={saveScores} className="overflow-x-auto border border-[var(--line)] bg-white/80">
         <table className="min-w-full text-sm">
-          <thead className="bg-[rgba(11,61,46,0.06)] text-left">
+          <thead className="bg-[rgba(20,80,163,0.06)] text-left">
             <tr>
               <th className="px-3 py-2">Student</th>
               <th className="px-3 py-2">CA1 /20</th>
