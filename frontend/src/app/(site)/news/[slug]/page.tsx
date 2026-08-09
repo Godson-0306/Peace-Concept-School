@@ -40,7 +40,7 @@ export default async function NewsDetailPage({ params }: Props) {
             sizes="100vw"
           />
         ) : null}
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,40,32,0.35)_0%,rgba(7,40,32,0.85)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,53,117,0.35)_0%,rgba(11,53,117,0.85)_100%)]" />
         <div className="site-container relative flex min-h-[42vh] flex-col justify-end py-14">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--brand-gold)]">
             {item.category} ·{" "}
