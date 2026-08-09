@@ -16,8 +16,8 @@ export default function HomePage() {
           className="animate-soft-zoom object-cover"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(7,40,32,0.88)_0%,rgba(20,80,163,0.72)_48%,rgba(20,80,163,0.42)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_30%,rgba(196,163,90,0.22),transparent_40%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(11,53,117,0.9)_0%,rgba(20,80,163,0.72)_48%,rgba(232,90,140,0.35)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_30%,rgba(232,90,140,0.28),transparent_40%)]" />
 
         <div className="site-container relative flex min-h-[100svh] flex-col justify-end pb-16 pt-28 sm:justify-center sm:pb-24 sm:pt-20">
           <div className="max-w-3xl">

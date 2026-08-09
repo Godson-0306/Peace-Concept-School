@@ -37,7 +37,7 @@ def build_report_card_pdf(student, term) -> bytes:
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    c.setFillColor(colors.HexColor("#0B3D2E"))
+    c.setFillColor(colors.HexColor("#1450A3"))
     c.rect(0, height - 80, width, 80, fill=1, stroke=0)
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 18)
@@ -118,7 +118,7 @@ def build_id_card_pdf(student) -> bytes:
     page = (85.6 * mm, 53.98 * mm)
     c = canvas.Canvas(buffer, pagesize=page)
     w, h = page
-    c.setFillColor(colors.HexColor("#0B3D2E"))
+    c.setFillColor(colors.HexColor("#1450A3"))
     c.rect(0, h - 14 * mm, w, 14 * mm, fill=1, stroke=0)
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 8)
@@ -131,13 +131,13 @@ def build_id_card_pdf(student) -> bytes:
     c.drawString(28 * mm, h - 33 * mm, f"Gender: {student.gender or '—'}")
     c.drawString(28 * mm, h - 38 * mm, f"Class: {student.class_arm or '—'}")
     # Photo placeholder
-    c.setStrokeColor(colors.HexColor("#C4A35A"))
+    c.setStrokeColor(colors.HexColor("#E85A8C"))
     c.rect(4 * mm, h - 42 * mm, 20 * mm, 24 * mm)
     c.setFont("Helvetica", 6)
     c.drawCentredString(14 * mm, h - 30 * mm, "PHOTO")
     # Back page with barcode note
     c.showPage()
-    c.setFillColor(colors.HexColor("#0B3D2E"))
+    c.setFillColor(colors.HexColor("#0B3575"))
     c.rect(0, 0, w, h, fill=1, stroke=0)
     c.setFillColor(colors.white)
     c.setFont("Helvetica", 7)
