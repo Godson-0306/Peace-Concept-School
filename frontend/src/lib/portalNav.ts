@@ -43,6 +43,7 @@ const STUDENT_HREFS = new Set(["/app", "/app/results", "/app/attendance"]);
 const SETTINGS_ROLES = new Set<AccountType>(["admin", "principal"]);
 const ADMIN_ONLY_HREFS = new Set(["/app/gallery", "/app/news"]);
 const USERS_ROLES = new Set<AccountType>(["admin", "principal"]);
+const ADMISSION_ROLES = new Set<AccountType>(["admin", "principal"]);
 
 export type ClassLevelNav = { id: number; name: string; order: number };
 
@@ -143,6 +144,9 @@ export function portalNavFor(accountType: AccountType | null | undefined): Porta
   }
   if (!accountType || !USERS_ROLES.has(accountType)) {
     links = links.filter((item) => item.href !== "/app/users");
+  }
+  if (!accountType || !ADMISSION_ROLES.has(accountType)) {
+    links = links.filter((item) => item.href !== "/app/admission");
   }
   return links;
 }

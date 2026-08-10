@@ -1,7 +1,9 @@
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-from accounts.permissions import IsAdminAccount
+from accounts.permissions import IsAdminAccount, IsAdminOrPrincipal
 
 from .models import Application, Enquiry, GalleryImage, NewsPost
 from .serializers import (
@@ -73,10 +75,45 @@ class ApplicationViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Application.objects.all()
+    queryset = Application.objects.select_related("enrolled_student").all()
     serializer_class = ApplicationSerializer
+    filterset_fields = ["status", "applying_for_class"]
+    search_fields = [
+        "student_full_name",
+        "guardian_name",
+        "guardian_email",
+        "guardian_phone",
+        "father_name",
+        "mother_name",
+    ]
 
     def get_permissions(self):
         if self.action == "create":
             return [AllowAny()]
-        return [IsAdminAccount()]
+        if self.action in ("list", "retrieve", "update", "partial_update", "reject", "review"):
+            return [IsAdminOrPrincipal()]
+        return [IsAuthenticated()]
+
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        application = self.get_object()
+        if application.status == Application.Status.ACCEPTED and application.enrolled_student_id:
+            return Response(
+                {"detail": "This application is already enrolled."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        application.status = Application.Status.REJECTED
+        application.save(update_fields=["status"])
+        return Response(ApplicationSerializer(application, context={"request": request}).data)
+
+    @action(detail=True, methods=["post"])
+    def review(self, request, pk=None):
+        application = self.get_object()
+        if application.status == Application.Status.ACCEPTED:
+            return Response(
+                {"detail": "This application is already accepted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        application.status = Application.Status.REVIEWING
+        application.save(update_fields=["status"])
+        return Response(ApplicationSerializer(application, context={"request": request}).data)

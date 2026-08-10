@@ -90,9 +90,7 @@ class StudentViewSet(viewsets.ModelViewSet):
     filterset_fields = ["class_arm", "admission_year", "is_active"]
 
     def get_permissions(self):
-        if self.action == "create":
-            return [IsAdminAccount()]
-        if self.action in ("update", "partial_update", "destroy"):
+        if self.action in ("create", "update", "partial_update", "destroy"):
             return [IsAdminOrPrincipal()]
         return [IsAuthenticated()]
 

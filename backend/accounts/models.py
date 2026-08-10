@@ -101,9 +101,11 @@ class StudentProfile(models.Model):
     )
     student_id = models.CharField(max_length=16, unique=True)
     full_name = models.CharField(max_length=255)
+    email = models.EmailField(blank=True)
     gender = models.CharField(max_length=16, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     admission_year = models.PositiveIntegerField()
+    date_of_admission = models.DateField(null=True, blank=True)
     class_arm = models.ForeignKey(
         "academics.ClassArm",
         on_delete=models.SET_NULL,
@@ -111,10 +113,29 @@ class StudentProfile(models.Model):
         blank=True,
         related_name="students",
     )
+    state_of_origin = models.CharField(max_length=100, blank=True)
+    blood_group = models.CharField(max_length=16, blank=True)
+    genotype = models.CharField(max_length=16, blank=True)
+    disability = models.CharField(max_length=255, blank=True)
+    address = models.TextField(blank=True)
+    city_of_residence = models.CharField(max_length=100, blank=True)
+    lga = models.CharField(max_length=100, blank=True)
+    phone = models.CharField(max_length=32, blank=True)
+    whatsapp_phone = models.CharField(max_length=32, blank=True)
     guardian_name = models.CharField(max_length=255, blank=True)
     guardian_email = models.EmailField(blank=True)
     guardian_phone = models.CharField(max_length=32, blank=True)
-    address = models.TextField(blank=True)
+    father_name = models.CharField(max_length=255, blank=True)
+    father_phone = models.CharField(max_length=32, blank=True)
+    father_whatsapp = models.CharField(max_length=32, blank=True)
+    mother_name = models.CharField(max_length=255, blank=True)
+    mother_phone = models.CharField(max_length=32, blank=True)
+    mother_whatsapp = models.CharField(max_length=32, blank=True)
+    hometown = models.CharField(max_length=100, blank=True)
+    next_of_kin_name = models.CharField(max_length=255, blank=True)
+    next_of_kin_relationship = models.CharField(max_length=64, blank=True)
+    next_of_kin_address = models.TextField(blank=True)
+    next_of_kin_phone = models.CharField(max_length=32, blank=True)
     passport_photo = models.ImageField(upload_to="students/photos/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
     promotion_status = models.CharField(

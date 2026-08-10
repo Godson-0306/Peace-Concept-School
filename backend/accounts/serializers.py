@@ -170,8 +170,10 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         return staff
 
 
+DEFAULT_PORTAL_PASSWORD = "school"
+
+
 class StudentProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(write_only=True, required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     create_portal_account = serializers.BooleanField(write_only=True, default=True)
     user = UserSerializer(read_only=True)
@@ -193,24 +195,44 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "user",
             "student_id",
             "full_name",
+            "email",
             "gender",
             "date_of_birth",
             "admission_year",
+            "date_of_admission",
             "class_arm",
             "class_arm_label",
             "section",
             "class_level",
             "class_level_name",
+            "state_of_origin",
+            "blood_group",
+            "genotype",
+            "disability",
+            "address",
+            "city_of_residence",
+            "lga",
+            "phone",
+            "whatsapp_phone",
             "guardian_name",
             "guardian_email",
             "guardian_phone",
-            "address",
+            "father_name",
+            "father_phone",
+            "father_whatsapp",
+            "mother_name",
+            "mother_phone",
+            "mother_whatsapp",
+            "hometown",
+            "next_of_kin_name",
+            "next_of_kin_relationship",
+            "next_of_kin_address",
+            "next_of_kin_phone",
             "passport_photo",
             "is_active",
             "promotion_status",
             "session_attendance_days",
             "total_attendance_days",
-            "email",
             "password",
             "create_portal_account",
             "created_at",
@@ -228,14 +250,16 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         create_portal = validated_data.pop("create_portal_account", True)
-        email = validated_data.pop("email", "") or None
-        password = validated_data.pop("password", None) or User.objects.make_random_password()
+        # Profile email is stored on StudentProfile; also used for portal user.
+        profile_email = (validated_data.get("email") or "").strip()
+        password = (validated_data.pop("password", None) or "").strip() or DEFAULT_PORTAL_PASSWORD
         admission_year = validated_data["admission_year"]
         student_id = StudentIdSequence.next_student_id(admission_year)
         user = None
         if create_portal:
-            if not email:
-                email = f"{student_id.lower()}@students.peaceconceptschool.ng"
+            email = profile_email or f"{student_id.lower()}@students.peaceconceptschool.ng"
+            if not profile_email:
+                validated_data["email"] = email
             name_parts = validated_data["full_name"].split(" ", 1)
             # Students authenticate with Student ID; username stays internal.
             user = User.objects.create_user(
@@ -245,7 +269,10 @@ class StudentProfileSerializer(serializers.ModelSerializer):
                 account_type=AccountType.STUDENT,
                 first_name=name_parts[0],
                 last_name=name_parts[1] if len(name_parts) > 1 else "",
-                phone=validated_data.get("guardian_phone", ""),
+                phone=validated_data.get("guardian_phone")
+                or validated_data.get("whatsapp_phone")
+                or validated_data.get("phone")
+                or "",
             )
         student = StudentProfile.objects.create(
             user=user, student_id=student_id, **validated_data

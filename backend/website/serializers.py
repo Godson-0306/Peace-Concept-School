@@ -80,21 +80,117 @@ class EnquirySerializer(serializers.ModelSerializer):
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
+    enrolled_student_code = serializers.CharField(
+        source="enrolled_student.student_id", read_only=True, default=""
+    )
+
     class Meta:
         model = Application
         fields = [
             "id",
             "student_full_name",
+            "email",
             "gender",
             "date_of_birth",
             "applying_for_class",
             "previous_school",
+            "state_of_origin",
+            "blood_group",
+            "genotype",
+            "disability",
+            "passport_photo",
+            "address",
+            "city_of_residence",
+            "lga",
+            "phone",
+            "whatsapp_phone",
             "guardian_name",
             "guardian_email",
             "guardian_phone",
-            "address",
+            "father_name",
+            "father_phone",
+            "father_whatsapp",
+            "mother_name",
+            "mother_phone",
+            "mother_whatsapp",
+            "hometown",
+            "next_of_kin_name",
+            "next_of_kin_relationship",
+            "next_of_kin_address",
+            "next_of_kin_phone",
             "notes",
             "status",
+            "enrolled_student",
+            "enrolled_student_code",
             "created_at",
         ]
-        read_only_fields = ["status", "created_at"]
+        read_only_fields = ["created_at", "enrolled_student_code"]
+        extra_kwargs = {
+            "status": {"required": False},
+            "enrolled_student": {"required": False, "allow_null": True},
+            "guardian_name": {"required": False, "allow_blank": True},
+            "guardian_email": {"required": False, "allow_blank": True},
+            "guardian_phone": {"required": False, "allow_blank": True},
+        }
+
+    def validate(self, attrs):
+        if self.instance is None:
+            father = (attrs.get("father_name") or "").strip()
+            mother = (attrs.get("mother_name") or "").strip()
+            guardian = (attrs.get("guardian_name") or "").strip()
+            if not (father or mother or guardian):
+                raise serializers.ValidationError(
+                    "Provide at least one parent or guardian name."
+                )
+            phone = (
+                (attrs.get("father_whatsapp") or "").strip()
+                or (attrs.get("father_phone") or "").strip()
+                or (attrs.get("mother_whatsapp") or "").strip()
+                or (attrs.get("mother_phone") or "").strip()
+                or (attrs.get("guardian_phone") or "").strip()
+                or (attrs.get("whatsapp_phone") or "").strip()
+                or (attrs.get("phone") or "").strip()
+            )
+            if not phone:
+                raise serializers.ValidationError(
+                    "Provide at least one parent phone or WhatsApp number."
+                )
+        return attrs
+
+    def create(self, validated_data):
+        # Public create: force new status; staff cannot sneak accepted via create.
+        validated_data["status"] = Application.Status.NEW
+        validated_data.pop("enrolled_student", None)
+        # Derive guardian contact from parent fields when omitted.
+        if not validated_data.get("guardian_name"):
+            validated_data["guardian_name"] = (
+                validated_data.get("father_name")
+                or validated_data.get("mother_name")
+                or ""
+            )
+        if not validated_data.get("guardian_phone"):
+            validated_data["guardian_phone"] = (
+                validated_data.get("father_whatsapp")
+                or validated_data.get("father_phone")
+                or validated_data.get("mother_whatsapp")
+                or validated_data.get("mother_phone")
+                or validated_data.get("whatsapp_phone")
+                or validated_data.get("phone")
+                or ""
+            )
+        if not validated_data.get("guardian_email"):
+            validated_data["guardian_email"] = validated_data.get("email") or ""
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        is_staff = bool(
+            user
+            and user.is_authenticated
+            and getattr(user, "account_type", None) in ("admin", "principal")
+        )
+        if not is_staff:
+            validated_data.pop("status", None)
+            validated_data.pop("enrolled_student", None)
+        return super().update(instance, validated_data)
