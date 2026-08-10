@@ -173,5 +173,5 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@peaceconcepts
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 # School identity
-SCHOOL_NAME = "Peace Concept School"
+SCHOOL_NAME = "Peace Concept International Mission Schools"
 SCHOOL_STUDENT_ID_PREFIX = "PCS"

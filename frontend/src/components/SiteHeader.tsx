@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { SCHOOL_INITIALS, SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -26,42 +27,43 @@ export default function SiteHeader() {
     <header
       className={`sticky top-0 z-50 ${
         isHome
-          ? "border-b border-white/10 bg-[rgba(10,47,110,0.55)] text-white backdrop-blur-xl"
-          : "border-b border-[var(--line)] bg-white/90 text-[var(--ink)] backdrop-blur-xl"
+          ? "border-b border-white/15 bg-[rgba(12,47,109,0.45)] text-white backdrop-blur-xl"
+          : "border-b border-[var(--line)] bg-white/92 text-[var(--ink)] backdrop-blur-xl"
       }`}
     >
-      <div className="site-container flex h-[4.5rem] items-center justify-between gap-4">
+      <div className="site-container flex h-[4.6rem] items-center justify-between gap-3">
         <Link href="/" className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[linear-gradient(145deg,var(--brand-blue),var(--brand-pink))] font-display text-sm font-extrabold text-white shadow-lg shadow-[rgba(20,80,163,0.25)]"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[linear-gradient(145deg,var(--brand-blue),var(--brand-pink))] font-display text-[0.7rem] font-bold text-white"
           >
-            PCS
+            {SCHOOL_INITIALS}
           </span>
           <span className="min-w-0 leading-tight">
             <span
-              className={`block truncate font-display text-[1.15rem] font-bold sm:text-[1.3rem] ${
+              className={`block truncate font-display text-[1.05rem] font-semibold sm:text-[1.2rem] ${
                 isHome ? "text-white" : "text-[var(--brand-blue-deep)]"
               }`}
             >
-              Peace Concept School
+              <span className="sm:hidden">{SCHOOL_SHORT}</span>
+              <span className="hidden sm:inline">{SCHOOL_NAME}</span>
             </span>
             <span
-              className={`hidden text-[0.68rem] font-semibold uppercase tracking-[0.16em] sm:block ${
+              className={`hidden text-[0.68rem] font-semibold uppercase tracking-[0.12em] md:block ${
                 isHome ? "text-white/70" : "text-[var(--muted)]"
               }`}
             >
-              JSS · SSS · Session 2025/2026
+              Day Care · Nursery · Basic · JSS · SS
             </span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Main">
+        <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Main">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
+              className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                 isActive(link.href)
                   ? isHome
                     ? "bg-white/15 text-white"
@@ -79,17 +81,17 @@ export default function SiteHeader() {
         <div className="flex items-center gap-2">
           <Link
             href="/login"
-            className={`hidden rounded-full px-4 py-2 text-sm font-bold sm:inline-flex ${
+            className={`hidden rounded-lg px-3.5 py-2 text-sm font-bold sm:inline-flex ${
               isHome
                 ? "bg-white text-[var(--brand-blue-deep)]"
                 : "bg-[var(--brand-blue)] text-white"
             }`}
           >
-            Portal login
+            Login
           </Link>
           <button
             type="button"
-            className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border lg:hidden ${
+            className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border xl:hidden ${
               isHome
                 ? "border-white/25 text-white"
                 : "border-[var(--line)] text-[var(--brand-blue)]"
@@ -111,14 +113,21 @@ export default function SiteHeader() {
       {open ? (
         <nav
           id="mobile-nav"
-          className={`border-t lg:hidden ${
+          className={`border-t xl:hidden ${
             isHome
-              ? "border-white/10 bg-[rgba(10,47,110,0.95)] text-white"
+              ? "border-white/10 bg-[rgba(12,47,109,0.96)] text-white"
               : "border-[var(--line)] bg-white"
           }`}
           aria-label="Mobile"
         >
           <div className="site-container flex flex-col py-3">
+            <p
+              className={`mb-2 text-xs font-semibold ${
+                isHome ? "text-white/70" : "text-[var(--muted)]"
+              }`}
+            >
+              {SCHOOL_NAME}
+            </p>
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -138,9 +147,9 @@ export default function SiteHeader() {
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="mt-2 mb-2 inline-flex w-fit rounded-full bg-[var(--brand-pink)] px-4 py-2 text-sm font-bold text-white"
+              className="mt-2 mb-2 inline-flex w-fit rounded-lg bg-[var(--brand-pink)] px-4 py-2 text-sm font-bold text-white"
             >
-              Portal login
+              Login
             </Link>
           </div>
         </nav>

@@ -7,7 +7,7 @@ import { newsItems } from "@/lib/news";
 export const metadata: Metadata = {
   title: "News & Events",
   description:
-    "Latest news, announcements, and events from Peace Concept School.",
+    "Latest news, announcements, and events from Peace Concept International Mission Schools.",
 };
 
 export default function NewsPage() {

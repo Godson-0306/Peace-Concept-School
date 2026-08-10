@@ -1,6 +1,7 @@
-# Peace Concept School
+# Peace Concept International Mission Schools
 
-K–12 school website and management system for Peace Concept School (Nigerian secondary context).
+School website and management system for Peace Concept International Mission Schools
+(Day Care · Nursery · Basic · JSS · SS).
 
 ## Stack
 

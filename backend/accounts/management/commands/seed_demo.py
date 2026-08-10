@@ -34,7 +34,7 @@ def ensure_user(email, password, account_type, first_name, last_name, **extra):
 
 
 class Command(BaseCommand):
-    help = "Seed Peace Concept School demo data"
+    help = "Seed Peace Concept International Mission Schools demo data"
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -62,19 +62,31 @@ class Command(BaseCommand):
             )
             terms.append(term)
 
-        levels = []
-        for order, name in enumerate(
-            ["JSS1", "JSS2", "JSS3", "SSS1", "SSS2", "SSS3"], start=1
-        ):
+        level_names = [
+            "Day Care",
+            "Nursery 1",
+            "Nursery 2",
+            "Basic 1",
+            "Basic 2",
+            "Basic 3",
+            "Basic 4",
+            "Basic 5",
+            "JSS1",
+            "JSS2",
+            "JSS3",
+            "SS1",
+            "SS2",
+            "SS3",
+        ]
+        for order, name in enumerate(level_names, start=1):
             level, _ = ClassLevel.objects.get_or_create(name=name, defaults={"order": order})
-            levels.append(level)
             for arm in ("A", "B"):
                 ClassArm.objects.get_or_create(class_level=level, name=arm)
 
         sciences, _ = Department.objects.get_or_create(name="Sciences")
         humanities, _ = Department.objects.get_or_create(name="Humanities")
 
-        jss1 = levels[0]
+        jss1 = ClassLevel.objects.get(name="JSS1")
         for name, dept, stype in [
             ("Mathematics", sciences, Subject.SubjectType.SUBJECT),
             ("English Language", humanities, Subject.SubjectType.SUBJECT),
@@ -226,7 +238,7 @@ class Command(BaseCommand):
             defaults={
                 "title": "Session 2025/2026 Resumption",
                 "summary": "Students resume for the new academic session.",
-                "body": "Peace Concept School welcomes all students to the 2025/2026 academic session. Resumption details are available at the school office.",
+                "body": "Peace Concept International Mission Schools welcomes all students to the 2025/2026 academic session. Resumption details are available at the school office.",
                 "is_published": True,
             },
         )

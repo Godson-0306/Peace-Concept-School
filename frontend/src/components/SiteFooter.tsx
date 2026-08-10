@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SCHOOL_NAME } from "@/lib/brand";
 
 const footerNav = [
   { href: "/about", label: "About" },
@@ -15,26 +16,18 @@ export default function SiteFooter() {
       <div className="relative">
         <div
           aria-hidden
-          className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[var(--brand-pink)] opacity-20 blur-3xl"
+          className="absolute -right-16 top-0 h-64 w-64 rounded-full bg-[var(--brand-pink)] opacity-20 blur-3xl"
         />
-        <div
-          aria-hidden
-          className="absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-[var(--brand-blue-soft)] opacity-30 blur-3xl"
-        />
-
-        <div className="site-container relative grid gap-12 py-16 md:grid-cols-[1.5fr_1fr_1fr]">
+        <div className="site-container relative grid gap-12 py-16 md:grid-cols-[1.55fr_1fr_1fr]">
           <div>
-            <p className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Peace Concept School
+            <p className="font-display text-3xl font-semibold tracking-tight sm:text-[2.1rem]">
+              {SCHOOL_NAME}
             </p>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-white/75">
-              A modern Nigerian secondary school for JSS1–SSS3 — building sharp
-              minds, steady character, and confident futures.
+              From Day Care through Senior Secondary — a mission school where
+              faith, learning, and character grow together.
             </p>
-            <Link
-              href="/contact#application"
-              className="btn-primary mt-7 inline-flex"
-            >
+            <Link href="/contact#application" className="btn-primary mt-7 inline-flex">
               Apply for 2025/2026
             </Link>
           </div>
@@ -55,7 +48,7 @@ export default function SiteFooter() {
           <div>
             <p className="text-sm font-bold text-[var(--brand-pink-soft)]">Visit us</p>
             <address className="mt-4 space-y-2 text-sm not-italic leading-relaxed text-white/80">
-              <p>Peace Concept School Campus</p>
+              <p>{SCHOOL_NAME}</p>
               <p>Along Unity Road, Abeokuta, Ogun State</p>
               <p>
                 <a href="tel:+2348012345678" className="hover:text-white">
@@ -74,8 +67,10 @@ export default function SiteFooter() {
 
       <div className="border-t border-white/10">
         <div className="site-container flex flex-col gap-2 py-5 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Peace Concept School</p>
-          <p>Blue for focus. Pink for spirit.</p>
+          <p>
+            © {new Date().getFullYear()} {SCHOOL_NAME}
+          </p>
+          <p>Day Care · Nursery · Basic · JSS · SS</p>
         </div>
       </div>
     </footer>
