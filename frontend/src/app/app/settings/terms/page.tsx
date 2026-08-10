@@ -1,0 +1,501 @@
+"use client";
+
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiJson } from "@/lib/api";
+import { AuthUser, getStoredUser } from "@/lib/auth";
+
+type Session = {
+  id: number;
+  name: string;
+  start_year: number;
+  is_active: boolean;
+};
+
+type Term = {
+  id: number;
+  session: number;
+  session_name: string;
+  number: number;
+  name: string;
+  is_active: boolean;
+  results_entry_open: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  next_term_resumption: string | null;
+};
+
+type ClassReadiness = {
+  class_arm_id: number;
+  label: string;
+  subject_count: number;
+  subjects_with_scores: number;
+  student_count: number;
+  can_publish: boolean;
+  blockers: string[];
+};
+
+type ReadinessPayload = {
+  classes_missing_results?: ClassReadiness[];
+  class_readiness?: ClassReadiness[];
+  can_publish_term?: boolean;
+  term_blockers?: string[];
+  next_term_begins?: string | null;
+};
+
+function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
+  return Array.isArray(data) ? data : data.results ?? [];
+}
+
+export default function SettingsTermsPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [terms, setTerms] = useState<Term[]>([]);
+  const [sessionId, setSessionId] = useState<number | "">("");
+  const [selectedTermId, setSelectedTermId] = useState<number | "">("");
+  const [classReadiness, setClassReadiness] = useState<ClassReadiness[]>([]);
+  const [canPublishTerm, setCanPublishTerm] = useState(false);
+  const [termBlockers, setTermBlockers] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  const canAccess =
+    user?.account_type === "admin" || user?.account_type === "principal";
+
+  const selectedTerm = useMemo(
+    () => terms.find((t) => t.id === selectedTermId) ?? null,
+    [terms, selectedTermId],
+  );
+
+  const loadSessions = useCallback(async () => {
+    const data = await apiJson<{ results?: Session[] } | Session[]>("/api/sessions/");
+    const list = unwrapList(data);
+    setSessions(list);
+    setSessionId((current) => {
+      if (current) return current;
+      const active = list.find((s) => s.is_active);
+      return active?.id ?? list[0]?.id ?? "";
+    });
+  }, []);
+
+  const loadTerms = useCallback(async (sid: number) => {
+    const data = await apiJson<{ results?: Term[] } | Term[]>(
+      `/api/terms/?session=${sid}`,
+    );
+    const list = unwrapList(data);
+    setTerms(list);
+    setSelectedTermId((current) => {
+      if (current && list.some((t) => t.id === current)) return current;
+      const active = list.find((t) => t.is_active);
+      return active?.id ?? list[0]?.id ?? "";
+    });
+  }, []);
+
+  const loadReadiness = useCallback(async (termId: number) => {
+    const data = await apiJson<ReadinessPayload>(`/api/dashboard/?term=${termId}`);
+    const rows = data.class_readiness ?? data.classes_missing_results ?? [];
+    setClassReadiness(rows);
+    setCanPublishTerm(Boolean(data.can_publish_term));
+    setTermBlockers(data.term_blockers ?? []);
+  }, []);
+
+  useEffect(() => {
+    const stored = getStoredUser();
+    setUser(stored);
+    if (
+      stored &&
+      stored.account_type !== "admin" &&
+      stored.account_type !== "principal"
+    ) {
+      router.replace("/app");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!canAccess) return;
+    loadSessions().catch((e) =>
+      setError(e instanceof Error ? e.message : "Failed to load sessions"),
+    );
+  }, [canAccess, loadSessions]);
+
+  useEffect(() => {
+    if (!sessionId || !canAccess) return;
+    loadTerms(sessionId).catch((e) =>
+      setError(e instanceof Error ? e.message : "Failed to load terms"),
+    );
+  }, [sessionId, canAccess, loadTerms]);
+
+  useEffect(() => {
+    if (!selectedTermId) return;
+    loadReadiness(selectedTermId).catch(() => {
+      setClassReadiness([]);
+      setCanPublishTerm(false);
+      setTermBlockers([]);
+    });
+  }, [selectedTermId, loadReadiness]);
+
+  async function patchTerm(id: number, payload: Partial<Term>, okMessage: string) {
+    setPending(true);
+    setMessage("");
+    setError("");
+    try {
+      await apiJson(`/api/terms/${id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      setMessage(okMessage);
+      if (sessionId) await loadTerms(sessionId);
+      if (payload.results_entry_open !== undefined || selectedTermId === id) {
+        await loadReadiness(id);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update term");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function publishClass(classArmId: number) {
+    if (!selectedTerm) return;
+    setPending(true);
+    setMessage("");
+    setError("");
+    try {
+      const res = await apiJson<{ published_count: number }>("/api/scores/publish/", {
+        method: "POST",
+        body: JSON.stringify({
+          term: selectedTerm.id,
+          class_arm: classArmId,
+        }),
+      });
+      setMessage(`Published ${res.published_count} score rows for that class.`);
+      await loadReadiness(selectedTerm.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Publish failed");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function publishAll() {
+    if (!selectedTerm) return;
+    setPending(true);
+    setMessage("");
+    setError("");
+    try {
+      const res = await apiJson<{
+        published_count: number;
+        class_arms_notified: number;
+      }>("/api/scores/publish_term/", {
+        method: "POST",
+        body: JSON.stringify({ term: selectedTerm.id }),
+      });
+      setMessage(
+        `Published ${res.published_count} scores across ${res.class_arms_notified} classes.`,
+      );
+      await loadReadiness(selectedTerm.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Publish term failed");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (user && !canAccess) {
+    return <p className="text-sm text-[var(--muted)]">Redirecting…</p>;
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-pink)]">
+          Settings
+        </p>
+        <h1 className="mt-2 font-display text-4xl font-semibold text-[var(--brand-blue-deep)]">
+          Session Term
+        </h1>
+        <p className="mt-3 max-w-2xl text-base text-[var(--muted)]">
+          Control active term, result entry, next-term date, and publishing.
+        </p>
+      </header>
+
+      {message ? (
+        <p className="rounded-xl bg-[var(--brand-blue-wash)] px-4 py-3 text-sm text-[var(--brand-blue-deep)]">
+          {message}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="rounded-2xl border border-[var(--line)] bg-white/90 p-5 sm:p-6">
+        <label className="field max-w-md">
+          <span>Session</span>
+          <select
+            className="field-input"
+            value={sessionId}
+            onChange={(e) =>
+              setSessionId(e.target.value ? Number(e.target.value) : "")
+            }
+          >
+            {sessions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+                {s.is_active ? " (active)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {terms.map((term) => (
+            <button
+              key={term.id}
+              type="button"
+              onClick={() => setSelectedTermId(term.id)}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                selectedTermId === term.id
+                  ? "bg-[var(--brand-blue)] text-white"
+                  : "bg-[var(--mist)] text-[var(--ink)]"
+              }`}
+            >
+              {term.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {selectedTerm ? (
+        <>
+          <div className="rounded-2xl border border-[var(--line)] bg-white/90 p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-[var(--brand-blue-deep)]">
+                  {selectedTerm.name}
+                </h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {selectedTerm.session_name}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedTerm.is_active ? (
+                  <span className="rounded-lg bg-[var(--brand-blue-wash)] px-3 py-2 text-sm font-bold text-[var(--brand-blue)]">
+                    Active Term
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={pending}
+                    className="rounded-lg border border-[var(--brand-blue)] px-3 py-2 text-sm font-bold text-[var(--brand-blue)]"
+                    onClick={() =>
+                      patchTerm(
+                        selectedTerm.id,
+                        { is_active: true },
+                        "Term set as active.",
+                      )
+                    }
+                  >
+                    Set as Active Term
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={pending}
+                  className={`rounded-lg px-3 py-2 text-sm font-bold text-white ${
+                    selectedTerm.results_entry_open
+                      ? "bg-[var(--brand-pink)]"
+                      : "bg-[var(--brand-blue-deep)]"
+                  }`}
+                  onClick={() =>
+                    patchTerm(
+                      selectedTerm.id,
+                      {
+                        results_entry_open: !selectedTerm.results_entry_open,
+                      },
+                      selectedTerm.results_entry_open
+                        ? "Result entry stopped."
+                        : "Result entry started for teachers.",
+                    )
+                  }
+                >
+                  {selectedTerm.results_entry_open
+                    ? "Stop Result Entry"
+                    : "Start Result Entry"}
+                </button>
+              </div>
+            </div>
+
+            <form
+              className="mt-6 flex flex-wrap items-end gap-3"
+              onSubmit={(event: FormEvent<HTMLFormElement>) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                const next = String(form.get("next_term_resumption") || "");
+                patchTerm(
+                  selectedTerm.id,
+                  { next_term_resumption: next || null } as Partial<Term>,
+                  next
+                    ? "Next term begins date saved."
+                    : "Next term begins date cleared.",
+                );
+              }}
+            >
+              <label className="field min-w-[14rem] flex-1">
+                <span>Next term begins</span>
+                <input
+                  name="next_term_resumption"
+                  type="date"
+                  required
+                  defaultValue={selectedTerm.next_term_resumption ?? ""}
+                  key={`next-${selectedTerm.id}-${selectedTerm.next_term_resumption}`}
+                  className="field-input"
+                />
+              </label>
+              <button
+                type="submit"
+                className="rounded-lg bg-[var(--brand-blue)] px-4 py-2.5 text-sm font-bold text-white"
+                disabled={pending}
+              >
+                Save date
+              </button>
+            </form>
+            <p className="mt-3 text-sm text-[var(--muted)]">
+              Publishing requires: Next term begins date, subjects set up for each
+              class, and all student results entered.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--line)] bg-white/90">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-4 sm:px-6">
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-[var(--brand-blue-deep)]">
+                  Class readiness & publish
+                </h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Publish only when every class is fully ready for{" "}
+                  {selectedTerm.name}.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={pending || !canPublishTerm}
+                title={
+                  canPublishTerm
+                    ? "Publish all classes"
+                    : termBlockers[0] || "Not ready to publish"
+                }
+                className="rounded-lg bg-[var(--brand-pink)] px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
+                onClick={publishAll}
+              >
+                Publish all classes
+              </button>
+            </div>
+
+            {!canPublishTerm && termBlockers.length > 0 ? (
+              <ul className="space-y-1 border-b border-[var(--line)] px-5 py-4 text-sm text-[var(--brand-pink)] sm:px-6">
+                {termBlockers.slice(0, 6).map((blocker) => (
+                  <li key={blocker}>• {blocker}</li>
+                ))}
+              </ul>
+            ) : null}
+
+            {classReadiness.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-[var(--muted)] sm:px-6">
+                No classes with students yet for this term.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-[var(--mist)] text-xs uppercase tracking-[0.08em] text-[var(--muted)]">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold sm:px-6">Class</th>
+                      <th className="px-5 py-3 font-semibold sm:px-6">Subjects</th>
+                      <th className="px-5 py-3 font-semibold sm:px-6">Students</th>
+                      <th className="px-5 py-3 font-semibold sm:px-6">Status</th>
+                      <th className="px-5 py-3 font-semibold sm:px-6">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--line)]">
+                    {classReadiness.map((row) => (
+                      <tr key={row.class_arm_id}>
+                        <td className="px-5 py-3.5 font-semibold sm:px-6">
+                          {row.label}
+                        </td>
+                        <td className="px-5 py-3.5 text-[var(--muted)] sm:px-6">
+                          {row.subject_count > 0
+                            ? `${row.subjects_with_scores} / ${row.subject_count}`
+                            : "Not set"}
+                        </td>
+                        <td className="px-5 py-3.5 text-[var(--muted)] sm:px-6">
+                          {row.student_count}
+                        </td>
+                        <td className="px-5 py-3.5 sm:px-6">
+                          {row.can_publish ? (
+                            <span className="font-semibold text-[var(--brand-blue)]">
+                              Ready
+                            </span>
+                          ) : (
+                            <span
+                              className="text-[var(--brand-pink)]"
+                              title={row.blockers.join(" ")}
+                            >
+                              {row.blockers[0] || "Not ready"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 sm:px-6">
+                          <button
+                            type="button"
+                            disabled={pending || !row.can_publish}
+                            title={
+                              row.can_publish
+                                ? "Publish this class"
+                                : row.blockers[0] || "Not ready"
+                            }
+                            className="text-sm font-bold text-[var(--brand-blue)] hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline"
+                            onClick={() => publishClass(row.class_arm_id)}
+                          >
+                            Publish
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-[var(--muted)]">
+          Select a session with terms to manage result entry and publishing.
+        </p>
+      )}
+
+      <style jsx global>{`
+        .field {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .field span {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--muted);
+        }
+        .field-input {
+          width: 100%;
+          border: 1px solid var(--line);
+          background: #fff;
+          border-radius: 0.65rem;
+          padding: 0.65rem 0.75rem;
+          font-size: 0.95rem;
+        }
+      `}</style>
+    </div>
+  );
+}

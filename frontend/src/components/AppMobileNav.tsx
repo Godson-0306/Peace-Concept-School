@@ -23,7 +23,7 @@ export default function AppMobileNav() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [levels, setLevels] = useState<ClassLevelNav[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [usersOpen, setUsersOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -43,10 +43,6 @@ export default function AppMobileNav() {
   }, [pathname]);
 
   useEffect(() => {
-    if (pathname.startsWith("/app/users")) setUsersOpen(true);
-  }, [pathname]);
-
-  useEffect(() => {
     if (!menuOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -63,6 +59,18 @@ export default function AppMobileNav() {
     () => withUsersClassLevels(portalNavFor(user?.account_type), levels),
     [user?.account_type, levels],
   );
+
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      for (const link of links) {
+        if (link.children?.length && isPortalNavActive(pathname, link.href)) {
+          next[link.href] = true;
+        }
+      }
+      return next;
+    });
+  }, [pathname, links]);
 
   return (
     <div className="border-b border-[var(--line)] bg-white/90 md:hidden">
@@ -130,24 +138,30 @@ export default function AppMobileNav() {
               {links.map((link) => {
                 if (link.children?.length) {
                   const parentActive = isPortalNavActive(pathname, link.href);
+                  const open = Boolean(openGroups[link.href]);
                   return (
                     <div key={link.href} className="mb-1">
                       <button
                         type="button"
-                        onClick={() => setUsersOpen((open) => !open)}
+                        onClick={() =>
+                          setOpenGroups((prev) => ({
+                            ...prev,
+                            [link.href]: !prev[link.href],
+                          }))
+                        }
                         className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-sm font-semibold ${
                           parentActive
                             ? "bg-[var(--brand-blue)] text-white"
                             : "text-[var(--ink)] hover:bg-[var(--brand-blue-wash)]"
                         }`}
-                        aria-expanded={usersOpen}
+                        aria-expanded={open}
                       >
                         <span>{link.label}</span>
                         <span className="text-xs opacity-80">
-                          {usersOpen ? "−" : "+"}
+                          {open ? "−" : "+"}
                         </span>
                       </button>
-                      {usersOpen ? (
+                      {open ? (
                         <div className="mt-1 ml-2 space-y-0.5 border-l border-[var(--line)] pl-2">
                           {link.children.map((child) => {
                             const active = isExactPortalNavActive(

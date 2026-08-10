@@ -64,11 +64,16 @@ class DepartmentViewSet(AdminOrReadAuthenticated):
     serializer_class = DepartmentSerializer
 
 
-class SubjectViewSet(AdminOrReadAuthenticated):
+class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.select_related("class_level", "department").all()
     serializer_class = SubjectSerializer
     filterset_fields = ["class_level", "department", "subject_type", "is_active"]
     search_fields = ["name", "code"]
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [IsAuthenticated()]
+        return [IsAdminOrPrincipal()]
 
 
 class TeacherAssignmentViewSet(viewsets.ModelViewSet):

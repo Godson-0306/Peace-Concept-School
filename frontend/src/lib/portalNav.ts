@@ -8,7 +8,15 @@ export type PortalNavItem = {
 
 export const STAFF_PORTAL_NAV: PortalNavItem[] = [
   { href: "/app", label: "Dashboard" },
-  { href: "/app/settings", label: "Settings" },
+  {
+    href: "/app/settings",
+    label: "Settings",
+    children: [
+      { href: "/app/settings/subjects", label: "Subjects Settings" },
+      { href: "/app/settings/session", label: "Session" },
+      { href: "/app/settings/terms", label: "Session Term" },
+    ],
+  },
   { href: "/app/gallery", label: "Gallery" },
   { href: "/app/news", label: "News" },
   {
@@ -139,15 +147,43 @@ export function portalNavFor(accountType: AccountType | null | undefined): Porta
   return links;
 }
 
+/** Subject settings bands mapped to class-level names. */
+export const SUBJECT_LEVEL_BANDS = [
+  {
+    id: "nursery",
+    label: "Nursery",
+    levels: ["Day Care", "Nursery 1", "Nursery 2"],
+  },
+  {
+    id: "primary",
+    label: "Primary",
+    levels: ["Basic 1", "Basic 2", "Basic 3", "Basic 4", "Basic 5"],
+  },
+  {
+    id: "junior",
+    label: "Junior Secondary",
+    levels: ["JSS1", "JSS2", "JSS3"],
+  },
+  {
+    id: "senior",
+    label: "Senior Secondary",
+    levels: ["SS1", "SS2", "SS3"],
+  },
+] as const;
+
 export function isPortalNavActive(pathname: string, href: string): boolean {
   if (href === "/app") return pathname === "/app";
   if (href === "/app/users") {
     return pathname === "/app/users" || pathname.startsWith("/app/users/");
+  }
+  if (href === "/app/settings") {
+    return pathname === "/app/settings" || pathname.startsWith("/app/settings/");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function isExactPortalNavActive(pathname: string, href: string): boolean {
   if (href === "/app/users") return pathname === "/app/users";
+  if (href === "/app/settings") return pathname === "/app/settings";
   return pathname === href;
 }
