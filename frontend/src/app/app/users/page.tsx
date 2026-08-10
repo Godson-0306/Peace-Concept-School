@@ -1,10 +1,13 @@
-import ModuleShell from "@/components/ModuleShell";
+"use client";
 
-export default function UsersPage() {
+import UsersStudentsPanel from "@/components/UsersStudentsPanel";
+
+export default function UsersAllStudentsPage() {
   return (
-    <ModuleShell
-      title="Users"
-      description="Create and manage staff, student, and parent portal accounts. Accounts are provisioned by administrators only."
+    <UsersStudentsPanel
+      title="All Students"
+      description="Active students across every class level."
+      query="is_active=true"
     />
   );
 }

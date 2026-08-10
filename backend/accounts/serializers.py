@@ -176,6 +176,12 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     create_portal_account = serializers.BooleanField(write_only=True, default=True)
     user = UserSerializer(read_only=True)
     class_arm_label = serializers.CharField(source="class_arm.label", read_only=True, default="")
+    class_level = serializers.IntegerField(
+        source="class_arm.class_level_id", read_only=True, allow_null=True
+    )
+    class_level_name = serializers.CharField(
+        source="class_arm.class_level.name", read_only=True, default=""
+    )
 
     class Meta:
         model = StudentProfile
@@ -189,6 +195,8 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "admission_year",
             "class_arm",
             "class_arm_label",
+            "class_level",
+            "class_level_name",
             "guardian_name",
             "guardian_email",
             "guardian_phone",

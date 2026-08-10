@@ -9,17 +9,85 @@ from .models import (
     TeacherAssignment,
     Term,
 )
+from .services.promotion import promote_students_for_new_session
 
 
 class AcademicSessionSerializer(serializers.ModelSerializer):
+    promoted_count = serializers.IntegerField(read_only=True, required=False)
+    graduated_count = serializers.IntegerField(read_only=True, required=False)
+    skipped_count = serializers.IntegerField(read_only=True, required=False)
+    promotion_ran = serializers.BooleanField(read_only=True, required=False)
+
     class Meta:
         model = AcademicSession
-        fields = ["id", "name", "start_year", "is_active", "created_at"]
+        fields = [
+            "id",
+            "name",
+            "start_year",
+            "is_active",
+            "students_promoted_for_session",
+            "created_at",
+            "promoted_count",
+            "graduated_count",
+            "skipped_count",
+            "promotion_ran",
+        ]
+        read_only_fields = ["students_promoted_for_session", "created_at"]
+
+    def _maybe_promote(self, session: AcademicSession, becoming_active: bool, previous_active_id):
+        summary = {
+            "promotion_ran": False,
+            "promoted_count": 0,
+            "graduated_count": 0,
+            "skipped_count": 0,
+        }
+        if not becoming_active:
+            return summary
+        if session.students_promoted_for_session:
+            return summary
+        # Only promote when activating a different session than the previous active one.
+        if previous_active_id is not None and previous_active_id == session.id:
+            return summary
+        result = promote_students_for_new_session()
+        session.students_promoted_for_session = True
+        session.save(update_fields=["students_promoted_for_session"])
+        summary.update(result)
+        summary["promotion_ran"] = True
+        return summary
 
     def create(self, validated_data):
+        previous_active = AcademicSession.objects.filter(is_active=True).first()
+        previous_active_id = previous_active.id if previous_active else None
+        becoming_active = bool(validated_data.get("is_active"))
         session = AcademicSession.objects.create(**validated_data)
         for number in Term.TermNumber.values:
             Term.objects.get_or_create(session=session, number=number)
+        summary = self._maybe_promote(session, becoming_active, previous_active_id)
+        session.promoted_count = summary["promoted_count"]
+        session.graduated_count = summary["graduated_count"]
+        session.skipped_count = summary["skipped_count"]
+        session.promotion_ran = summary["promotion_ran"]
+        return session
+
+    def update(self, instance, validated_data):
+        previous_active = AcademicSession.objects.filter(is_active=True).exclude(pk=instance.pk).first()
+        previous_active_id = previous_active.id if previous_active else (
+            instance.id if instance.is_active else None
+        )
+        was_active = instance.is_active
+        becoming_active = bool(validated_data.get("is_active", instance.is_active))
+        # Promote only when switching onto this session as newly active.
+        should_consider = becoming_active and not was_active
+        session = super().update(instance, validated_data)
+        summary = self._maybe_promote(
+            session,
+            should_consider,
+            previous_active_id if should_consider else session.id,
+        )
+        session.promoted_count = summary["promoted_count"]
+        session.graduated_count = summary["graduated_count"]
+        session.skipped_count = summary["skipped_count"]
+        session.promotion_ran = summary["promotion_ran"]
         return session
 
 

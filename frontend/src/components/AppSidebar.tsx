@@ -4,23 +4,51 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiJson } from "@/lib/api";
 import { AuthUser, clearUser, getStoredUser } from "@/lib/auth";
 import { SCHOOL_SHORT } from "@/lib/brand";
-import { isPortalNavActive, portalNavFor } from "@/lib/portalNav";
+import {
+  ClassLevelNav,
+  isExactPortalNavActive,
+  isPortalNavActive,
+  portalNavFor,
+  withUsersClassLevels,
+} from "@/lib/portalNav";
+
+function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
+  return Array.isArray(data) ? data : data.results ?? [];
+}
 
 export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [levels, setLevels] = useState<ClassLevelNav[]>([]);
+  const [usersOpen, setUsersOpen] = useState(false);
 
   useEffect(() => {
     setUser(getStoredUser());
   }, []);
 
+  useEffect(() => {
+    if (user?.account_type !== "admin" && user?.account_type !== "principal") {
+      return;
+    }
+    apiJson<{ results?: ClassLevelNav[] } | ClassLevelNav[]>("/api/class-levels/")
+      .then((data) => {
+        const list = unwrapList(data).sort((a, b) => a.order - b.order);
+        setLevels(list);
+      })
+      .catch(() => setLevels([]));
+  }, [user?.account_type]);
+
+  useEffect(() => {
+    if (pathname.startsWith("/app/users")) setUsersOpen(true);
+  }, [pathname]);
+
   const links = useMemo(
-    () => portalNavFor(user?.account_type),
-    [user?.account_type],
+    () => withUsersClassLevels(portalNavFor(user?.account_type), levels),
+    [user?.account_type, levels],
   );
 
   async function logout() {
@@ -57,6 +85,47 @@ export default function AppSidebar() {
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4" aria-label="App">
         {links.map((link) => {
+          if (link.children?.length) {
+            const parentActive = isPortalNavActive(pathname, link.href);
+            return (
+              <div key={link.href} className="space-y-0.5">
+                <button
+                  type="button"
+                  onClick={() => setUsersOpen((open) => !open)}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                    parentActive
+                      ? "bg-[var(--brand-blue)] text-white"
+                      : "text-[var(--ink)] hover:bg-[var(--brand-blue-wash)]"
+                  }`}
+                  aria-expanded={usersOpen}
+                >
+                  <span>{link.label}</span>
+                  <span className="text-xs opacity-80">{usersOpen ? "−" : "+"}</span>
+                </button>
+                {usersOpen ? (
+                  <div className="ml-2 space-y-0.5 border-l border-[var(--line)] pl-2">
+                    {link.children.map((child) => {
+                      const active = isExactPortalNavActive(pathname, child.href);
+                      return (
+                        <Link
+                          key={child.href + child.label}
+                          href={child.href}
+                          className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+                            active
+                              ? "bg-[var(--brand-blue-wash)] font-semibold text-[var(--brand-blue)]"
+                              : "text-[var(--muted)] hover:bg-[var(--mist)] hover:text-[var(--ink)]"
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          }
+
           const active = isPortalNavActive(pathname, link.href);
           return (
             <Link

@@ -6,6 +6,10 @@ class AcademicSession(models.Model):
     name = models.CharField(max_length=32, unique=True)  # e.g. 2025/2026
     start_year = models.PositiveIntegerField()
     is_active = models.BooleanField(default=False)
+    students_promoted_for_session = models.BooleanField(
+        default=False,
+        help_text="True after students were auto-promoted when this session became active.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

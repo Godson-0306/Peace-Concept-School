@@ -3,21 +3,47 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
 import { SCHOOL_SHORT } from "@/lib/brand";
-import { isPortalNavActive, portalNavFor } from "@/lib/portalNav";
+import {
+  ClassLevelNav,
+  isExactPortalNavActive,
+  isPortalNavActive,
+  portalNavFor,
+  withUsersClassLevels,
+} from "@/lib/portalNav";
+
+function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
+  return Array.isArray(data) ? data : data.results ?? [];
+}
 
 export default function AppMobileNav() {
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [levels, setLevels] = useState<ClassLevelNav[]>([]);
+  const [usersOpen, setUsersOpen] = useState(false);
 
   useEffect(() => {
     setUser(getStoredUser());
   }, []);
 
+  useEffect(() => {
+    if (user?.account_type !== "admin" && user?.account_type !== "principal") {
+      return;
+    }
+    apiJson<{ results?: ClassLevelNav[] } | ClassLevelNav[]>("/api/class-levels/")
+      .then((data) => setLevels(unwrapList(data).sort((a, b) => a.order - b.order)))
+      .catch(() => setLevels([]));
+  }, [user?.account_type]);
+
+  useEffect(() => {
+    if (pathname.startsWith("/app/users")) setUsersOpen(true);
+  }, [pathname]);
+
   const links = useMemo(
-    () => portalNavFor(user?.account_type),
-    [user?.account_type],
+    () => withUsersClassLevels(portalNavFor(user?.account_type), levels),
+    [user?.account_type, levels],
   );
 
   return (
@@ -38,6 +64,43 @@ export default function AppMobileNav() {
         aria-label="App mobile"
       >
         {links.map((link) => {
+          if (link.children?.length) {
+            const parentActive = isPortalNavActive(pathname, link.href);
+            return (
+              <div key={link.href} className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setUsersOpen((v) => !v)}
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                    parentActive
+                      ? "bg-[var(--brand-blue)] text-white"
+                      : "bg-[var(--brand-blue-wash)] text-[var(--brand-blue)]"
+                  }`}
+                >
+                  {link.label} {usersOpen ? "−" : "+"}
+                </button>
+                {usersOpen
+                  ? link.children.map((child) => {
+                      const active = isExactPortalNavActive(pathname, child.href);
+                      return (
+                        <Link
+                          key={child.href + child.label}
+                          href={child.href}
+                          className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                            active
+                              ? "bg-[var(--brand-pink)] text-white"
+                              : "bg-[var(--mist)] text-[var(--ink)]"
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })
+                  : null}
+              </div>
+            );
+          }
+
           const active = isPortalNavActive(pathname, link.href);
           return (
             <Link

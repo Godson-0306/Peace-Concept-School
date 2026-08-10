@@ -78,7 +78,9 @@ class StaffViewSet(viewsets.ModelViewSet):
 
 
 class StudentViewSet(viewsets.ModelViewSet):
-    queryset = StudentProfile.objects.select_related("user", "class_arm").all()
+    queryset = StudentProfile.objects.select_related(
+        "user", "class_arm", "class_arm__class_level"
+    ).all()
     serializer_class = StudentProfileSerializer
     permission_classes = [IsAuthenticated]
     search_fields = ["full_name", "student_id", "guardian_name", "guardian_email"]
@@ -92,6 +94,10 @@ class StudentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = super().get_queryset()
+        class_level = self.request.query_params.get("class_level")
+        if class_level:
+            qs = qs.filter(class_arm__class_level_id=class_level)
+
         if can_manage_accounts(user) or user.account_type in ("principal", "accountant"):
             return qs
         from accounts.permissions import can_view_all_results, form_teacher_class_arm_ids

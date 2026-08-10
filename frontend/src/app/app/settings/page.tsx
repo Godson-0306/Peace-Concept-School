@@ -12,7 +12,16 @@ type Session = {
   name: string;
   start_year: number;
   is_active: boolean;
+  promotion_ran?: boolean;
+  promoted_count?: number;
+  graduated_count?: number;
+  skipped_count?: number;
 };
+
+function promotionMessage(session: Session): string {
+  if (!session.promotion_ran) return "";
+  return ` Students promoted: ${session.promoted_count ?? 0}; graduated to Ex-Students: ${session.graduated_count ?? 0}.`;
+}
 
 type Term = {
   id: number;
@@ -158,7 +167,7 @@ export default function SettingsPage() {
         }),
       });
       setMessage(
-        `Session ${created.name} created with 1st, 2nd, and 3rd terms.`,
+        `Session ${created.name} created with 1st, 2nd, and 3rd terms.${promotionMessage(created)}`,
       );
       event.currentTarget.reset();
       await loadSessions();
@@ -177,11 +186,11 @@ export default function SettingsPage() {
     setMessage("");
     setError("");
     try {
-      await apiJson(`/api/sessions/${id}/`, {
+      const updated = await apiJson<Session>(`/api/sessions/${id}/`, {
         method: "PATCH",
         body: JSON.stringify({ is_active: true }),
       });
-      setMessage("Session activated.");
+      setMessage(`Session activated.${promotionMessage(updated)}`);
       await loadSessions();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not activate session");
