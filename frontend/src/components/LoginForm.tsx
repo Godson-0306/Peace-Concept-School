@@ -87,7 +87,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form method="post" action="#" onSubmit={onSubmit} className="space-y-5">
       <div
         className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--mist)] p-1"
         role="tablist"
@@ -140,7 +140,8 @@ export default function LoginForm() {
           type="text"
           required
           autoComplete="username"
-          autoCapitalize="characters"
+          autoCapitalize={portal === "student" ? "characters" : "none"}
+          autoCorrect="off"
           spellCheck={false}
           placeholder={portal === "student" ? "e.g. PCS025001" : "e.g. teacher1"}
         />

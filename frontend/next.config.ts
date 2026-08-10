@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const apiOrigin = process.env.API_PROXY_ORIGIN ?? "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
+  // Cursor port-forward / Simple Browser often opens via 127.0.0.1 while
+  // Next.dev defaults to localhost — without this, client chunks return 403
+  // and interactive forms (login Staff/Student tabs) never hydrate.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   images: {
     remotePatterns: [
       {
