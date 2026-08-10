@@ -92,6 +92,14 @@ class IsAdminAccount(BasePermission):
         return can_manage_accounts(request.user)
 
 
+class IsAdminOrPrincipal(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.account_type in (
+            AccountType.ADMIN,
+            AccountType.PRINCIPAL,
+        )
+
+
 class IsAccountantOrAdmin(BasePermission):
     def has_permission(self, request, view):
         return can_manage_fees(request.user)

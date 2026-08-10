@@ -30,6 +30,10 @@ class Term(models.Model):
     number = models.PositiveSmallIntegerField(choices=TermNumber.choices)
     name = models.CharField(max_length=32, blank=True)
     is_active = models.BooleanField(default=False)
+    results_entry_open = models.BooleanField(
+        default=False,
+        help_text="When true, teachers may enter and edit scores for this term.",
+    )
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     next_term_resumption = models.DateField(null=True, blank=True)

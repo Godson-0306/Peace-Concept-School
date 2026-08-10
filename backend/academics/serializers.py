@@ -16,6 +16,12 @@ class AcademicSessionSerializer(serializers.ModelSerializer):
         model = AcademicSession
         fields = ["id", "name", "start_year", "is_active", "created_at"]
 
+    def create(self, validated_data):
+        session = AcademicSession.objects.create(**validated_data)
+        for number in Term.TermNumber.values:
+            Term.objects.get_or_create(session=session, number=number)
+        return session
+
 
 class TermSerializer(serializers.ModelSerializer):
     session_name = serializers.CharField(source="session.name", read_only=True)
@@ -29,6 +35,7 @@ class TermSerializer(serializers.ModelSerializer):
             "number",
             "name",
             "is_active",
+            "results_entry_open",
             "start_date",
             "end_date",
             "next_term_resumption",

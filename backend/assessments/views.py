@@ -96,10 +96,19 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
                 return qs.filter(q).distinct()
         return qs.none()
 
+    def _ensure_results_entry_open(self, user, term):
+        if can_edit_all_results(user):
+            return
+        if not getattr(term, "results_entry_open", False):
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("Result entry is closed for this term.")
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        self._ensure_results_entry_open(request.user, data["term"])
         score, _created = AssessmentScore.objects.update_or_create(
             student=data["student"],
             subject=data["subject"],
@@ -132,6 +141,7 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
 
             raise PermissionDenied("You cannot edit this score.")
+        self._ensure_results_entry_open(self.request.user, instance.term)
         # Teachers cannot change published status via normal update
         serializer.save(entered_by=self.request.user)
 
@@ -154,6 +164,37 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
         )
         notify_guardians_results_published.delay(term_id=term_id, class_arm_id=class_arm_id)
         return Response({"published_count": updated})
+
+    @action(detail=False, methods=["post"])
+    def publish_term(self, request):
+        if not can_publish_results(request.user):
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+        term_id = request.data.get("term")
+        if not term_id:
+            return Response(
+                {"detail": "term is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        class_arm_ids = list(
+            AssessmentScore.objects.filter(
+                term_id=term_id, status=AssessmentScore.Status.DRAFT
+            )
+            .values_list("class_arm_id", flat=True)
+            .distinct()
+        )
+        updated = AssessmentScore.objects.filter(
+            term_id=term_id, status=AssessmentScore.Status.DRAFT
+        ).update(status=AssessmentScore.Status.PUBLISHED, published_at=timezone.now())
+        for class_arm_id in class_arm_ids:
+            notify_guardians_results_published.delay(
+                term_id=term_id, class_arm_id=class_arm_id
+            )
+        return Response(
+            {
+                "published_count": updated,
+                "class_arms_notified": len(class_arm_ids),
+            }
+        )
 
     @action(detail=False, methods=["get"])
     def class_results(self, request):
@@ -290,7 +331,12 @@ def dashboard_summary(request):
     from academics.models import ClassArm, Subject, Term
     from django.db.models import Count, Q
 
-    term = Term.objects.filter(is_active=True).select_related("session").first()
+    term_id = request.query_params.get("term")
+    term = None
+    if term_id:
+        term = Term.objects.filter(id=term_id).select_related("session").first()
+    if not term:
+        term = Term.objects.filter(is_active=True).select_related("session").first()
     if not term:
         term = Term.objects.select_related("session").order_by("-session__start_year", "-number").first()
 

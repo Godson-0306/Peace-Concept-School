@@ -1,7 +1,7 @@
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 
-from accounts.permissions import IsAdminAccount, can_manage_accounts
+from accounts.permissions import IsAdminAccount, IsAdminOrPrincipal, can_manage_accounts
 
 from .models import (
     AcademicSession,
@@ -35,10 +35,17 @@ class AcademicSessionViewSet(AdminOrReadAuthenticated):
     serializer_class = AcademicSessionSerializer
 
 
-class TermViewSet(AdminOrReadAuthenticated):
+class TermViewSet(viewsets.ModelViewSet):
     queryset = Term.objects.select_related("session").all()
     serializer_class = TermSerializer
     filterset_fields = ["session", "is_active", "number"]
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [IsAuthenticated()]
+        if self.action in ("update", "partial_update"):
+            return [IsAdminOrPrincipal()]
+        return [IsAdminAccount()]
 
 
 class ClassLevelViewSet(AdminOrReadAuthenticated):

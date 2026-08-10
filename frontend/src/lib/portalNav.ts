@@ -28,9 +28,14 @@ const STUDENT_HREFS = new Set([
   "/app/attendance",
 ]);
 
+const SETTINGS_ROLES = new Set<AccountType>(["admin", "principal"]);
+
 export function portalNavFor(accountType: AccountType | null | undefined): PortalNavItem[] {
   if (accountType === "student") {
     return STAFF_PORTAL_NAV.filter((item) => STUDENT_HREFS.has(item.href));
+  }
+  if (!accountType || !SETTINGS_ROLES.has(accountType)) {
+    return STAFF_PORTAL_NAV.filter((item) => item.href !== "/app/settings");
   }
   return STAFF_PORTAL_NAV;
 }
