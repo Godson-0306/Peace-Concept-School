@@ -6,7 +6,13 @@ const nextConfig: NextConfig = {
   // Cursor port-forward / Simple Browser often opens via 127.0.0.1 while
   // Next.dev defaults to localhost — without this, client chunks return 403
   // and interactive forms (login Staff/Student tabs) never hydrate.
-  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  allowedDevOrigins: [
+    "127.0.0.1",
+    "localhost",
+    "*.localhost",
+    "*.cursor.sh",
+    "*.cursorapi.com",
+  ],
   images: {
     remotePatterns: [
       {

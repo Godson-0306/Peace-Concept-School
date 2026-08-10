@@ -213,6 +213,68 @@ a {
   border: 1px solid rgba(180, 40, 70, 0.16);
 }
 
+/* Login portal tabs — pure CSS so Staff/Student works without JS hydration */
+.login-portal .login-tab {
+  cursor: pointer;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--muted);
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.login-portal .login-tab:hover {
+  color: var(--ink);
+}
+
+.login-portal .when-staff {
+  display: none;
+}
+
+.login-portal:has(input[name="portal"][value="student"]:checked) .login-tab-student {
+  background: var(--brand-pink);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(12, 47, 109, 0.12);
+}
+
+.login-portal:has(input[name="portal"][value="staff"]:checked) .login-tab-staff {
+  background: var(--brand-blue);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(12, 47, 109, 0.12);
+}
+
+.login-portal:has(input[name="portal"][value="staff"]:checked) .when-student {
+  display: none;
+}
+
+.login-portal:has(input[name="portal"][value="staff"]:checked) .when-staff {
+  display: initial;
+}
+
+.login-portal .login-submit {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-pink);
+  transition: filter 160ms ease;
+}
+
+.login-portal .login-submit:hover {
+  filter: brightness(1.05);
+}
+
+.login-portal:has(input[name="portal"][value="staff"]:checked) .login-submit {
+  background: var(--brand-blue);
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;

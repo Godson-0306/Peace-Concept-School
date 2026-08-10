@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
 import LoginForm from "@/components/LoginForm";
 import { SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
 
@@ -10,7 +9,17 @@ export const metadata: Metadata = {
   description: `Sign in to the ${SCHOOL_NAME} management portal.`,
 };
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    portal?: string;
+    next?: string;
+  }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = (await searchParams) ?? {};
+
   return (
     <section className="relative min-h-[calc(100svh-4.6rem)] overflow-hidden">
       <div className="absolute inset-0">
@@ -47,11 +56,14 @@ export default function LoginPage() {
           />
           <p className="mt-6 max-w-md text-base leading-relaxed text-white/80 sm:text-lg">
             Sign in to your portal — students with Student ID, staff with the
-            username created at registration.
+            username or email created at registration.
           </p>
           <p className="mt-8 text-sm text-white/65">
             Need an account? Contact the school office.{" "}
-            <Link href="/contact" className="font-semibold text-white underline-offset-4 hover:underline">
+            <Link
+              href="/contact"
+              className="font-semibold text-white underline-offset-4 hover:underline"
+            >
               Get in touch
             </Link>
           </p>
@@ -70,13 +82,11 @@ export default function LoginPage() {
               is no public signup.
             </p>
             <div className="mt-7">
-              <Suspense
-                fallback={
-                  <p className="text-sm text-[var(--muted)]">Loading form...</p>
-                }
-              >
-                <LoginForm />
-              </Suspense>
+              <LoginForm
+                portal={params.portal}
+                error={params.error}
+                next={params.next}
+              />
             </div>
           </div>
         </div>

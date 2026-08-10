@@ -71,15 +71,23 @@ class LoginSerializer(serializers.Serializer):
                     "Invalid Student ID or password."
                 )
         else:
-            user = User.objects.filter(username__iexact=identifier).first()
+            user = (
+                User.objects.filter(username__iexact=identifier).first()
+                or User.objects.filter(email__iexact=identifier).first()
+            )
             if not user:
-                raise serializers.ValidationError("Invalid username or password.")
+                raise serializers.ValidationError(
+                    "Invalid username/email or password."
+                )
             if user.account_type == AccountType.STUDENT:
                 raise serializers.ValidationError(
                     "Use the Student tab with your Student ID."
                 )
             if not user.check_password(password):
-                raise serializers.ValidationError("Invalid username or password.")
+                raise serializers.ValidationError(
+                    "Invalid username/email or password."
+                )
+
 
         if not user.is_active:
             raise serializers.ValidationError("This account is disabled.")

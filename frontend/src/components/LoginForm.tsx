@@ -1,138 +1,63 @@
-"use client";
+import { loginAction } from "@/app/(site)/login/actions";
 
-import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { apiFetch } from "@/lib/api";
-import { dashboardPathFor, normalizeAccountType, storeUser } from "@/lib/auth";
+type LoginFormProps = {
+  portal?: string | null;
+  error?: string | null;
+  next?: string | null;
+};
 
-type Portal = "student" | "staff";
-type Status = { type: "error"; message: string } | null;
-
-function extractErrorMessage(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== "object") return fallback;
-  const data = payload as Record<string, unknown>;
-  if (typeof data.detail === "string") return data.detail;
-  if (typeof data.message === "string") return data.message;
-  if (Array.isArray(data.non_field_errors) && data.non_field_errors[0]) {
-    return String(data.non_field_errors[0]);
-  }
-  for (const value of Object.values(data)) {
-    if (Array.isArray(value) && value[0]) return String(value[0]);
-    if (typeof value === "string") return value;
-  }
-  return fallback;
-}
-
-export default function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [portal, setPortal] = useState<Portal>("student");
-  const [status, setStatus] = useState<Status>(null);
-  const [pending, setPending] = useState(false);
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPending(true);
-    setStatus(null);
-
-    const data = new FormData(event.currentTarget);
-    const identifier = String(data.get("identifier") ?? "").trim();
-    const password = String(data.get("password") ?? "");
-
-    try {
-      const response = await apiFetch("/api/auth/login/", {
-        method: "POST",
-        body: JSON.stringify({ portal, identifier, password }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          extractErrorMessage(
-            payload,
-            portal === "student"
-              ? "Invalid Student ID or password. Please try again."
-              : "Invalid username or password. Please try again.",
-          ),
-        );
-      }
-
-      const userPayload = payload.user ?? payload;
-      const accountType = normalizeAccountType(userPayload.account_type);
-
-      storeUser({
-        id: userPayload.id,
-        email: userPayload.email ?? identifier,
-        full_name: userPayload.full_name,
-        account_type: accountType,
-      });
-
-      const next = searchParams.get("next");
-      const destination =
-        next && next.startsWith("/app") ? next : dashboardPathFor(accountType);
-
-      router.replace(destination);
-    } catch (error) {
-      setStatus({
-        type: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to sign in. Please try again.",
-      });
-    } finally {
-      setPending(false);
-    }
-  }
+export default function LoginForm({
+  portal: portalParam,
+  error,
+  next,
+}: LoginFormProps) {
+  const initialPortal = portalParam === "staff" ? "staff" : "student";
 
   return (
-    <form method="post" action="#" onSubmit={onSubmit} className="space-y-5">
+    <form action={loginAction} className="login-portal space-y-5">
+      {next && next.startsWith("/app") ? (
+        <input type="hidden" name="next" value={next} />
+      ) : null}
+
       <div
         className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--mist)] p-1"
-        role="tablist"
+        role="radiogroup"
         aria-label="Sign-in type"
       >
-        {(
-          [
-            { id: "student", label: "Student" },
-            { id: "staff", label: "Staff" },
-          ] as const
-        ).map((tab) => {
-          const active = portal === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => {
-                setPortal(tab.id);
-                setStatus(null);
-              }}
-              className={`rounded-lg px-3 py-2.5 text-sm font-bold transition-all duration-200 ${
-                active
-                  ? tab.id === "student"
-                    ? "bg-[var(--brand-pink)] text-white shadow-sm"
-                    : "bg-[var(--brand-blue)] text-white shadow-sm"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+        <label className="login-tab login-tab-student">
+          <input
+            type="radio"
+            name="portal"
+            value="student"
+            defaultChecked={initialPortal === "student"}
+            className="sr-only"
+          />
+          Student
+        </label>
+        <label className="login-tab login-tab-staff">
+          <input
+            type="radio"
+            name="portal"
+            value="staff"
+            defaultChecked={initialPortal === "staff"}
+            className="sr-only"
+          />
+          Staff
+        </label>
       </div>
 
-      <p className="text-sm leading-relaxed text-[var(--muted)]">
-        {portal === "student"
-          ? "Sign in with your Student ID and password issued by the school."
-          : "Sign in with the username and password created when your staff account was registered."}
+      <p className="text-sm leading-relaxed text-[var(--muted)] when-student">
+        Sign in with your Student ID and password issued by the school.
+      </p>
+      <p className="text-sm leading-relaxed text-[var(--muted)] when-staff">
+        Sign in with the username or email and password created when your staff
+        account was registered.
       </p>
 
-      <div className="field" key={`${portal}-identifier`}>
+      <div className="field">
         <label htmlFor="login-identifier">
-          {portal === "student" ? "Student ID" : "Username"}
+          <span className="when-student">Student ID</span>
+          <span className="when-staff">Username or email</span>
         </label>
         <input
           id="login-identifier"
@@ -140,10 +65,14 @@ export default function LoginForm() {
           type="text"
           required
           autoComplete="username"
-          autoCapitalize={portal === "student" ? "characters" : "none"}
           autoCorrect="off"
           spellCheck={false}
-          placeholder={portal === "student" ? "e.g. PCS025001" : "e.g. teacher1"}
+          className="login-identifier"
+          data-student-placeholder="e.g. PCS025001"
+          data-staff-placeholder="e.g. admin or email"
+          placeholder={
+            initialPortal === "student" ? "e.g. PCS025001" : "e.g. admin or email"
+          }
         />
       </div>
 
@@ -158,22 +87,14 @@ export default function LoginForm() {
         />
       </div>
 
-      {status ? (
+      {error ? (
         <p className="form-status error" role="alert">
-          {status.message}
+          {error}
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        className={`inline-flex w-full items-center justify-center rounded-[0.75rem] px-5 py-3 text-sm font-bold text-white transition disabled:opacity-60 ${
-          portal === "student"
-            ? "bg-[var(--brand-pink)] hover:brightness-105"
-            : "bg-[var(--brand-blue)] hover:brightness-105"
-        }`}
-        disabled={pending}
-      >
-        {pending ? "Signing in..." : "Sign in"}
+      <button type="submit" className="login-submit">
+        Sign in
       </button>
     </form>
   );
