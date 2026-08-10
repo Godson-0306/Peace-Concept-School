@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { SCHOOL_NAME } from "@/lib/brand";
 
 const footerNav = [
   { href: "/about", label: "About" },
@@ -11,58 +13,74 @@ const footerNav = [
 
 export default function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-[var(--line)] bg-[var(--brand-green-deep)] text-white">
-      <div className="site-container grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div>
-          <p className="font-display text-3xl font-semibold tracking-tight">
-            Peace Concept School
-          </p>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-white/75">
-            A Nigerian secondary school nurturing disciplined, thoughtful learners
-            from JSS1 through SSS3. Session 2025/2026.
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-gold)]">
-            Explore
-          </p>
-          <ul className="mt-4 space-y-2 text-sm text-white/80">
-            {footerNav.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="transition-colors hover:text-white">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-gold)]">
-            Visit
-          </p>
-          <address className="mt-4 space-y-2 text-sm not-italic leading-relaxed text-white/80">
-            <p>Peace Concept School Campus</p>
-            <p>Along Unity Road, Abeokuta, Ogun State, Nigeria</p>
-            <p>
-              <a href="tel:+2348012345678" className="hover:text-white">
-                +234 801 234 5678
-              </a>
+    <footer className="mt-auto overflow-hidden bg-[var(--brand-blue-deep)] text-white">
+      <div className="relative">
+        <div
+          aria-hidden
+          className="absolute -right-16 top-0 h-64 w-64 rounded-full bg-[var(--brand-pink)] opacity-20 blur-3xl"
+        />
+        <div className="site-container relative grid gap-12 py-16 md:grid-cols-[1.55fr_1fr_1fr]">
+          <div>
+            <div className="flex items-start gap-4">
+              <Image
+                src="/pcims-logo.jpeg"
+                alt={`${SCHOOL_NAME} logo`}
+                width={72}
+                height={72}
+                className="h-16 w-16 shrink-0 rounded-full bg-white object-contain p-1"
+              />
+              <p className="font-display text-2xl font-semibold tracking-tight sm:text-[1.85rem]">
+                {SCHOOL_NAME}
+              </p>
+            </div>
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-white/75">
+              From Day Care through Senior Secondary — a mission school where
+              faith, learning, and character grow together.
             </p>
-            <p>
-              <a href="mailto:info@peaceconceptschool.ng" className="hover:text-white">
-                info@peaceconceptschool.ng
-              </a>
-            </p>
-          </address>
+            <Link href="/contact#application" className="btn-primary mt-7 inline-flex">
+              Apply for 2025/2026
+            </Link>
+          </div>
+
+          <div>
+            <p className="text-sm font-bold text-[var(--brand-pink-soft)]">Explore</p>
+            <ul className="mt-4 space-y-2.5 text-sm text-white/80">
+              {footerNav.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="transition-colors hover:text-white">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-sm font-bold text-[var(--brand-pink-soft)]">Visit us</p>
+            <address className="mt-4 space-y-2 text-sm not-italic leading-relaxed text-white/80">
+              <p>{SCHOOL_NAME}</p>
+              <p>Along Unity Road, Abeokuta, Ogun State</p>
+              <p>
+                <a href="tel:+2348012345678" className="hover:text-white">
+                  +234 801 234 5678
+                </a>
+              </p>
+              <p>
+                <a href="mailto:info@peaceconceptschool.ng" className="hover:text-white">
+                  info@peaceconceptschool.ng
+                </a>
+              </p>
+            </address>
+          </div>
         </div>
       </div>
 
       <div className="border-t border-white/10">
         <div className="site-container flex flex-col gap-2 py-5 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Peace Concept School. All rights reserved.</p>
-          <p>Building character. Advancing learning.</p>
+          <p>
+            © {new Date().getFullYear()} {SCHOOL_NAME}
+          </p>
+          <p>Day Care · Nursery · Basic · JSS · SS</p>
         </div>
       </div>
     </footer>

@@ -41,7 +41,7 @@ def build_report_card_pdf(student, term) -> bytes:
     c.rect(0, height - 80, width, 80, fill=1, stroke=0)
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 18)
-    c.drawCentredString(width / 2, height - 35, "PEACE CONCEPT SCHOOL")
+    c.drawCentredString(width / 2, height - 35, "PEACE CONCEPT INT'L MISSION SCHOOLS")
     c.setFont("Helvetica", 11)
     c.drawCentredString(width / 2, height - 55, "Term Report Card")
 
@@ -105,7 +105,9 @@ def build_report_card_pdf(student, term) -> bytes:
 
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.HexColor("#666666"))
-    c.drawCentredString(width / 2, 40, "Peace Concept School — Excellence with Character")
+    c.drawCentredString(
+        width / 2, 40, "Peace Concept International Mission Schools — Excellence with Character"
+    )
     c.showPage()
     c.save()
     return buffer.getvalue()
@@ -122,7 +124,7 @@ def build_id_card_pdf(student) -> bytes:
     c.rect(0, h - 14 * mm, w, 14 * mm, fill=1, stroke=0)
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 8)
-    c.drawCentredString(w / 2, h - 8 * mm, "PEACE CONCEPT SCHOOL")
+    c.drawCentredString(w / 2, h - 8 * mm, "PEACE CONCEPT INT'L MISSION SCHOOLS")
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 9)
     c.drawString(28 * mm, h - 22 * mm, student.full_name[:28])
@@ -141,7 +143,7 @@ def build_id_card_pdf(student) -> bytes:
     c.rect(0, 0, w, h, fill=1, stroke=0)
     c.setFillColor(colors.white)
     c.setFont("Helvetica", 7)
-    c.drawCentredString(w / 2, h - 12 * mm, "Property of Peace Concept School")
+    c.drawCentredString(w / 2, h - 12 * mm, "Property of Peace Concept Int'l Mission Schools")
     c.drawCentredString(w / 2, h - 18 * mm, "If found, please return to the school office.")
     c.drawCentredString(w / 2, h - 28 * mm, f"Barcode: {card.barcode_value}")
     c.showPage()

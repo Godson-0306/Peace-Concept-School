@@ -30,7 +30,7 @@ export default function AppHomePage() {
         Welcome{user?.full_name ? `, ${user.full_name}` : ""}
       </h1>
       <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--muted)]">
-        This is a stub workspace for Peace Concept School operations. Role pages
+        This is a stub workspace for Peace Concept International Mission Schools operations. Role pages
         below are placeholders pending full module implementation.
       </p>
 

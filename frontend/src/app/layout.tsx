@@ -1,31 +1,34 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Fraunces, Karla } from "next/font/google";
+import { SCHOOL_NAME } from "@/lib/brand";
 import "./globals.css";
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
+const fraunces = Fraunces({
+  variable: "--font-display",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const karla = Karla({
+  variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Peace Concept School",
-    template: "%s | Peace Concept School",
+    default: SCHOOL_NAME,
+    template: `%s | ${SCHOOL_NAME}`,
   },
-  description:
-    "Peace Concept School — a Nigerian secondary school offering Junior and Senior Secondary education (JSS1–SSS3) for the 2025/2026 academic session.",
+  description: `${SCHOOL_NAME} — Day Care, Nursery, Basic, Junior and Senior Secondary education for the 2025/2026 academic session.`,
   keywords: [
-    "Peace Concept School",
-    "Nigerian secondary school",
+    SCHOOL_NAME,
+    "Peace Concept",
+    "Day Care",
+    "Nursery",
+    "Basic",
     "JSS",
-    "SSS",
+    "SS",
     "admissions",
     "2025/2026",
   ],
@@ -35,9 +38,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${manrope.variable} h-full antialiased`}
+      className={`${fraunces.variable} ${karla.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
 }
