@@ -266,3 +266,119 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(marked_by=self.request.user)
+
+
+def _resolve_next_term_begins(term):
+    if term.next_term_resumption:
+        return term.next_term_resumption.isoformat()
+    nxt = (
+        type(term)
+        .objects.filter(session=term.session, number__gt=term.number)
+        .order_by("number")
+        .first()
+    )
+    if nxt and nxt.start_date:
+        return nxt.start_date.isoformat()
+    if nxt and nxt.next_term_resumption:
+        return nxt.next_term_resumption.isoformat()
+    return None
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_summary(request):
+    from academics.models import ClassArm, Subject, Term
+    from django.db.models import Count, Q
+
+    term = Term.objects.filter(is_active=True).select_related("session").first()
+    if not term:
+        term = Term.objects.select_related("session").order_by("-session__start_year", "-number").first()
+
+    if not term:
+        return Response(
+            {
+                "active_term": None,
+                "next_term_begins": None,
+                "classes_missing_results": [],
+            }
+        )
+
+    next_term_begins = _resolve_next_term_begins(term)
+    user = request.user
+
+    if user.account_type == AccountType.STUDENT:
+        return Response(
+            {
+                "active_term": {
+                    "id": term.id,
+                    "name": term.name,
+                    "session_name": term.session.name,
+                    "is_active": term.is_active,
+                },
+                "next_term_begins": next_term_begins,
+                "classes_missing_results": [],
+            }
+        )
+
+    arms = ClassArm.objects.select_related("class_level").annotate(
+        student_count=Count("students", filter=Q(students__is_active=True))
+    ).filter(student_count__gt=0)
+
+    if user.account_type == AccountType.TEACHER and hasattr(user, "staff_profile"):
+        assigned_ids = (
+            user.staff_profile.assignments.filter(is_active=True)
+            .values_list("class_arm_id", flat=True)
+            .distinct()
+        )
+        arms = arms.filter(id__in=assigned_ids)
+
+    subject_counts = {
+        row["class_level_id"]: row["count"]
+        for row in Subject.objects.filter(
+            is_active=True, subject_type=Subject.SubjectType.SUBJECT
+        )
+        .values("class_level_id")
+        .annotate(count=Count("id"))
+    }
+
+    scored = {
+        (row["class_arm_id"], row["subject_id"])
+        for row in AssessmentScore.objects.filter(term=term).values("class_arm_id", "subject_id")
+    }
+    subjects_by_level = {}
+    for subject in Subject.objects.filter(
+        is_active=True, subject_type=Subject.SubjectType.SUBJECT
+    ).only("id", "class_level_id"):
+        subjects_by_level.setdefault(subject.class_level_id, []).append(subject.id)
+
+    missing = []
+    for arm in arms.order_by("class_level__order", "name"):
+        subject_ids = subjects_by_level.get(arm.class_level_id, [])
+        subject_count = subject_counts.get(arm.class_level_id, 0)
+        subjects_with_scores = sum(
+            1 for sid in subject_ids if (arm.id, sid) in scored
+        )
+        if subjects_with_scores < subject_count:
+            missing.append(
+                {
+                    "class_arm_id": arm.id,
+                    "label": arm.label or str(arm),
+                    "subject_count": subject_count,
+                    "subjects_with_scores": subjects_with_scores,
+                    "student_count": arm.student_count,
+                    "next_term_begins": next_term_begins,
+                }
+            )
+
+    return Response(
+        {
+            "active_term": {
+                "id": term.id,
+                "name": term.name,
+                "session_name": term.session.name,
+                "is_active": term.is_active,
+            },
+            "next_term_begins": next_term_begins,
+            "classes_missing_results": missing,
+        }
+    )

@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
@@ -64,9 +66,18 @@ class Command(BaseCommand):
         )
         terms = []
         for number in (1, 2, 3):
+            defaults = {"is_active": number == 1}
+            if number == 1:
+                defaults["next_term_resumption"] = date(2026, 1, 12)
             term, _ = Term.objects.get_or_create(
-                session=session, number=number, defaults={"is_active": number == 1}
+                session=session, number=number, defaults=defaults
             )
+            if number == 1 and not term.next_term_resumption:
+                term.next_term_resumption = date(2026, 1, 12)
+                term.save(update_fields=["next_term_resumption"])
+            if number == 1 and not term.is_active:
+                term.is_active = True
+                term.save(update_fields=["is_active"])
             terms.append(term)
 
         level_names = [

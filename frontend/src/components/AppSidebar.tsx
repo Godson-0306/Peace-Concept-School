@@ -5,40 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import {
-  AuthUser,
-  clearUser,
-  dashboardPathFor,
-  getStoredUser,
-} from "@/lib/auth";
+import { AuthUser, clearUser, getStoredUser } from "@/lib/auth";
 import { SCHOOL_SHORT } from "@/lib/brand";
-
-const roleLinks: Record<string, { href: string; label: string }[]> = {
-  admin: [
-    { href: "/app/admin", label: "Admin console" },
-    { href: "/app/admin#staff", label: "Staff accounts" },
-    { href: "/app/admin#students", label: "Students" },
-    { href: "/app/admin#leads", label: "Enquiries" },
-  ],
-  principal: [
-    { href: "/app/principal", label: "Results oversight" },
-  ],
-  teacher: [
-    { href: "/app/teacher", label: "My classes" },
-  ],
-  accountant: [
-    { href: "/app/accountant", label: "Fees" },
-  ],
-  student: [
-    { href: "/app/student", label: "My results" },
-  ],
-  parent: [
-    { href: "/app/parent", label: "Children" },
-  ],
-  store: [
-    { href: "/app/store", label: "Inventory" },
-  ],
-};
+import { isPortalNavActive, portalNavFor } from "@/lib/portalNav";
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -49,11 +18,10 @@ export default function AppSidebar() {
     setUser(getStoredUser());
   }, []);
 
-  const links = useMemo(() => {
-    const role = user?.account_type ?? "admin";
-    const specific = roleLinks[role] ?? [{ href: "/app", label: "Overview" }];
-    return [{ href: "/app", label: "Overview" }, ...specific];
-  }, [user]);
+  const links = useMemo(
+    () => portalNavFor(user?.account_type),
+    [user?.account_type],
+  );
 
   async function logout() {
     try {
@@ -87,37 +55,27 @@ export default function AppSidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4" aria-label="App">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4" aria-label="App">
         {links.map((link) => {
-          const base = link.href.split("#")[0];
-          const active =
-            base === "/app" ? pathname === "/app" : pathname.startsWith(base);
+          const active = isPortalNavActive(pathname, link.href);
           return (
             <Link
-              key={link.href + link.label}
+              key={link.href}
               href={link.href}
-              className={`block rounded-sm px-3 py-2.5 text-sm transition-colors ${
+              className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-[var(--brand-green)] text-white"
-                  : "text-[var(--ink)] hover:bg-[rgba(20,80,163,0.06)]"
+                  ? "bg-[var(--brand-blue)] text-white"
+                  : "text-[var(--ink)] hover:bg-[var(--brand-blue-wash)]"
               }`}
             >
               {link.label}
             </Link>
           );
         })}
-        {user ? (
-          <Link
-            href={dashboardPathFor(user.account_type)}
-            className="mt-4 block px-3 text-xs text-[var(--muted)] hover:text-[var(--brand-green)]"
-          >
-            Go to my home
-          </Link>
-        ) : null}
       </nav>
 
       <div className="border-t border-[var(--line)] px-5 py-4">
-        <p className="truncate text-sm font-medium text-[var(--brand-green)]">
+        <p className="truncate text-sm font-medium text-[var(--brand-blue-deep)]">
           {user?.full_name || user?.email || "Signed in"}
         </p>
         <p className="mt-0.5 text-xs capitalize text-[var(--muted)]">
@@ -126,7 +84,7 @@ export default function AppSidebar() {
         <button
           type="button"
           onClick={logout}
-          className="mt-3 text-sm font-medium text-[var(--brand-green-soft)] hover:text-[var(--brand-green)]"
+          className="mt-3 text-sm font-medium text-[var(--brand-blue-soft)] hover:text-[var(--brand-blue)]"
         >
           Sign out
         </button>

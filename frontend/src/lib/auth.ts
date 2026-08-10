@@ -56,16 +56,6 @@ export function clearUser(): void {
   document.cookie = `${AUTH_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
 }
 
-export function dashboardPathFor(accountType: AccountType): string {
-  const key = accountType === "store_staff" ? "store" : accountType;
-  const map: Record<string, string> = {
-    admin: "/app/admin",
-    principal: "/app/principal",
-    teacher: "/app/teacher",
-    accountant: "/app/accountant",
-    student: "/app/student",
-    parent: "/app/parent",
-    store: "/app/store",
-  };
-  return map[key] ?? "/app";
+export function dashboardPathFor(_accountType?: AccountType): string {
+  return "/app";
 }

@@ -29,6 +29,7 @@ from assessments.views import (
     AttendanceRecordViewSet,
     FormClassRecordViewSet,
     StudentFormRecordViewSet,
+    dashboard_summary,
     my_results,
 )
 from fees.views import FeePaymentEntryViewSet, FeeRecordViewSet, FeeStructureViewSet
@@ -84,6 +85,7 @@ urlpatterns = [
     path("api/auth/me/", me_view),
     path("api/auth/csrf/", csrf_view),
     path("api/results/me/", my_results),
+    path("api/dashboard/", dashboard_summary),
     path("api/identity/report-card/<int:student_id>/", report_card_pdf),
     path("api/identity/id-card/<int:student_id>/", student_id_card),
     path("api/", include(router.urls)),
