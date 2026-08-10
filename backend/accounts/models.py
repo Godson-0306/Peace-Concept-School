@@ -19,6 +19,13 @@ class PositionType(models.TextChoices):
     TEACHER = "teacher", "Teacher"
 
 
+class PromotionStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    PROMOTED = "promoted", "Promoted"
+    RETAINED = "retained", "Retained"
+    GRADUATED = "graduated", "Graduated"
+
+
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
@@ -110,6 +117,11 @@ class StudentProfile(models.Model):
     address = models.TextField(blank=True)
     passport_photo = models.ImageField(upload_to="students/photos/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    promotion_status = models.CharField(
+        max_length=16,
+        choices=PromotionStatus.choices,
+        default=PromotionStatus.PENDING,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

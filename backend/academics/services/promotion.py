@@ -40,7 +40,10 @@ def promote_students_for_new_session() -> dict:
             # Top of ladder (SS3) → Ex-Student
             student.is_active = False
             student.class_arm = None
-            student.save(update_fields=["is_active", "class_arm", "updated_at"])
+            student.promotion_status = "graduated"
+            student.save(
+                update_fields=["is_active", "class_arm", "promotion_status", "updated_at"]
+            )
             graduated += 1
             continue
 
@@ -54,7 +57,8 @@ def promote_students_for_new_session() -> dict:
             None,
         )
         student.class_arm = same_letter or next_arms[0]
-        student.save(update_fields=["class_arm", "updated_at"])
+        student.promotion_status = "promoted"
+        student.save(update_fields=["class_arm", "promotion_status", "updated_at"])
         promoted += 1
 
     return {

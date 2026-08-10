@@ -176,12 +176,15 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     create_portal_account = serializers.BooleanField(write_only=True, default=True)
     user = UserSerializer(read_only=True)
     class_arm_label = serializers.CharField(source="class_arm.label", read_only=True, default="")
+    section = serializers.CharField(source="class_arm.name", read_only=True, default="")
     class_level = serializers.IntegerField(
         source="class_arm.class_level_id", read_only=True, allow_null=True
     )
     class_level_name = serializers.CharField(
         source="class_arm.class_level.name", read_only=True, default=""
     )
+    session_attendance_days = serializers.SerializerMethodField()
+    total_attendance_days = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentProfile
@@ -195,6 +198,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "admission_year",
             "class_arm",
             "class_arm_label",
+            "section",
             "class_level",
             "class_level_name",
             "guardian_name",
@@ -203,12 +207,23 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "address",
             "passport_photo",
             "is_active",
+            "promotion_status",
+            "session_attendance_days",
+            "total_attendance_days",
             "email",
             "password",
             "create_portal_account",
             "created_at",
         ]
-        read_only_fields = ["student_id", "created_at"]
+        read_only_fields = ["student_id", "created_at", "session_attendance_days", "total_attendance_days"]
+
+    def get_session_attendance_days(self, obj):
+        value = getattr(obj, "annotated_session_attendance", None)
+        return int(value or 0)
+
+    def get_total_attendance_days(self, obj):
+        value = getattr(obj, "annotated_total_attendance", None)
+        return int(value or 0)
 
     @transaction.atomic
     def create(self, validated_data):

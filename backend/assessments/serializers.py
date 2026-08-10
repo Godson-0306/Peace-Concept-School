@@ -32,6 +32,8 @@ class AssessmentScoreSerializer(serializers.ModelSerializer):
             "published_at",
         ]
         read_only_fields = ["status", "entered_by", "published_at", "updated_at"]
+        # POST /api/scores/ upserts by (student, subject, term); skip UniqueTogetherValidator.
+        validators = []
 
     def get_total(self, obj):
         return obj.total

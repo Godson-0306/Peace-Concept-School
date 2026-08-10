@@ -4,8 +4,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from django.db.models import IntegerField, OuterRef, Subquery, Sum, Value
+from django.db.models.functions import Coalesce
+
 from .models import ParentProfile, PositionAssignment, StaffProfile, StudentProfile, User
-from .permissions import IsAdminAccount, can_manage_accounts, user_positions
+from .permissions import IsAdminAccount, IsAdminOrPrincipal, can_manage_accounts, user_positions
 from .serializers import (
     LoginSerializer,
     ParentProfileSerializer,
@@ -87,16 +90,41 @@ class StudentViewSet(viewsets.ModelViewSet):
     filterset_fields = ["class_arm", "admission_year", "is_active"]
 
     def get_permissions(self):
-        if self.action in ("create", "update", "partial_update", "destroy"):
+        if self.action == "create":
             return [IsAdminAccount()]
+        if self.action in ("update", "partial_update", "destroy"):
+            return [IsAdminOrPrincipal()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
+        from academics.models import Term
+        from assessments.models import StudentFormRecord
+
         user = self.request.user
         qs = super().get_queryset()
         class_level = self.request.query_params.get("class_level")
         if class_level:
             qs = qs.filter(class_arm__class_level_id=class_level)
+
+        active_term_id = (
+            Term.objects.filter(is_active=True).order_by("-id").values("id")[:1]
+        )
+        session_subquery = StudentFormRecord.objects.filter(
+            student_id=OuterRef("pk"),
+            term_id=Subquery(active_term_id),
+        ).values("days_present")[:1]
+        qs = qs.annotate(
+            annotated_total_attendance=Coalesce(
+                Sum("form_records__days_present"),
+                Value(0),
+                output_field=IntegerField(),
+            ),
+            annotated_session_attendance=Coalesce(
+                Subquery(session_subquery, output_field=IntegerField()),
+                Value(0),
+                output_field=IntegerField(),
+            ),
+        ).order_by("student_id")
 
         if can_manage_accounts(user) or user.account_type in ("principal", "accountant"):
             return qs
