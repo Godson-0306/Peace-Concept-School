@@ -39,17 +39,6 @@ function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
   return Array.isArray(data) ? data : data.results ?? [];
 }
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -202,24 +191,6 @@ export default function SettingsPage() {
     } finally {
       setPending(false);
     }
-  }
-
-  async function saveTermDates(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedTerm) return;
-    const form = new FormData(event.currentTarget);
-    const start = String(form.get("start_date") || "");
-    const end = String(form.get("end_date") || "");
-    const next = String(form.get("next_term_resumption") || "");
-    await patchTerm(
-      selectedTerm.id,
-      {
-        start_date: start || null,
-        end_date: end || null,
-        next_term_resumption: next || null,
-      } as Partial<Term>,
-      "Term dates saved.",
-    );
   }
 
   async function publishClass(classArmId: number) {
@@ -473,7 +444,6 @@ export default function SettingsPage() {
                   }`}
                 >
                   {term.name}
-                  {term.is_active ? " · Active" : ""}
                 </button>
               ))}
             </div>
@@ -491,12 +461,16 @@ export default function SettingsPage() {
                       {selectedTerm.session_name}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {!selectedTerm.is_active ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedTerm.is_active ? (
+                      <span className="rounded-lg bg-[var(--brand-blue-wash)] px-3 py-2 text-sm font-bold text-[var(--brand-blue)]">
+                        Active Term
+                      </span>
+                    ) : (
                       <button
                         type="button"
                         disabled={pending}
-                        className="rounded-lg bg-[var(--brand-blue)] px-3 py-2 text-sm font-bold text-white"
+                        className="rounded-lg border border-[var(--brand-blue)] px-3 py-2 text-sm font-bold text-[var(--brand-blue)]"
                         onClick={() =>
                           patchTerm(
                             selectedTerm.id,
@@ -505,12 +479,8 @@ export default function SettingsPage() {
                           )
                         }
                       >
-                        Set as active term
+                        Set as Active Term
                       </button>
-                    ) : (
-                      <span className="rounded-md bg-[var(--brand-blue-wash)] px-2 py-1 text-xs font-bold text-[var(--brand-blue)]">
-                        Active term
-                      </span>
                     )}
                     <button
                       type="button"
@@ -527,71 +497,17 @@ export default function SettingsPage() {
                             results_entry_open: !selectedTerm.results_entry_open,
                           },
                           selectedTerm.results_entry_open
-                            ? "Result entry closed for teachers."
-                            : "Result entry opened for teachers.",
+                            ? "Result entry stopped."
+                            : "Result entry started for teachers.",
                         )
                       }
                     >
                       {selectedTerm.results_entry_open
-                        ? "Close result entry"
-                        : "Open result entry"}
+                        ? "Stop Result Entry"
+                        : "Start Result Entry"}
                     </button>
                   </div>
                 </div>
-
-                <p className="mt-4 text-sm text-[var(--muted)]">
-                  Result entry is{" "}
-                  <strong
-                    className={
-                      selectedTerm.results_entry_open
-                        ? "text-[var(--brand-pink)]"
-                        : "text-[var(--ink)]"
-                    }
-                  >
-                    {selectedTerm.results_entry_open ? "open" : "closed"}
-                  </strong>{" "}
-                  for teachers.
-                </p>
-
-                <form onSubmit={saveTermDates} className="mt-6 grid gap-3 sm:grid-cols-3">
-                  <label className="field">
-                    <span>Start date</span>
-                    <input
-                      name="start_date"
-                      type="date"
-                      defaultValue={selectedTerm.start_date ?? ""}
-                      key={`start-${selectedTerm.id}-${selectedTerm.start_date}`}
-                      className="field-input"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>End date</span>
-                    <input
-                      name="end_date"
-                      type="date"
-                      defaultValue={selectedTerm.end_date ?? ""}
-                      key={`end-${selectedTerm.id}-${selectedTerm.end_date}`}
-                      className="field-input"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Next term begins</span>
-                    <input
-                      name="next_term_resumption"
-                      type="date"
-                      defaultValue={selectedTerm.next_term_resumption ?? ""}
-                      key={`next-${selectedTerm.id}-${selectedTerm.next_term_resumption}`}
-                      className="field-input"
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    className="btn-primary sm:col-span-3 sm:w-fit"
-                    disabled={pending}
-                  >
-                    Save dates
-                  </button>
-                </form>
               </div>
 
               <div className="rounded-2xl border border-[var(--line)] bg-white/90">
@@ -633,9 +549,6 @@ export default function SettingsPage() {
                           <th className="px-5 py-3 font-semibold sm:px-6">
                             Students
                           </th>
-                          <th className="px-5 py-3 font-semibold sm:px-6">
-                            Next term
-                          </th>
                           <th className="px-5 py-3 font-semibold sm:px-6">Action</th>
                         </tr>
                       </thead>
@@ -650,9 +563,6 @@ export default function SettingsPage() {
                             </td>
                             <td className="px-5 py-3.5 text-[var(--muted)] sm:px-6">
                               {row.student_count}
-                            </td>
-                            <td className="px-5 py-3.5 text-[var(--muted)] sm:px-6">
-                              {formatDate(selectedTerm.next_term_resumption)}
                             </td>
                             <td className="px-5 py-3.5 sm:px-6">
                               <button
