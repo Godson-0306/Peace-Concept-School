@@ -82,9 +82,10 @@ export default function AboutPage() {
             Leadership &amp; campus life
           </h2>
           <p className="mt-4 text-base leading-relaxed text-[var(--muted)]">
-            Led by a committed principal and teaching team, our Abeokuta campus
-            includes early-years spaces, primary classrooms, science laboratories,
-            a library, sports field, and halls for worship and celebration.
+            Led by a committed principal and teaching team, our Port Harcourt
+            campus includes early-years spaces, primary classrooms, science
+            laboratories, a library, sports field, and halls for worship and
+            celebration.
           </p>
           <p className="mt-4 text-base leading-relaxed text-[var(--muted)]">
             Session 2025/2026 continues our promise: every child known by name —

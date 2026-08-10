@@ -2,6 +2,13 @@ export const SCHOOL_NAME = "Peace Concept International Mission Schools";
 export const SCHOOL_SHORT = "Peace Concept";
 export const SCHOOL_INITIALS = "PCIMS";
 
+/** Campus location (matches Google Maps embed) */
+export const SCHOOL_ADDRESS_LINE = "Port Harcourt, Rivers State, Nigeria";
+export const SCHOOL_PHONE = "+234 801 234 5678";
+export const SCHOOL_EMAIL = "info@peaceconceptschool.ng";
+export const SCHOOL_HOURS = "Mon–Fri, 8:00 a.m. – 3:30 p.m.";
+
+
 /** Full class ladder offered by the school */
 export const CLASS_LEVELS = [
   "Day Care",

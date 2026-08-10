@@ -1,6 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { SCHOOL_NAME } from "@/lib/brand";
+import { MAP_DIRECTIONS_URL } from "@/components/SchoolMap";
+import {
+  SCHOOL_ADDRESS_LINE,
+  SCHOOL_EMAIL,
+  SCHOOL_NAME,
+  SCHOOL_PHONE,
+} from "@/lib/brand";
 
 const footerNav = [
   { href: "/about", label: "About" },
@@ -59,15 +65,25 @@ export default function SiteFooter() {
             <p className="text-sm font-bold text-[var(--brand-pink-soft)]">Visit us</p>
             <address className="mt-4 space-y-2 text-sm not-italic leading-relaxed text-white/80">
               <p>{SCHOOL_NAME}</p>
-              <p>Along Unity Road, Abeokuta, Ogun State</p>
+              <p>{SCHOOL_ADDRESS_LINE}</p>
               <p>
-                <a href="tel:+2348012345678" className="hover:text-white">
-                  +234 801 234 5678
+                <a href={`tel:${SCHOOL_PHONE.replace(/\s/g, "")}`} className="hover:text-white">
+                  {SCHOOL_PHONE}
                 </a>
               </p>
               <p>
-                <a href="mailto:info@peaceconceptschool.ng" className="hover:text-white">
-                  info@peaceconceptschool.ng
+                <a href={`mailto:${SCHOOL_EMAIL}`} className="hover:text-white">
+                  {SCHOOL_EMAIL}
+                </a>
+              </p>
+              <p>
+                <a
+                  href={MAP_DIRECTIONS_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-[var(--brand-pink-soft)] hover:text-white"
+                >
+                  View on Google Maps →
                 </a>
               </p>
             </address>
