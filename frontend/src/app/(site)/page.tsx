@@ -8,7 +8,7 @@ export default function HomePage() {
 
   return (
     <>
-      <section className="relative min-h-[100svh] overflow-hidden text-white">
+      <section className="relative min-h-[calc(100svh-4.6rem)] overflow-hidden text-white">
         <Image
           src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=2200&q=80"
           alt="Students on campus at Peace Concept International Mission Schools"
@@ -19,7 +19,7 @@ export default function HomePage() {
         />
         <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(12,47,109,0.88)_0%,rgba(22,73,160,0.68)_48%,rgba(226,59,120,0.4)_100%)]" />
 
-        <div className="site-container relative flex min-h-[100svh] flex-col justify-end pb-16 pt-32 sm:justify-center sm:pb-24">
+        <div className="site-container relative flex min-h-[calc(100svh-4.6rem)] flex-col justify-end pb-16 pt-20 sm:justify-center sm:pb-24">
           <div className="max-w-4xl">
             <p className="animate-fade-up eyebrow text-[var(--brand-pink-soft)]">
               Admissions open · Session 2025/2026

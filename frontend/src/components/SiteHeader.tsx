@@ -19,19 +19,12 @@ const navLinks = [
 export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const isHome = pathname === "/";
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <header
-      className={`sticky top-0 z-50 ${
-        isHome
-          ? "border-b border-white/15 bg-[rgba(12,47,109,0.45)] text-white backdrop-blur-xl"
-          : "border-b border-[var(--line)] bg-white/92 text-[var(--ink)] backdrop-blur-xl"
-      }`}
-    >
+    <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-white/92 text-[var(--ink)] backdrop-blur-xl">
       <div className="site-container flex h-[4.6rem] items-center justify-between gap-3">
         <Link href="/" className="flex min-w-0 items-center gap-3">
           <Image
@@ -43,19 +36,11 @@ export default function SiteHeader() {
             priority
           />
           <span className="min-w-0 leading-tight">
-            <span
-              className={`block truncate font-display text-[1.05rem] font-semibold sm:text-[1.2rem] ${
-                isHome ? "text-white" : "text-[var(--brand-blue-deep)]"
-              }`}
-            >
+            <span className="block truncate font-display text-[1.05rem] font-semibold text-[var(--brand-blue-deep)] sm:text-[1.2rem]">
               <span className="sm:hidden">{SCHOOL_SHORT}</span>
               <span className="hidden sm:inline">{SCHOOL_NAME}</span>
             </span>
-            <span
-              className={`hidden text-[0.68rem] font-semibold uppercase tracking-[0.12em] md:block ${
-                isHome ? "text-white/70" : "text-[var(--muted)]"
-              }`}
-            >
+            <span className="hidden text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[var(--muted)] md:block">
               Day Care · Nursery · Basic · JSS · SS
             </span>
           </span>
@@ -68,12 +53,8 @@ export default function SiteHeader() {
               href={link.href}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                 isActive(link.href)
-                  ? isHome
-                    ? "bg-white/15 text-white"
-                    : "bg-[var(--brand-blue-wash)] text-[var(--brand-blue)]"
-                  : isHome
-                    ? "text-white/80 hover:bg-white/10 hover:text-white"
-                    : "text-[var(--muted)] hover:bg-[var(--mist)] hover:text-[var(--brand-blue)]"
+                  ? "bg-[var(--brand-blue-wash)] text-[var(--brand-blue)]"
+                  : "text-[var(--muted)] hover:bg-[var(--mist)] hover:text-[var(--brand-blue)]"
               }`}
             >
               {link.label}
@@ -84,21 +65,13 @@ export default function SiteHeader() {
         <div className="flex items-center gap-2">
           <Link
             href="/login"
-            className={`hidden rounded-lg px-3.5 py-2 text-sm font-bold sm:inline-flex ${
-              isHome
-                ? "bg-white text-[var(--brand-blue-deep)]"
-                : "bg-[var(--brand-blue)] text-white"
-            }`}
+            className="hidden rounded-lg bg-[var(--brand-blue)] px-3.5 py-2 text-sm font-bold text-white sm:inline-flex"
           >
             Login
           </Link>
           <button
             type="button"
-            className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border xl:hidden ${
-              isHome
-                ? "border-white/25 text-white"
-                : "border-[var(--line)] text-[var(--brand-blue)]"
-            }`}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--brand-blue)] xl:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -116,19 +89,11 @@ export default function SiteHeader() {
       {open ? (
         <nav
           id="mobile-nav"
-          className={`border-t xl:hidden ${
-            isHome
-              ? "border-white/10 bg-[rgba(12,47,109,0.96)] text-white"
-              : "border-[var(--line)] bg-white"
-          }`}
+          className="border-t border-[var(--line)] bg-white xl:hidden"
           aria-label="Mobile"
         >
           <div className="site-container flex flex-col py-3">
-            <p
-              className={`mb-2 text-xs font-semibold ${
-                isHome ? "text-white/70" : "text-[var(--muted)]"
-              }`}
-            >
+            <p className="mb-2 text-xs font-semibold text-[var(--muted)]">
               {SCHOOL_NAME}
             </p>
             {navLinks.map((link) => (
@@ -137,11 +102,7 @@ export default function SiteHeader() {
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className={`px-1 py-3 text-base font-semibold ${
-                  isActive(link.href)
-                    ? isHome
-                      ? "text-[var(--brand-pink-soft)]"
-                      : "text-[var(--brand-pink)]"
-                    : ""
+                  isActive(link.href) ? "text-[var(--brand-pink)]" : ""
                 }`}
               >
                 {link.label}
