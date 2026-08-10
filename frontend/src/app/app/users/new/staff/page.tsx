@@ -5,7 +5,9 @@ import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
+import { NIGERIAN_STATES } from "@/lib/brand";
 import { mediaUrl } from "@/lib/media";
+import { sortClassLevelsForUsers } from "@/lib/portalNav";
 import PhotoCapture from "@/components/PhotoCapture";
 import SignaturePad from "@/components/SignaturePad";
 
@@ -173,7 +175,7 @@ function UsersNewStaffInner() {
           fetchAllPages<Session>("/api/sessions/"),
         ]);
         if (cancelled) return;
-        setLevels(levelsData);
+        setLevels(sortClassLevelsForUsers(levelsData));
         setArms(armsData);
         setSubjects(subjectsData.filter((s) => s.is_active !== false));
         const sessions = sessionsData;
@@ -682,12 +684,22 @@ function UsersNewStaffInner() {
         </label>
         <label className="field">
           <span>State of origin</span>
-          <input
+          <select
             className="field-input"
             value={stateOfOrigin}
             onChange={(e) => setStateOfOrigin(e.target.value)}
-            placeholder="e.g. Lagos"
-          />
+          >
+            <option value="">Select state</option>
+            {NIGERIAN_STATES.map((state) => (
+              <option key={state} value={state}>
+                {state}
+              </option>
+            ))}
+            {stateOfOrigin &&
+            !(NIGERIAN_STATES as readonly string[]).includes(stateOfOrigin) ? (
+              <option value={stateOfOrigin}>{stateOfOrigin}</option>
+            ) : null}
+          </select>
         </label>
         <label className="field sm:col-span-2">
           <span>{isEdit ? "Reset portal password" : "Portal password"}</span>

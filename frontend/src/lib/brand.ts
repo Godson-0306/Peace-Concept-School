@@ -9,7 +9,7 @@ export const SCHOOL_EMAIL = "info@peaceconceptschool.ng";
 export const SCHOOL_HOURS = "Mon–Fri, 8:00 a.m. – 3:30 p.m.";
 
 
-/** Full class ladder offered by the school */
+/** Full class ladder offered by the school (Day Care → SS3). */
 export const CLASS_LEVELS = [
   "Day Care",
   "Nursery 1",
@@ -25,6 +25,46 @@ export const CLASS_LEVELS = [
   "SS1",
   "SS2",
   "SS3",
+] as const;
+
+/** Nigeria's 36 states in alphabetical order (excludes FCT). */
+export const NIGERIAN_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
 ] as const;
 
 export const CLASS_BANDS = [

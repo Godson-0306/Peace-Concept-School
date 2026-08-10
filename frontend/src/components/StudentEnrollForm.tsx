@@ -5,7 +5,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
-import { CLASS_LEVELS } from "@/lib/brand";
+import { CLASS_LEVELS, NIGERIAN_STATES } from "@/lib/brand";
+import { sortClassLevelsForUsers } from "@/lib/portalNav";
 import { mediaUrl } from "@/lib/media";
 import PhotoCapture from "@/components/PhotoCapture";
 
@@ -351,7 +352,7 @@ export default function StudentEnrollForm({
         if (cancelled) return;
         const levelList = unwrapList(levelData);
         const armList = unwrapList(armData);
-        setLevels(levelList);
+        setLevels(sortClassLevelsForUsers(levelList));
         setArms(armList);
         setPassword("school");
 
@@ -752,11 +753,24 @@ export default function StudentEnrollForm({
               </label>
               <label className="field">
                 <span>State of origin</span>
-                <input
+                <select
                   className="field-input"
                   value={form.state_of_origin}
                   onChange={(e) => setField("state_of_origin", e.target.value)}
-                />
+                >
+                  <option value="">Select state</option>
+                  {NIGERIAN_STATES.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                  {form.state_of_origin &&
+                  !(NIGERIAN_STATES as readonly string[]).includes(
+                    form.state_of_origin,
+                  ) ? (
+                    <option value={form.state_of_origin}>{form.state_of_origin}</option>
+                  ) : null}
+                </select>
               </label>
               <label className="field">
                 <span>Blood group</span>
@@ -801,10 +815,7 @@ export default function StudentEnrollForm({
                   onChange={(e) => setField("class_level_id", e.target.value)}
                 >
                   <option value="">Select class</option>
-                  {levels
-                    .slice()
-                    .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
-                    .map((level) => (
+                  {levels.map((level) => (
                       <option key={level.id} value={level.id}>
                         {level.name}
                       </option>
