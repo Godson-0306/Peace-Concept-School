@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import PageHero from "@/components/PageHero";
-import { newsItems } from "@/lib/news";
+import { getPublicNews } from "@/lib/websiteContent";
 
 export const metadata: Metadata = {
   title: "News & Events",
@@ -10,7 +10,9 @@ export const metadata: Metadata = {
     "Latest news, announcements, and events from Peace Concept International Mission Schools.",
 };
 
-export default function NewsPage() {
+export default async function NewsPage() {
+  const items = await getPublicNews();
+
   return (
     <>
       <PageHero
@@ -21,7 +23,7 @@ export default function NewsPage() {
 
       <section className="section-pad">
         <div className="site-container grid gap-6 md:grid-cols-2">
-          {newsItems.map((item) => (
+          {items.map((item) => (
             <article
               key={item.slug}
               className="group overflow-hidden rounded-[1.5rem] border border-[var(--line)] bg-white shadow-[0_16px_36px_rgba(16,24,40,0.05)]"
@@ -34,6 +36,7 @@ export default function NewsPage() {
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 50vw"
+                    unoptimized={item.image.startsWith("/media/")}
                   />
                 ) : null}
               </div>

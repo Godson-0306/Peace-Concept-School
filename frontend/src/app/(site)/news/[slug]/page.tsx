@@ -2,19 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getNewsBySlug, newsItems } from "@/lib/news";
+import {
+  getPublicNewsBySlug,
+  getPublicNewsSlugs,
+} from "@/lib/websiteContent";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
 export async function generateStaticParams() {
-  return newsItems.map((item) => ({ slug: item.slug }));
+  const slugs = await getPublicNewsSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const item = getNewsBySlug(slug);
+  const item = await getPublicNewsBySlug(slug);
   if (!item) return { title: "News" };
   return {
     title: item.title,
@@ -24,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function NewsDetailPage({ params }: Props) {
   const { slug } = await params;
-  const item = getNewsBySlug(slug);
+  const item = await getPublicNewsBySlug(slug);
   if (!item) notFound();
 
   return (
@@ -38,6 +42,7 @@ export default async function NewsDetailPage({ params }: Props) {
             priority
             className="object-cover opacity-45"
             sizes="100vw"
+            unoptimized={item.image.startsWith("/media/")}
           />
         ) : null}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,53,117,0.35)_0%,rgba(11,53,117,0.85)_100%)]" />

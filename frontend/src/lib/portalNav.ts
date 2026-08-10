@@ -23,21 +23,25 @@ export const STAFF_PORTAL_NAV: PortalNavItem[] = [
 const STUDENT_HREFS = new Set([
   "/app",
   "/app/results",
-  "/app/gallery",
-  "/app/news",
   "/app/attendance",
 ]);
 
 const SETTINGS_ROLES = new Set<AccountType>(["admin", "principal"]);
+const ADMIN_ONLY_HREFS = new Set(["/app/gallery", "/app/news"]);
 
 export function portalNavFor(accountType: AccountType | null | undefined): PortalNavItem[] {
   if (accountType === "student") {
     return STAFF_PORTAL_NAV.filter((item) => STUDENT_HREFS.has(item.href));
   }
+
+  let links = STAFF_PORTAL_NAV;
   if (!accountType || !SETTINGS_ROLES.has(accountType)) {
-    return STAFF_PORTAL_NAV.filter((item) => item.href !== "/app/settings");
+    links = links.filter((item) => item.href !== "/app/settings");
   }
-  return STAFF_PORTAL_NAV;
+  if (accountType !== "admin") {
+    links = links.filter((item) => !ADMIN_ONLY_HREFS.has(item.href));
+  }
+  return links;
 }
 
 export function isPortalNavActive(pathname: string, href: string): boolean {
