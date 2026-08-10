@@ -23,6 +23,7 @@ type StaffRecord = {
   temporary_password?: string;
   phone_number?: string;
   gender?: string;
+  state_of_origin?: string;
   passport_photo?: string | null;
   signature?: string | null;
   positions?: PositionRow[];
@@ -123,6 +124,7 @@ function UsersNewStaffInner() {
   const [formClassArmId, setFormClassArmId] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("Female");
+  const [stateOfOrigin, setStateOfOrigin] = useState("");
   const [password, setPassword] = useState("school");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [existingPhoto, setExistingPhoto] = useState<string | null>(null);
@@ -186,6 +188,7 @@ function UsersNewStaffInner() {
           setEmail(staff.user?.email || "");
           setPhone(staff.phone_number || "");
           setGender(staff.gender || "Female");
+          setStateOfOrigin(staff.state_of_origin || "");
           setPassword("school");
           setExistingPhoto(staff.passport_photo || null);
           setExistingSignature(staff.signature || null);
@@ -416,6 +419,7 @@ function UsersNewStaffInner() {
       data.set("account_type", accountTypeForSubmit());
       data.set("gender", gender);
       data.set("phone_number", phone);
+      data.set("state_of_origin", stateOfOrigin);
       if (!isEdit) {
         data.set("username", username);
         data.set("password", password.trim() || "school");
@@ -470,6 +474,7 @@ function UsersNewStaffInner() {
     setFormClassArmId("");
     setPhone("");
     setGender("Female");
+    setStateOfOrigin("");
     setPassword("school");
     setPhotoFile(null);
     setExistingPhoto(null);
@@ -674,6 +679,15 @@ function UsersNewStaffInner() {
             <option>Female</option>
             <option>Male</option>
           </select>
+        </label>
+        <label className="field">
+          <span>State of origin</span>
+          <input
+            className="field-input"
+            value={stateOfOrigin}
+            onChange={(e) => setStateOfOrigin(e.target.value)}
+            placeholder="e.g. Lagos"
+          />
         </label>
         <label className="field sm:col-span-2">
           <span>{isEdit ? "Reset portal password" : "Portal password"}</span>
