@@ -79,6 +79,22 @@ class StaffViewSet(viewsets.ModelViewSet):
         payload["temporary_password"] = getattr(staff, "_temp_password", None)
         return Response(payload, status=status.HTTP_201_CREATED, headers=headers)
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        staff = serializer.save()
+        payload = serializer.data
+        payload["username"] = staff.user.username
+        if getattr(staff, "_temp_password", None):
+            payload["temporary_password"] = staff._temp_password
+        return Response(payload)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
+
 
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = StudentProfile.objects.select_related(
@@ -146,6 +162,21 @@ class StudentViewSet(viewsets.ModelViewSet):
         payload = serializer.data
         payload["temporary_password"] = getattr(student, "_temp_password", None)
         return Response(payload, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        student = serializer.save()
+        payload = serializer.data
+        if getattr(student, "_temp_password", None):
+            payload["temporary_password"] = student._temp_password
+        return Response(payload)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
 
 
 class ParentViewSet(viewsets.ModelViewSet):

@@ -121,13 +121,11 @@ function StudentActions({
   student,
   onPromote,
   onPhoto,
-  onEdit,
   onDelete,
 }: {
   student: StudentRow;
   onPromote: () => void;
   onPhoto: () => void;
-  onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -164,7 +162,10 @@ function StudentActions({
           <path d="M9 3h6l1.5 2H20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3.5L9 3zm3 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
         </svg>
       </ActionItem>
-      <ActionItem label="Edit student" onClick={onEdit}>
+      <ActionItem
+        label="Edit student"
+        href={`/app/users/new/student?id=${student.id}`}
+      >
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
           <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
         </svg>
@@ -235,7 +236,6 @@ export default function UsersStudentsPanel({
 
   const [photoStudent, setPhotoStudent] = useState<StudentRow | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [editStudent, setEditStudent] = useState<StudentRow | null>(null);
   const [promoteStudent, setPromoteStudent] = useState<StudentRow | null>(null);
 
   const canManage = user?.account_type === "admin" || user?.account_type === "principal";
@@ -298,41 +298,6 @@ export default function UsersStudentsPanel({
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save photo");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function saveEdit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!editStudent) return;
-    setPending(true);
-    setError("");
-    setMessage("");
-    const form = new FormData(event.currentTarget);
-    const classArmRaw = String(form.get("class_arm") || "");
-    const payload = {
-      full_name: String(form.get("full_name") || ""),
-      gender: String(form.get("gender") || ""),
-      date_of_birth: String(form.get("date_of_birth") || "") || null,
-      guardian_name: String(form.get("guardian_name") || ""),
-      guardian_email: String(form.get("guardian_email") || ""),
-      guardian_phone: String(form.get("guardian_phone") || ""),
-      address: String(form.get("address") || ""),
-      class_arm: classArmRaw ? Number(classArmRaw) : null,
-      promotion_status: String(form.get("promotion_status") || editStudent.promotion_status),
-      is_active: form.get("is_active") === "on",
-    };
-    try {
-      await apiJson(`/api/students/${editStudent.id}/`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
-      setMessage(`Updated ${editStudent.full_name}.`);
-      setEditStudent(null);
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update student");
     } finally {
       setPending(false);
     }
@@ -475,7 +440,6 @@ export default function UsersStudentsPanel({
                               setPhotoFile(null);
                               setPhotoStudent(student);
                             }}
-                            onEdit={() => setEditStudent(student)}
                             onDelete={() => onDelete(student)}
                           />
                         </td>
@@ -521,131 +485,6 @@ export default function UsersStudentsPanel({
               </button>
             </div>
           </div>
-        </div>
-      ) : null}
-
-      {editStudent ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(12,47,109,0.4)] p-0 sm:items-center sm:p-4">
-          <form
-            onSubmit={saveEdit}
-            className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl"
-          >
-            <h2 className="font-display text-2xl text-[var(--brand-blue-deep)]">
-              Edit student
-            </h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">{editStudent.student_id}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm sm:col-span-2">
-                <span className="mb-1 block text-[var(--muted)]">Full name</span>
-                <input
-                  name="full_name"
-                  required
-                  defaultValue={editStudent.full_name}
-                  className="field-input w-full"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-[var(--muted)]">Gender</span>
-                <input
-                  name="gender"
-                  defaultValue={editStudent.gender || ""}
-                  className="field-input w-full"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-[var(--muted)]">Date of birth</span>
-                <input
-                  type="date"
-                  name="date_of_birth"
-                  defaultValue={editStudent.date_of_birth || ""}
-                  className="field-input w-full"
-                />
-              </label>
-              <label className="block text-sm sm:col-span-2">
-                <span className="mb-1 block text-[var(--muted)]">Class arm</span>
-                <select
-                  name="class_arm"
-                  defaultValue={editStudent.class_arm ?? ""}
-                  className="field-input w-full"
-                >
-                  <option value="">— None —</option>
-                  {arms.map((arm) => (
-                    <option key={arm.id} value={arm.id}>
-                      {arm.label || `${arm.name}`}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-[var(--muted)]">Promotion status</span>
-                <select
-                  name="promotion_status"
-                  defaultValue={editStudent.promotion_status || "pending"}
-                  className="field-input w-full"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="promoted">Promoted</option>
-                  <option value="retained">Retained</option>
-                  <option value="graduated">Graduated</option>
-                </select>
-              </label>
-              <label className="flex items-end gap-2 pb-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  defaultChecked={editStudent.is_active}
-                />
-                <span>Active student</span>
-              </label>
-              <label className="block text-sm sm:col-span-2">
-                <span className="mb-1 block text-[var(--muted)]">Guardian name</span>
-                <input
-                  name="guardian_name"
-                  defaultValue={editStudent.guardian_name || ""}
-                  className="field-input w-full"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-[var(--muted)]">Guardian email</span>
-                <input
-                  type="email"
-                  name="guardian_email"
-                  defaultValue={editStudent.guardian_email || ""}
-                  className="field-input w-full"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-[var(--muted)]">Guardian phone</span>
-                <input
-                  name="guardian_phone"
-                  defaultValue={editStudent.guardian_phone || ""}
-                  className="field-input w-full"
-                />
-              </label>
-              <label className="block text-sm sm:col-span-2">
-                <span className="mb-1 block text-[var(--muted)]">Address</span>
-                <textarea
-                  name="address"
-                  rows={2}
-                  defaultValue={editStudent.address || ""}
-                  className="field-input w-full"
-                />
-              </label>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-semibold"
-                onClick={() => setEditStudent(null)}
-                disabled={pending}
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary" disabled={pending}>
-                {pending ? "Saving…" : "Save changes"}
-              </button>
-            </div>
-          </form>
         </div>
       ) : null}
 

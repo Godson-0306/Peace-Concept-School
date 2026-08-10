@@ -1,28 +1,21 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import StudentEnrollForm from "@/components/StudentEnrollForm";
+import { useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 
-export default function AdmissionEnrollPage() {
+/** Legacy enroll URLs redirect to Users → New Student. */
+export default function AdmissionEnrollRedirectPage() {
   const params = useParams();
+  const router = useRouter();
   const rawId = String(params.id || "");
-  const isManual = rawId === "new";
-  const applicationId = isManual ? null : Number(rawId);
 
-  return (
-    <StudentEnrollForm
-      applicationId={applicationId}
-      eyebrow="Admission"
-      title={isManual ? "Manual enrollment" : "Enroll applicant"}
-      description={
-        isManual
-          ? "Add a student directly to the portal."
-          : "Prefilling from the online application."
-      }
-      backHref="/app/admission"
-      backLabel="Back to inbox"
-      successPrimaryHref="/app/admission"
-      successPrimaryLabel="Back to admissions"
-    />
-  );
+  useEffect(() => {
+    if (!rawId || rawId === "new") {
+      router.replace("/app/users/new/student");
+      return;
+    }
+    router.replace(`/app/users/new/student?application=${encodeURIComponent(rawId)}`);
+  }, [rawId, router]);
+
+  return <p className="text-sm text-[var(--muted)]">Opening New Student…</p>;
 }

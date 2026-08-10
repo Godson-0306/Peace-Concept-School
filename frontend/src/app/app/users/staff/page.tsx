@@ -99,6 +99,9 @@ export default function UsersStaffPage() {
                   <th className="px-5 py-3 font-semibold">Email</th>
                   <th className="px-5 py-3 font-semibold">Role</th>
                   <th className="px-5 py-3 font-semibold">Phone</th>
+                  {isAdmin ? (
+                    <th className="px-5 py-3 font-semibold">Actions</th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
@@ -117,6 +120,16 @@ export default function UsersStaffPage() {
                     <td className="px-5 py-3.5 text-[var(--muted)]">
                       {member.phone_number || "—"}
                     </td>
+                    {isAdmin ? (
+                      <td className="px-5 py-3.5">
+                        <Link
+                          href={`/app/users/new/staff?id=${member.id}`}
+                          className="text-sm font-semibold text-[var(--brand-blue)] hover:underline"
+                        >
+                          Edit
+                        </Link>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>

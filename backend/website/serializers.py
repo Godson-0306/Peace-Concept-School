@@ -135,25 +135,25 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if self.instance is None:
+            guardian = (attrs.get("guardian_name") or "").strip()
             father = (attrs.get("father_name") or "").strip()
             mother = (attrs.get("mother_name") or "").strip()
-            guardian = (attrs.get("guardian_name") or "").strip()
-            if not (father or mother or guardian):
+            if not (guardian or father or mother):
                 raise serializers.ValidationError(
-                    "Provide at least one parent or guardian name."
+                    {"guardian_name": "Provide a parent or guardian name."}
                 )
             phone = (
-                (attrs.get("father_whatsapp") or "").strip()
+                (attrs.get("guardian_phone") or "").strip()
+                or (attrs.get("whatsapp_phone") or "").strip()
+                or (attrs.get("phone") or "").strip()
+                or (attrs.get("father_whatsapp") or "").strip()
                 or (attrs.get("father_phone") or "").strip()
                 or (attrs.get("mother_whatsapp") or "").strip()
                 or (attrs.get("mother_phone") or "").strip()
-                or (attrs.get("guardian_phone") or "").strip()
-                or (attrs.get("whatsapp_phone") or "").strip()
-                or (attrs.get("phone") or "").strip()
             )
             if not phone:
                 raise serializers.ValidationError(
-                    "Provide at least one parent phone or WhatsApp number."
+                    {"guardian_phone": "Provide a parent/guardian phone or WhatsApp number."}
                 )
         return attrs
 
@@ -161,7 +161,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         # Public create: force new status; staff cannot sneak accepted via create.
         validated_data["status"] = Application.Status.NEW
         validated_data.pop("enrolled_student", None)
-        # Derive guardian contact from parent fields when omitted.
+        # Derive guardian contact from parent fields when omitted (legacy payloads).
         if not validated_data.get("guardian_name"):
             validated_data["guardian_name"] = (
                 validated_data.get("father_name")
@@ -170,16 +170,18 @@ class ApplicationSerializer(serializers.ModelSerializer):
             )
         if not validated_data.get("guardian_phone"):
             validated_data["guardian_phone"] = (
-                validated_data.get("father_whatsapp")
+                validated_data.get("whatsapp_phone")
+                or validated_data.get("phone")
+                or validated_data.get("father_whatsapp")
                 or validated_data.get("father_phone")
                 or validated_data.get("mother_whatsapp")
                 or validated_data.get("mother_phone")
-                or validated_data.get("whatsapp_phone")
-                or validated_data.get("phone")
                 or ""
             )
         if not validated_data.get("guardian_email"):
             validated_data["guardian_email"] = validated_data.get("email") or ""
+        if not validated_data.get("email"):
+            validated_data["email"] = validated_data.get("guardian_email") or ""
         return super().create(validated_data)
 
     def update(self, instance, validated_data):

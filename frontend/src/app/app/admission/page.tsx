@@ -168,12 +168,12 @@ export default function AdmissionInboxPage() {
             Online admission requests
           </h1>
           <p className="mt-3 max-w-2xl text-base text-[var(--muted)]">
-            Review applications from the public website. Accepting opens the official
-            enrollment form with details prefilled.
+            Review applications from the public website. Accept opens New Student
+            with the application details prefilled so you can complete enrollment.
           </p>
         </div>
         <Link
-          href="/app/admission/enroll/new"
+          href="/app/users/new/student"
           className="rounded-lg bg-[var(--brand-blue)] px-4 py-2.5 text-sm font-bold text-white"
         >
           Manual enroll
@@ -272,10 +272,10 @@ export default function AdmissionInboxPage() {
                       <div className="flex flex-wrap gap-2">
                         {app.status !== "accepted" ? (
                           <Link
-                            href={`/app/admission/enroll/${app.id}`}
+                            href={`/app/users/new/student?application=${app.id}`}
                             className="rounded-lg bg-[var(--brand-blue)] px-3 py-1.5 text-xs font-bold text-white"
                           >
-                            Accept / Enroll
+                            Accept
                           </Link>
                         ) : (
                           <Link

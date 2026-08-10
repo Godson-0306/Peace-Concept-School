@@ -100,11 +100,16 @@ class PositionAssignmentSerializer(serializers.ModelSerializer):
         fields = ["id", "position", "department", "class_arm", "is_active"]
 
 
+DEFAULT_PORTAL_PASSWORD = "school"
+
+
 class StaffProfileSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(write_only=True, max_length=150)
-    email = serializers.EmailField(write_only=True)
+    username = serializers.CharField(write_only=True, max_length=150, required=False)
+    email = serializers.EmailField(write_only=True, required=False)
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    account_type = serializers.ChoiceField(choices=AccountType.choices, write_only=True)
+    account_type = serializers.ChoiceField(
+        choices=AccountType.choices, write_only=True, required=False
+    )
     positions = PositionAssignmentSerializer(many=True, required=False)
     user = UserSerializer(read_only=True)
 
@@ -138,7 +143,10 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         username = value.strip()
         if not username:
             raise serializers.ValidationError("Username is required.")
-        if User.objects.filter(username__iexact=username).exists():
+        qs = User.objects.filter(username__iexact=username)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.user_id)
+        if qs.exists():
             raise serializers.ValidationError("This username is already taken.")
         return username
 
@@ -153,12 +161,26 @@ class StaffProfileSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate(self, attrs):
+        if self.instance is None:
+            if not (attrs.get("username") or "").strip():
+                raise serializers.ValidationError({"username": "Username is required."})
+            if not attrs.get("email"):
+                raise serializers.ValidationError({"email": "Email is required."})
+            if not attrs.get("account_type"):
+                raise serializers.ValidationError(
+                    {"account_type": "Account type is required."}
+                )
+        return attrs
+
     @transaction.atomic
     def create(self, validated_data):
         positions = validated_data.pop("positions", [])
         username = validated_data.pop("username")
         email = validated_data.pop("email")
-        password = validated_data.pop("password", None) or generate_temp_password()
+        password = (
+            (validated_data.pop("password", None) or "").strip() or DEFAULT_PORTAL_PASSWORD
+        )
         account_type = validated_data.pop("account_type")
         name_parts = validated_data["full_name"].split(" ", 1)
         user = User.objects.create_user(
@@ -176,8 +198,37 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         staff._temp_password = password
         return staff
 
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        # Username is immutable after create.
+        validated_data.pop("username", None)
+        password = (validated_data.pop("password", None) or "").strip()
+        email = validated_data.pop("email", None)
+        account_type = validated_data.pop("account_type", None)
+        validated_data.pop("positions", None)
+        name_changed = "full_name" in validated_data
+        phone_changed = "phone_number" in validated_data
 
-DEFAULT_PORTAL_PASSWORD = "school"
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        user = instance.user
+        if email is not None:
+            user.email = email
+        if account_type is not None:
+            user.account_type = account_type
+        if name_changed:
+            name_parts = instance.full_name.split(" ", 1)
+            user.first_name = name_parts[0]
+            user.last_name = name_parts[1] if len(name_parts) > 1 else ""
+        if phone_changed:
+            user.phone = instance.phone_number or ""
+        if password:
+            user.set_password(password)
+            instance._temp_password = password
+        user.save()
+        return instance
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):
@@ -244,7 +295,12 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "create_portal_account",
             "created_at",
         ]
-        read_only_fields = ["student_id", "created_at", "session_attendance_days", "total_attendance_days"]
+        read_only_fields = [
+            "student_id",
+            "created_at",
+            "session_attendance_days",
+            "total_attendance_days",
+        ]
 
     def get_session_attendance_days(self, obj):
         value = getattr(obj, "annotated_session_attendance", None)
@@ -286,6 +342,38 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         )
         student._temp_password = password if create_portal else None
         return student
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        # Identity fields stay locked after create.
+        validated_data.pop("create_portal_account", None)
+        validated_data.pop("admission_year", None)
+        password = (validated_data.pop("password", None) or "").strip()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        user = instance.user
+        if user is not None:
+            if "full_name" in validated_data:
+                name_parts = instance.full_name.split(" ", 1)
+                user.first_name = name_parts[0]
+                user.last_name = name_parts[1] if len(name_parts) > 1 else ""
+            if "email" in validated_data and instance.email:
+                user.email = instance.email
+            phone = (
+                instance.guardian_phone
+                or instance.whatsapp_phone
+                or instance.phone
+                or ""
+            )
+            user.phone = phone
+            if password:
+                user.set_password(password)
+                instance._temp_password = password
+            user.save()
+        return instance
 
 
 class ParentProfileSerializer(serializers.ModelSerializer):

@@ -98,6 +98,8 @@ type FormState = {
 export type StudentEnrollFormProps = {
   /** Link application after enroll; omit for blank New Student / manual. */
   applicationId?: number | null;
+  /** Edit an existing student via the same form. */
+  studentId?: number | null;
   eyebrow?: string;
   title?: string;
   description?: string;
@@ -105,6 +107,43 @@ export type StudentEnrollFormProps = {
   backLabel?: string;
   successPrimaryHref?: string;
   successPrimaryLabel?: string;
+};
+
+type StudentRecord = {
+  id: number;
+  student_id: string;
+  full_name: string;
+  email: string;
+  gender: string;
+  date_of_birth: string | null;
+  admission_year: number;
+  date_of_admission: string | null;
+  class_arm: number | null;
+  class_level: number | null;
+  state_of_origin: string;
+  blood_group: string;
+  genotype: string;
+  disability: string;
+  address: string;
+  city_of_residence: string;
+  lga: string;
+  phone: string;
+  whatsapp_phone: string;
+  next_of_kin_name: string;
+  next_of_kin_relationship: string;
+  next_of_kin_address: string;
+  next_of_kin_phone: string;
+  father_name: string;
+  father_phone: string;
+  father_whatsapp: string;
+  mother_name: string;
+  mother_phone: string;
+  mother_whatsapp: string;
+  hometown: string;
+  guardian_email: string;
+  guardian_name: string;
+  guardian_phone: string;
+  passport_photo: string | null;
 };
 
 function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
@@ -147,6 +186,41 @@ function emptyForm(): FormState {
     guardian_email: "",
     guardian_name: "",
     guardian_phone: "",
+  };
+}
+
+function formFromStudent(student: StudentRecord): FormState {
+  return {
+    full_name: student.full_name || "",
+    email: student.email || "",
+    gender: student.gender || "",
+    date_of_birth: student.date_of_birth || "",
+    state_of_origin: student.state_of_origin || "",
+    blood_group: student.blood_group || "",
+    genotype: student.genotype || "",
+    disability: student.disability || "",
+    date_of_admission: student.date_of_admission || todayISO(),
+    class_level_id: student.class_level ? String(student.class_level) : "",
+    class_arm_id: student.class_arm ? String(student.class_arm) : "",
+    address: student.address || "",
+    city_of_residence: student.city_of_residence || "",
+    lga: student.lga || "",
+    phone: student.phone || "",
+    whatsapp_phone: student.whatsapp_phone || "",
+    next_of_kin_name: student.next_of_kin_name || "",
+    next_of_kin_relationship: student.next_of_kin_relationship || "",
+    next_of_kin_address: student.next_of_kin_address || "",
+    next_of_kin_phone: student.next_of_kin_phone || "",
+    father_name: student.father_name || "",
+    father_phone: student.father_phone || "",
+    father_whatsapp: student.father_whatsapp || "",
+    mother_name: student.mother_name || "",
+    mother_phone: student.mother_phone || "",
+    mother_whatsapp: student.mother_whatsapp || "",
+    hometown: student.hometown || "",
+    guardian_email: student.guardian_email || "",
+    guardian_name: student.guardian_name || "",
+    guardian_phone: student.guardian_phone || "",
   };
 }
 
@@ -208,6 +282,7 @@ function formFromApplication(
 
 export default function StudentEnrollForm({
   applicationId = null,
+  studentId = null,
   eyebrow = "Users",
   title = "New Student",
   description = "Add a student directly to the portal.",
@@ -217,11 +292,17 @@ export default function StudentEnrollForm({
   successPrimaryLabel = "Open Users",
 }: StudentEnrollFormProps) {
   const router = useRouter();
+  const isEdit = Boolean(studentId);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [application, setApplication] = useState<Application | null>(null);
   const [levels, setLevels] = useState<ClassLevel[]>([]);
   const [arms, setArms] = useState<ClassArm[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [password, setPassword] = useState("school");
+  const [lockedStudentId, setLockedStudentId] = useState("");
+  const [lockedAdmissionYear, setLockedAdmissionYear] = useState<number | null>(
+    null,
+  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [existingPhoto, setExistingPhoto] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -272,8 +353,17 @@ export default function StudentEnrollForm({
         const armList = unwrapList(armData);
         setLevels(levelList);
         setArms(armList);
+        setPassword("school");
 
-        if (applicationId) {
+        if (studentId) {
+          const student = await apiJson<StudentRecord>(`/api/students/${studentId}/`);
+          if (cancelled) return;
+          setApplication(null);
+          setForm(formFromStudent(student));
+          setLockedStudentId(student.student_id);
+          setLockedAdmissionYear(student.admission_year);
+          setExistingPhoto(student.passport_photo);
+        } else if (applicationId) {
           const app = await apiJson<Application>(
             `/api/website/applications/${applicationId}/`,
           );
@@ -282,16 +372,22 @@ export default function StudentEnrollForm({
             setError(
               `This application is already enrolled as ${app.enrolled_student_code || "a student"}.`,
             );
+          } else {
+            setError("");
           }
           setApplication(app);
           setForm(formFromApplication(app, levelList, armList));
+          setLockedStudentId("");
+          setLockedAdmissionYear(null);
           setExistingPhoto(app.passport_photo);
         } else {
           setApplication(null);
           setForm(emptyForm());
+          setLockedStudentId("");
+          setLockedAdmissionYear(null);
           setExistingPhoto(null);
+          setError("");
         }
-        setError("");
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load enrollment form");
@@ -303,7 +399,7 @@ export default function StudentEnrollForm({
     return () => {
       cancelled = true;
     };
-  }, [canAccess, applicationId]);
+  }, [canAccess, applicationId, studentId]);
 
   useEffect(() => {
     if (!form.class_level_id) return;
@@ -328,9 +424,9 @@ export default function StudentEnrollForm({
     setMessage("");
     setError("");
     try {
-      const admissionYear = Number(
-        (form.date_of_admission || todayISO()).slice(0, 4),
-      );
+      const admissionYear =
+        lockedAdmissionYear ??
+        Number((form.date_of_admission || todayISO()).slice(0, 4));
       const guardianName =
         form.guardian_name || form.father_name || form.mother_name;
       const guardianPhone =
@@ -341,13 +437,23 @@ export default function StudentEnrollForm({
         form.mother_phone ||
         form.whatsapp_phone ||
         form.phone;
+      const portalPassword = password.trim() || "school";
 
       const data = new FormData();
       data.set("full_name", form.full_name);
       data.set("email", form.email);
       data.set("gender", form.gender);
       if (form.date_of_birth) data.set("date_of_birth", form.date_of_birth);
-      data.set("admission_year", String(admissionYear));
+      if (!isEdit) {
+        data.set("admission_year", String(admissionYear));
+        data.set("create_portal_account", "true");
+        data.set("is_active", "true");
+        data.set("promotion_status", "pending");
+        data.set("password", portalPassword);
+      } else if (password.trim()) {
+        // Edit: only reset password when the field is non-empty.
+        data.set("password", password.trim());
+      }
       if (form.date_of_admission) {
         data.set("date_of_admission", form.date_of_admission);
       }
@@ -375,13 +481,9 @@ export default function StudentEnrollForm({
       data.set("guardian_name", guardianName);
       data.set("guardian_email", form.guardian_email || form.email);
       data.set("guardian_phone", guardianPhone);
-      data.set("password", "school");
-      data.set("create_portal_account", "true");
-      data.set("is_active", "true");
-      data.set("promotion_status", "pending");
       if (photoFile) {
         data.set("passport_photo", photoFile);
-      } else if (existingPhoto) {
+      } else if (!isEdit && existingPhoto) {
         try {
           const photoRes = await fetch(mediaUrl(existingPhoto), {
             credentials: "include",
@@ -401,8 +503,11 @@ export default function StudentEnrollForm({
         }
       }
 
-      const response = await apiFetch("/api/students/", {
-        method: "POST",
+      const endpoint = isEdit
+        ? `/api/students/${studentId}/`
+        : "/api/students/";
+      const response = await apiFetch(endpoint, {
+        method: isEdit ? "PATCH" : "POST",
         body: data,
       });
       const payload = (await response.json().catch(() => ({}))) as CreatedStudent & {
@@ -412,11 +517,11 @@ export default function StudentEnrollForm({
         throw new Error(
           typeof payload.detail === "string"
             ? payload.detail
-            : JSON.stringify(payload) || "Could not create student",
+            : JSON.stringify(payload) || "Could not save student",
         );
       }
 
-      if (applicationId) {
+      if (!isEdit && applicationId) {
         await apiJson(`/api/website/applications/${applicationId}/`, {
           method: "PATCH",
           body: JSON.stringify({
@@ -426,17 +531,23 @@ export default function StudentEnrollForm({
         });
       }
 
+      const usedPassword =
+        payload.temporary_password ||
+        (isEdit ? (password.trim() ? password.trim() : undefined) : portalPassword);
+
       setCreated({
         id: payload.id,
-        student_id: payload.student_id,
+        student_id: payload.student_id || lockedStudentId,
         full_name: payload.full_name,
-        temporary_password: payload.temporary_password || "school",
+        temporary_password: usedPassword,
       });
       setMessage(
-        `Enrolled ${payload.full_name} as ${payload.student_id}. Default password: school`,
+        isEdit
+          ? `Updated ${payload.full_name}.`
+          : `Enrolled ${payload.full_name} as ${payload.student_id}. Password: ${usedPassword}`,
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Enrollment failed");
+      setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setPending(false);
     }
@@ -458,13 +569,13 @@ export default function StudentEnrollForm({
             {eyebrow}
           </p>
           <h1 className="mt-2 font-display text-4xl font-semibold text-[var(--brand-blue-deep)]">
-            Student enrolled
+            {isEdit ? "Student updated" : "Student enrolled"}
           </h1>
         </header>
         <div className="rounded-2xl border border-[var(--line)] bg-white/90 p-6">
           <p className="text-base text-[var(--ink)]">
-            <span className="font-semibold">{created.full_name}</span> is now on the
-            portal.
+            <span className="font-semibold">{created.full_name}</span>{" "}
+            {isEdit ? "was saved." : "is now on the portal."}
           </p>
           <dl className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
@@ -475,14 +586,16 @@ export default function StudentEnrollForm({
                 {created.student_id}
               </dd>
             </div>
-            <div>
-              <dt className="text-xs uppercase tracking-[0.12em] text-[var(--muted)]">
-                Default password
-              </dt>
-              <dd className="mt-1 font-display text-2xl text-[var(--brand-blue-deep)]">
-                {created.temporary_password || "school"}
-              </dd>
-            </div>
+            {created.temporary_password ? (
+              <div>
+                <dt className="text-xs uppercase tracking-[0.12em] text-[var(--muted)]">
+                  Portal password
+                </dt>
+                <dd className="mt-1 font-display text-2xl text-[var(--brand-blue-deep)]">
+                  {created.temporary_password}
+                </dd>
+              </div>
+            ) : null}
           </dl>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -497,19 +610,22 @@ export default function StudentEnrollForm({
             >
               Open Users
             </Link>
-            <button
-              type="button"
-              className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-semibold"
-              onClick={() => {
-                setCreated(null);
-                setForm(emptyForm());
-                setPhotoFile(null);
-                setExistingPhoto(null);
-                setMessage("");
-              }}
-            >
-              Add another
-            </button>
+            {!isEdit ? (
+              <button
+                type="button"
+                className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-semibold"
+                onClick={() => {
+                  setCreated(null);
+                  setForm(emptyForm());
+                  setPassword("school");
+                  setPhotoFile(null);
+                  setExistingPhoto(null);
+                  setMessage("");
+                }}
+              >
+                Add another
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -572,6 +688,26 @@ export default function StudentEnrollForm({
               </p>
             </div>
             <div className="grid flex-1 gap-3 sm:grid-cols-2">
+              {isEdit ? (
+                <>
+                  <label className="field">
+                    <span>Student ID</span>
+                    <input
+                      className="field-input bg-[var(--mist)]"
+                      value={lockedStudentId}
+                      readOnly
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Admission year</span>
+                    <input
+                      className="field-input bg-[var(--mist)]"
+                      value={lockedAdmissionYear ?? ""}
+                      readOnly
+                    />
+                  </label>
+                </>
+              ) : null}
               <label className="field sm:col-span-2">
                 <span>Full name</span>
                 <input
@@ -856,14 +992,32 @@ export default function StudentEnrollForm({
               />
             </label>
           </div>
-          <p className="mt-4 text-sm text-[var(--muted)]">
-            Portal login password for the new student will be{" "}
-            <span className="font-semibold text-[var(--ink)]">school</span>.
+          <label className="field mt-5 max-w-md">
+            <span>
+              {isEdit ? "Reset portal password" : "Portal password"}
+            </span>
+            <input
+              className="field-input"
+              type="text"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={isEdit ? "Clear to keep current password" : "school"}
+            />
+          </label>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            {isEdit
+              ? "Prefilled with school. Clear the field to leave the current password unchanged."
+              : "Defaults to school. Change it before saving if needed."}
           </p>
         </section>
 
         <button type="submit" className="btn-primary" disabled={pending}>
-          {pending ? "Saving…" : "Save and create student"}
+          {pending
+            ? "Saving…"
+            : isEdit
+              ? "Save student changes"
+              : "Save and create student"}
         </button>
       </form>
 
