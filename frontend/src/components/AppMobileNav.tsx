@@ -22,6 +22,7 @@ export default function AppMobileNav() {
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [levels, setLevels] = useState<ClassLevelNav[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
 
   useEffect(() => {
@@ -33,13 +34,30 @@ export default function AppMobileNav() {
       return;
     }
     apiJson<{ results?: ClassLevelNav[] } | ClassLevelNav[]>("/api/class-levels/")
-      .then((data) => setLevels(unwrapList(data).sort((a, b) => a.order - b.order)))
+      .then((data) => setLevels(unwrapList(data)))
       .catch(() => setLevels([]));
   }, [user?.account_type]);
 
   useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
     if (pathname.startsWith("/app/users")) setUsersOpen(true);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
   const links = useMemo(
     () => withUsersClassLevels(portalNavFor(user?.account_type), levels),
@@ -47,76 +65,142 @@ export default function AppMobileNav() {
   );
 
   return (
-    <div className="border-b border-[var(--line)] bg-white/80 md:hidden">
-      <div className="flex items-center justify-between px-4 py-3">
+    <div className="border-b border-[var(--line)] bg-white/90 md:hidden">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
         <Link
           href="/app"
           className="font-display text-xl font-semibold text-[var(--brand-blue-deep)]"
         >
           {SCHOOL_SHORT}
         </Link>
-        <Link href="/" className="text-xs font-medium text-[var(--muted)]">
-          Public site
-        </Link>
-      </div>
-      <nav
-        className="flex gap-1 overflow-x-auto px-3 pb-3"
-        aria-label="App mobile"
-      >
-        {links.map((link) => {
-          if (link.children?.length) {
-            const parentActive = isPortalNavActive(pathname, link.href);
-            return (
-              <div key={link.href} className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setUsersOpen((v) => !v)}
-                  className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                    parentActive
-                      ? "bg-[var(--brand-blue)] text-white"
-                      : "bg-[var(--brand-blue-wash)] text-[var(--brand-blue)]"
-                  }`}
-                >
-                  {link.label} {usersOpen ? "−" : "+"}
-                </button>
-                {usersOpen
-                  ? link.children.map((child) => {
-                      const active = isExactPortalNavActive(pathname, child.href);
-                      return (
-                        <Link
-                          key={child.href + child.label}
-                          href={child.href}
-                          className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                            active
-                              ? "bg-[var(--brand-pink)] text-white"
-                              : "bg-[var(--mist)] text-[var(--ink)]"
-                          }`}
-                        >
-                          {child.label}
-                        </Link>
-                      );
-                    })
-                  : null}
-              </div>
-            );
-          }
-
-          const active = isPortalNavActive(pathname, link.href);
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                active
-                  ? "bg-[var(--brand-blue)] text-white"
-                  : "bg-[var(--brand-blue-wash)] text-[var(--brand-blue)]"
+        <button
+          type="button"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--brand-blue)]"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-portal-menu"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span aria-hidden className="flex w-4 flex-col gap-1">
+            <span
+              className={`h-0.5 w-full bg-current transition ${
+                menuOpen ? "translate-y-[6px] rotate-45" : ""
               }`}
-            >
-              {link.label}
-            </Link>
-          );
-        })}
-      </nav>
+            />
+            <span
+              className={`h-0.5 w-full bg-current transition ${
+                menuOpen ? "opacity-0" : ""
+              }`}
+            />
+            <span
+              className={`h-0.5 w-full bg-current transition ${
+                menuOpen ? "-translate-y-[6px] -rotate-45" : ""
+              }`}
+            />
+          </span>
+        </button>
+      </div>
+
+      {menuOpen ? (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-[rgba(12,47,109,0.35)]"
+            aria-label="Close menu overlay"
+            onClick={() => setMenuOpen(false)}
+          />
+          <nav
+            id="mobile-portal-menu"
+            className="fixed inset-y-0 right-0 z-50 flex w-[min(20rem,88vw)] flex-col bg-white shadow-[-12px_0_40px_rgba(12,47,109,0.18)]"
+            aria-label="App mobile"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-4">
+              <p className="font-display text-lg font-semibold text-[var(--brand-blue-deep)]">
+                Menu
+              </p>
+              <button
+                type="button"
+                className="text-sm font-semibold text-[var(--muted)]"
+                onClick={() => setMenuOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {links.map((link) => {
+                if (link.children?.length) {
+                  const parentActive = isPortalNavActive(pathname, link.href);
+                  return (
+                    <div key={link.href} className="mb-1">
+                      <button
+                        type="button"
+                        onClick={() => setUsersOpen((open) => !open)}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-sm font-semibold ${
+                          parentActive
+                            ? "bg-[var(--brand-blue)] text-white"
+                            : "text-[var(--ink)] hover:bg-[var(--brand-blue-wash)]"
+                        }`}
+                        aria-expanded={usersOpen}
+                      >
+                        <span>{link.label}</span>
+                        <span className="text-xs opacity-80">
+                          {usersOpen ? "−" : "+"}
+                        </span>
+                      </button>
+                      {usersOpen ? (
+                        <div className="mt-1 ml-2 space-y-0.5 border-l border-[var(--line)] pl-2">
+                          {link.children.map((child) => {
+                            const active = isExactPortalNavActive(
+                              pathname,
+                              child.href,
+                            );
+                            return (
+                              <Link
+                                key={child.href + child.label}
+                                href={child.href}
+                                className={`block rounded-lg px-3 py-2.5 text-sm ${
+                                  active
+                                    ? "bg-[var(--brand-blue-wash)] font-semibold text-[var(--brand-blue)]"
+                                    : "text-[var(--muted)] hover:bg-[var(--mist)] hover:text-[var(--ink)]"
+                                }`}
+                              >
+                                {child.label}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                }
+
+                const active = isPortalNavActive(pathname, link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`mb-1 block rounded-lg px-3 py-3 text-sm font-semibold ${
+                      active
+                        ? "bg-[var(--brand-blue)] text-white"
+                        : "text-[var(--ink)] hover:bg-[var(--brand-blue-wash)]"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="border-t border-[var(--line)] px-4 py-4">
+              <Link
+                href="/"
+                className="text-sm font-semibold text-[var(--brand-blue)]"
+              >
+                Public site
+              </Link>
+            </div>
+          </nav>
+        </>
+      ) : null}
     </div>
   );
 }

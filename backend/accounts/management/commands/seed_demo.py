@@ -98,8 +98,25 @@ class Command(BaseCommand):
         ]
         for order, name in enumerate(level_names, start=1):
             level, _ = ClassLevel.objects.get_or_create(name=name, defaults={"order": order})
+            if level.order != order:
+                level.order = order
+                level.save(update_fields=["order"])
             for arm in ("A", "B"):
                 ClassArm.objects.get_or_create(class_level=level, name=arm)
+        # Normalize legacy SSS* levels into SS* and drop unused duplicates.
+        for legacy, canonical in (("SSS1", "SS1"), ("SSS2", "SS2"), ("SSS3", "SS3")):
+            old = ClassLevel.objects.filter(name=legacy).first()
+            new = ClassLevel.objects.filter(name=canonical).first()
+            if old and new and old.id != new.id:
+                for arm in old.arms.all():
+                    target, _ = ClassArm.objects.get_or_create(
+                        class_level=new, name=arm.name
+                    )
+                    arm.students.update(class_arm=target)
+                    arm.teacher_assignments.update(class_arm=target)
+                    arm.delete()
+                old.subjects.update(class_level=new)
+                old.delete()
 
         sciences, _ = Department.objects.get_or_create(name="Sciences")
         humanities, _ = Department.objects.get_or_create(name="Humanities")

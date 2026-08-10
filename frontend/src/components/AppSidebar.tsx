@@ -35,10 +35,7 @@ export default function AppSidebar() {
       return;
     }
     apiJson<{ results?: ClassLevelNav[] } | ClassLevelNav[]>("/api/class-levels/")
-      .then((data) => {
-        const list = unwrapList(data).sort((a, b) => a.order - b.order);
-        setLevels(list);
-      })
+      .then((data) => setLevels(unwrapList(data)))
       .catch(() => setLevels([]));
   }, [user?.account_type]);
 
