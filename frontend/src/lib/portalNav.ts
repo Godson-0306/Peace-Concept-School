@@ -6,6 +6,15 @@ export type PortalNavItem = {
   children?: PortalNavItem[];
 };
 
+const NEW_USER_NAV: PortalNavItem = {
+  href: "/app/users/new",
+  label: "New User",
+  children: [
+    { href: "/app/users/new/student", label: "New Student" },
+    { href: "/app/users/new/staff", label: "New Staff" },
+  ],
+};
+
 export const STAFF_PORTAL_NAV: PortalNavItem[] = [
   { href: "/app", label: "Dashboard" },
   {
@@ -23,6 +32,7 @@ export const STAFF_PORTAL_NAV: PortalNavItem[] = [
     href: "/app/users",
     label: "Users",
     children: [
+      NEW_USER_NAV,
       { href: "/app/users", label: "All Students" },
       { href: "/app/users/ex-students", label: "Ex-Students" },
       // Class levels injected at runtime between Ex-Students and Staff
@@ -108,9 +118,20 @@ export function sortClassLevelsForUsers(levels: ClassLevelNav[]): ClassLevelNav[
   return [...ordered, ...extras];
 }
 
+function newUserNavFor(accountType: AccountType | null | undefined): PortalNavItem {
+  const children =
+    accountType === "admin"
+      ? NEW_USER_NAV.children
+      : (NEW_USER_NAV.children ?? []).filter(
+          (child) => child.href !== "/app/users/new/staff",
+        );
+  return { ...NEW_USER_NAV, children };
+}
+
 export function withUsersClassLevels(
   links: PortalNavItem[],
   levels: ClassLevelNav[],
+  accountType?: AccountType | null,
 ): PortalNavItem[] {
   return links.map((link) => {
     if (link.href !== "/app/users" || !link.children) return link;
@@ -121,6 +142,7 @@ export function withUsersClassLevels(
     return {
       ...link,
       children: [
+        newUserNavFor(accountType),
         { href: "/app/users", label: "All Students" },
         { href: "/app/users/ex-students", label: "Ex-Students" },
         ...classChildren,
@@ -180,6 +202,9 @@ export function isPortalNavActive(pathname: string, href: string): boolean {
   if (href === "/app/users") {
     return pathname === "/app/users" || pathname.startsWith("/app/users/");
   }
+  if (href === "/app/users/new") {
+    return pathname === "/app/users/new" || pathname.startsWith("/app/users/new/");
+  }
   if (href === "/app/settings") {
     return pathname === "/app/settings" || pathname.startsWith("/app/settings/");
   }
@@ -188,6 +213,29 @@ export function isPortalNavActive(pathname: string, href: string): boolean {
 
 export function isExactPortalNavActive(pathname: string, href: string): boolean {
   if (href === "/app/users") return pathname === "/app/users";
+  if (href === "/app/users/new") {
+    return pathname === "/app/users/new" || pathname.startsWith("/app/users/new/");
+  }
   if (href === "/app/settings") return pathname === "/app/settings";
   return pathname === href;
+}
+
+/** Open parent groups (and nested groups) whose path matches the current route. */
+export function collectOpenNavGroups(
+  links: PortalNavItem[],
+  pathname: string,
+): Record<string, boolean> {
+  const open: Record<string, boolean> = {};
+  for (const link of links) {
+    if (!link.children?.length) continue;
+    if (isPortalNavActive(pathname, link.href)) {
+      open[link.href] = true;
+    }
+    for (const child of link.children) {
+      if (child.children?.length && isPortalNavActive(pathname, child.href)) {
+        open[child.href] = true;
+      }
+    }
+  }
+  return open;
 }

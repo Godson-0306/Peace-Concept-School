@@ -107,13 +107,13 @@ export async function loginAction(formData: FormData) {
       cache: "no-store",
     });
   } catch {
-    fail("Unable to reach the school server. Please try again.");
+    return fail("Unable to reach the school server. Please try again.");
   }
 
   const payload = await upstream.json().catch(() => ({}));
 
   if (!upstream.ok) {
-    fail(
+    return fail(
       extractErrorMessage(
         payload,
         portal === "student"

@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils.crypto import get_random_string
 from rest_framework import serializers
 
 from academics.models import StudentIdSequence
@@ -10,6 +11,11 @@ from .models import (
     StudentProfile,
     User,
 )
+
+
+def generate_temp_password(length: int = 12) -> str:
+    """Django 5.1+ removed UserManager.make_random_password()."""
+    return get_random_string(length)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -152,7 +158,7 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         positions = validated_data.pop("positions", [])
         username = validated_data.pop("username")
         email = validated_data.pop("email")
-        password = validated_data.pop("password", None) or User.objects.make_random_password()
+        password = validated_data.pop("password", None) or generate_temp_password()
         account_type = validated_data.pop("account_type")
         name_parts = validated_data["full_name"].split(" ", 1)
         user = User.objects.create_user(
@@ -322,7 +328,7 @@ class ParentProfileSerializer(serializers.ModelSerializer):
         child_ids = validated_data.pop("child_ids", [])
         username = validated_data.pop("username")
         email = validated_data.pop("email")
-        password = validated_data.pop("password", None) or User.objects.make_random_password()
+        password = validated_data.pop("password", None) or generate_temp_password()
         name_parts = validated_data["full_name"].split(" ", 1)
         user = User.objects.create_user(
             email=email,

@@ -9,14 +9,84 @@ import { AuthUser, clearUser, getStoredUser } from "@/lib/auth";
 import { SCHOOL_SHORT } from "@/lib/brand";
 import {
   ClassLevelNav,
+  collectOpenNavGroups,
   isExactPortalNavActive,
   isPortalNavActive,
+  PortalNavItem,
   portalNavFor,
   withUsersClassLevels,
 } from "@/lib/portalNav";
 
 function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
   return Array.isArray(data) ? data : data.results ?? [];
+}
+
+function NavChildLinks({
+  items,
+  pathname,
+  openGroups,
+  setOpenGroups,
+}: {
+  items: PortalNavItem[];
+  pathname: string;
+  openGroups: Record<string, boolean>;
+  setOpenGroups: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+}) {
+  return (
+    <div className="ml-2 space-y-0.5 border-l border-[var(--line)] pl-2">
+      {items.map((child) => {
+        if (child.children?.length) {
+          const nestedOpen = Boolean(openGroups[child.href]);
+          const nestedActive = isPortalNavActive(pathname, child.href);
+          return (
+            <div key={child.href + child.label} className="space-y-0.5">
+              <button
+                type="button"
+                onClick={() =>
+                  setOpenGroups((prev) => ({
+                    ...prev,
+                    [child.href]: !prev[child.href],
+                  }))
+                }
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                  nestedActive
+                    ? "bg-[var(--brand-blue-wash)] font-semibold text-[var(--brand-blue)]"
+                    : "text-[var(--muted)] hover:bg-[var(--mist)] hover:text-[var(--ink)]"
+                }`}
+                aria-expanded={nestedOpen}
+              >
+                <span>{child.label}</span>
+                <span className="text-xs opacity-80">{nestedOpen ? "−" : "+"}</span>
+              </button>
+              {nestedOpen ? (
+                <NavChildLinks
+                  items={child.children}
+                  pathname={pathname}
+                  openGroups={openGroups}
+                  setOpenGroups={setOpenGroups}
+                />
+              ) : null}
+            </div>
+          );
+        }
+
+        const active = isExactPortalNavActive(pathname, child.href);
+        return (
+          <Link
+            key={child.href + child.label}
+            href={child.href}
+            className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+              active
+                ? "bg-[var(--brand-blue-wash)] font-semibold text-[var(--brand-blue)]"
+                : "text-[var(--muted)] hover:bg-[var(--mist)] hover:text-[var(--ink)]"
+            }`}
+          >
+            {child.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function AppSidebar() {
@@ -40,20 +110,17 @@ export default function AppSidebar() {
   }, [user?.account_type]);
 
   const links = useMemo(
-    () => withUsersClassLevels(portalNavFor(user?.account_type), levels),
+    () =>
+      withUsersClassLevels(
+        portalNavFor(user?.account_type),
+        levels,
+        user?.account_type,
+      ),
     [user?.account_type, levels],
   );
 
   useEffect(() => {
-    setOpenGroups((prev) => {
-      const next = { ...prev };
-      for (const link of links) {
-        if (link.children?.length && isPortalNavActive(pathname, link.href)) {
-          next[link.href] = true;
-        }
-      }
-      return next;
-    });
+    setOpenGroups((prev) => ({ ...prev, ...collectOpenNavGroups(links, pathname) }));
   }, [pathname, links]);
 
   async function logout() {
@@ -114,24 +181,12 @@ export default function AppSidebar() {
                   <span className="text-xs opacity-80">{open ? "−" : "+"}</span>
                 </button>
                 {open ? (
-                  <div className="ml-2 space-y-0.5 border-l border-[var(--line)] pl-2">
-                    {link.children.map((child) => {
-                      const active = isExactPortalNavActive(pathname, child.href);
-                      return (
-                        <Link
-                          key={child.href + child.label}
-                          href={child.href}
-                          className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
-                            active
-                              ? "bg-[var(--brand-blue-wash)] font-semibold text-[var(--brand-blue)]"
-                              : "text-[var(--muted)] hover:bg-[var(--mist)] hover:text-[var(--ink)]"
-                          }`}
-                        >
-                          {child.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
+                  <NavChildLinks
+                    items={link.children}
+                    pathname={pathname}
+                    openGroups={openGroups}
+                    setOpenGroups={setOpenGroups}
+                  />
                 ) : null}
               </div>
             );
