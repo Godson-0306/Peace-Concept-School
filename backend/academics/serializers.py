@@ -149,6 +149,9 @@ class SubjectSerializer(serializers.ModelSerializer):
         ]
 
 
+MAX_TEACHER_SUBJECTS = 20
+
+
 class TeacherAssignmentSerializer(serializers.ModelSerializer):
     staff_name = serializers.CharField(source="staff.full_name", read_only=True)
     class_arm_label = serializers.CharField(source="class_arm.label", read_only=True)
@@ -169,3 +172,30 @@ class TeacherAssignmentSerializer(serializers.ModelSerializer):
             "session_name",
             "is_active",
         ]
+
+    def validate(self, attrs):
+        staff = attrs.get("staff") or getattr(self.instance, "staff", None)
+        session = attrs.get("session") or getattr(self.instance, "session", None)
+        subject = attrs.get("subject") or getattr(self.instance, "subject", None)
+        is_active = attrs.get("is_active")
+        if is_active is None:
+            is_active = True if self.instance is None else self.instance.is_active
+
+        if staff and session and subject and is_active:
+            qs = TeacherAssignment.objects.filter(
+                staff=staff, session=session, is_active=True
+            )
+            if self.instance is not None:
+                qs = qs.exclude(pk=self.instance.pk)
+            subject_ids = set(qs.values_list("subject_id", flat=True))
+            subject_ids.add(subject.id if hasattr(subject, "id") else subject)
+            if len(subject_ids) > MAX_TEACHER_SUBJECTS:
+                raise serializers.ValidationError(
+                    {
+                        "subject": (
+                            f"A teacher may take at most {MAX_TEACHER_SUBJECTS} "
+                            "different subjects."
+                        )
+                    }
+                )
+        return attrs

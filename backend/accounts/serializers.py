@@ -7,6 +7,7 @@ from .models import (
     AccountType,
     ParentProfile,
     PositionAssignment,
+    PositionType,
     StaffProfile,
     StudentProfile,
     User,
@@ -95,12 +96,49 @@ class LoginSerializer(serializers.Serializer):
 
 
 class PositionAssignmentSerializer(serializers.ModelSerializer):
+    staff = serializers.PrimaryKeyRelatedField(
+        queryset=StaffProfile.objects.all(), required=False, allow_null=True
+    )
+
     class Meta:
         model = PositionAssignment
-        fields = ["id", "position", "department", "class_arm", "is_active"]
+        fields = ["id", "staff", "position", "department", "class_arm", "is_active"]
+        # UniqueConstraint on (staff, position, department, class_arm) would otherwise
+        # force those FKs required on every nested write.
+        validators = []
+        extra_kwargs = {
+            "department": {"required": False, "allow_null": True},
+            "class_arm": {"required": False, "allow_null": True},
+            "is_active": {"required": False},
+        }
+
+    def validate(self, attrs):
+        position = attrs.get("position")
+        if position is None and self.instance is not None:
+            position = self.instance.position
+        class_arm = attrs.get("class_arm", serializers.empty)
+        if class_arm is serializers.empty and self.instance is not None:
+            class_arm = self.instance.class_arm
+        elif class_arm is serializers.empty:
+            class_arm = None
+        is_active = attrs.get("is_active")
+        if is_active is None and self.instance is not None:
+            is_active = self.instance.is_active
+        if is_active is None:
+            is_active = True
+        if (
+            position == PositionType.FORM_TEACHER
+            and is_active
+            and not class_arm
+        ):
+            raise serializers.ValidationError(
+                {"class_arm": "Form Class is required for Form Teacher."}
+            )
+        return attrs
 
 
 DEFAULT_PORTAL_PASSWORD = "school"
+MAX_TEACHER_SUBJECTS = 20
 
 
 class StaffProfileSerializer(serializers.ModelSerializer):
@@ -171,7 +209,61 @@ class StaffProfileSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"account_type": "Account type is required."}
                 )
+        positions = attrs.get("positions")
+        if positions is not None:
+            for pos in positions:
+                if (
+                    pos.get("position") == PositionType.FORM_TEACHER
+                    and pos.get("is_active", True)
+                    and not pos.get("class_arm")
+                ):
+                    raise serializers.ValidationError(
+                        {"positions": "Form Class is required for Form Teacher."}
+                    )
         return attrs
+
+    def _sync_positions(self, staff, positions):
+        """Replace form-teacher (and provided) positions for this staff."""
+        if positions is None:
+            return
+        # Nested create payloads omit staff; strip any client-supplied staff id.
+        cleaned = []
+        for pos in positions:
+            row = dict(pos)
+            row.pop("staff", None)
+            cleaned.append(row)
+
+        keep_ids = []
+        for pos in cleaned:
+            position = pos.get("position")
+            department = pos.get("department")
+            class_arm = pos.get("class_arm")
+            is_active = pos.get("is_active", True)
+            existing = (
+                staff.positions.filter(
+                    position=position,
+                    department=department,
+                    class_arm=class_arm,
+                ).first()
+            )
+            if existing:
+                existing.is_active = is_active
+                existing.save(update_fields=["is_active"])
+                keep_ids.append(existing.id)
+            else:
+                created = PositionAssignment.objects.create(staff=staff, **pos)
+                keep_ids.append(created.id)
+
+        # Deactivate form-teacher rows not represented in the payload.
+        form_teacher_in_payload = any(
+            p.get("position") == PositionType.FORM_TEACHER and p.get("is_active", True)
+            for p in cleaned
+        )
+        qs = staff.positions.filter(position=PositionType.FORM_TEACHER, is_active=True)
+        if form_teacher_in_payload:
+            qs.exclude(id__in=keep_ids).update(is_active=False)
+        else:
+            qs.update(is_active=False)
 
     @transaction.atomic
     def create(self, validated_data):
@@ -194,7 +286,9 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         )
         staff = StaffProfile.objects.create(user=user, **validated_data)
         for pos in positions:
-            PositionAssignment.objects.create(staff=staff, **pos)
+            row = dict(pos)
+            row.pop("staff", None)
+            PositionAssignment.objects.create(staff=staff, **row)
         staff._temp_password = password
         return staff
 
@@ -205,7 +299,7 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         password = (validated_data.pop("password", None) or "").strip()
         email = validated_data.pop("email", None)
         account_type = validated_data.pop("account_type", None)
-        validated_data.pop("positions", None)
+        positions = validated_data.pop("positions", None)
         name_changed = "full_name" in validated_data
         phone_changed = "phone_number" in validated_data
 
@@ -228,6 +322,9 @@ class StaffProfileSerializer(serializers.ModelSerializer):
             user.set_password(password)
             instance._temp_password = password
         user.save()
+
+        if positions is not None:
+            self._sync_positions(instance, positions)
         return instance
 
 

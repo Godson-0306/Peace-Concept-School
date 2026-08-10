@@ -122,13 +122,15 @@ export default function AdminPage() {
     setError("");
     const data = new FormData(event.currentTarget);
     try {
+      const role = String(data.get("account_type") || "teacher");
+      const isFormTeacher = role === "form_teacher";
       const created = await apiJson<Staff>("/api/staff/", {
         method: "POST",
         body: JSON.stringify({
           full_name: data.get("full_name"),
           username: data.get("username"),
           email: data.get("email"),
-          account_type: data.get("account_type"),
+          account_type: isFormTeacher ? "teacher" : role,
           gender: data.get("gender"),
           phone_number: data.get("phone_number"),
         }),
@@ -138,6 +140,9 @@ export default function AdminPage() {
         `Staff created — username: ${username}` +
           (created.temporary_password
             ? ` — temp password: ${created.temporary_password}`
+            : "") +
+          (isFormTeacher
+            ? " — use Users → New Staff to assign Form Class and subjects."
             : ""),
       );
       event.currentTarget.reset();
@@ -263,6 +268,7 @@ export default function AdminPage() {
           <input name="email" type="email" placeholder="Email" required className="field-input" />
           <select name="account_type" className="field-input" defaultValue="teacher">
             <option value="teacher">Teacher</option>
+            <option value="form_teacher">Form Teacher</option>
             <option value="principal">Principal</option>
             <option value="accountant">Accountant</option>
             <option value="store_staff">Store / Sales</option>
