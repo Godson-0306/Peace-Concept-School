@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
-import { CLASS_BANDS, SCHOOL_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "Academics",
-  description: `Academic programmes at ${SCHOOL_NAME} — Day Care, Nursery, Basic, JSS, and SS.`,
+  description:
+    "Academic programmes at Peace Concept School — Junior Secondary (JSS) and Senior Secondary (SSS).",
 };
 
 export default function AcademicsPage() {
@@ -12,86 +12,71 @@ export default function AcademicsPage() {
     <>
       <PageHero
         eyebrow="Academics"
-        title="Learning that grows with your child"
-        description="A clear pathway from Day Care and Nursery through Basic Education, Junior Secondary, and Senior Secondary."
-        image="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1800&q=80"
+        title="A clear pathway from JSS to SSS"
+        description="Our curriculum aligns with Nigerian secondary standards while emphasising deep understanding, practical skills, and examination readiness."
       />
 
       <section className="section-pad">
-        <div className="site-container grid gap-5 md:grid-cols-2">
-          {CLASS_BANDS.map((band, index) => (
-            <article
-              key={band.title}
-              className={`rounded-2xl p-8 sm:p-10 ${
-                index % 2 === 0
-                  ? "border border-[var(--line)] bg-white shadow-[0_14px_34px_rgba(26,34,51,0.05)]"
-                  : "bg-[var(--brand-blue)] text-white"
-              }`}
-            >
-              <p
-                className={`text-xs font-bold uppercase tracking-[0.12em] ${
-                  index % 2 === 0 ? "text-[var(--brand-pink)]" : "text-[var(--brand-pink-soft)]"
-                }`}
-              >
-                {band.range}
-              </p>
-              <h2
-                className={`mt-3 font-display text-3xl font-semibold tracking-tight ${
-                  index % 2 === 0 ? "text-[var(--brand-blue-deep)]" : ""
-                }`}
-              >
-                {band.title}
-              </h2>
-              <p
-                className={`mt-4 text-sm leading-relaxed ${
-                  index % 2 === 0 ? "text-[var(--muted)]" : "text-white/80"
-                }`}
-              >
-                {band.copy}
-              </p>
-            </article>
-          ))}
+        <div className="site-container grid gap-12 lg:grid-cols-2">
+          <article>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-gold)]">
+              Junior Secondary
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-semibold text-[var(--brand-green)]">
+              JSS1 – JSS3
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-[var(--muted)]">
+              Students build strong foundations across English Language,
+              Mathematics, Basic Science &amp; Technology, Social Studies,
+              Nigerian Languages, Creative Arts, Religious &amp; National Values,
+              and Business Studies. Continuous assessment and termly examinations
+              track progress.
+            </p>
+            <ul className="mt-5 space-y-2 text-sm text-[var(--muted)]">
+              <li>Literacy and numeracy mastery blocks</li>
+              <li>Introductory STEM practicals</li>
+              <li>Civic education and peace education</li>
+              <li>Clubs: debate, ICT, agriculture, music</li>
+            </ul>
+          </article>
+
+          <article>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-gold)]">
+              Senior Secondary
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-semibold text-[var(--brand-green)]">
+              SSS1 – SSS3
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-[var(--muted)]">
+              Senior students pursue Science, Commercial, or Arts pathways with
+              core subjects including English Language, Mathematics, and Civic
+              Education. Teaching prepares candidates for WAEC SSCE, NECO, and
+              post-secondary entrance examinations.
+            </p>
+            <ul className="mt-5 space-y-2 text-sm text-[var(--muted)]">
+              <li>Science: Physics, Chemistry, Biology, Further Maths</li>
+              <li>Commercial: Accounting, Economics, Commerce</li>
+              <li>Arts: Literature, Government, CRS/IRS, History</li>
+              <li>Career guidance and tertiary counselling</li>
+            </ul>
+          </article>
         </div>
       </section>
 
-      <section className="section-pad pt-0">
-        <div className="site-container grid gap-5 lg:grid-cols-2">
-          <div className="rounded-2xl bg-[var(--brand-pink-wash)] p-8 sm:p-10">
-            <h2 className="font-display text-3xl font-semibold tracking-tight text-[var(--brand-blue-deep)]">
-              Early Years &amp; Basic
-            </h2>
-            <ul className="mt-5 space-y-2 text-sm font-medium text-[var(--brand-blue-deep)]">
-              <li>• Day Care: nurturing care and sensory play</li>
-              <li>• Nursery 1–2: phonics, number sense, social skills</li>
-              <li>• Basic 1–5: literacy, numeracy, science, civic values</li>
-              <li>• Continuous observation and termly progress notes</li>
-            </ul>
-          </div>
-          <div className="rounded-2xl bg-[var(--brand-blue-deep)] p-8 text-white sm:p-10">
-            <h2 className="font-display text-3xl font-semibold tracking-tight">
-              JSS &amp; SS pathways
-            </h2>
-            <ul className="mt-5 space-y-2 text-sm font-medium text-white/90">
-              <li>• JSS1–3: broad foundation across core subjects</li>
-              <li>• SS1–3: Science, Commercial, and Arts pathways</li>
-              <li>• WAEC / NECO preparation and career guidance</li>
-              <li>• Clubs, sports, and mission activities</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section className="section-pad pt-0">
-        <div className="site-container max-w-3xl rounded-2xl border border-[var(--line)] bg-white p-8 sm:p-12">
-          <h2 className="font-display text-3xl font-semibold tracking-tight text-[var(--brand-blue-deep)] sm:text-4xl">
+      <section className="border-y border-[var(--line)] bg-[rgba(255,255,255,0.45)] section-pad">
+        <div className="site-container max-w-3xl">
+          <h2 className="font-display text-3xl font-semibold text-[var(--brand-green)]">
             Assessment &amp; support
           </h2>
           <p className="mt-4 text-base leading-relaxed text-[var(--muted)]">
-            Younger learners are assessed through observation and developmental
-            milestones. From Basic through SS, each term includes formative
-            checks, mid-term tests, and examinations. Parents receive clear
-            progress updates, and after-school clinics support English,
-            Mathematics, and Sciences.
+            Each term includes formative quizzes, mid-term tests, and a
+            comprehensive examination. Parents receive report sheets with subject
+            comments and attendance records. Students needing extra help join
+            after-school clinics in English, Mathematics, and Sciences.
+          </p>
+          <p className="mt-4 text-base leading-relaxed text-[var(--muted)]">
+            For the 2025/2026 session, SSS3 candidates also access an intensive
+            WAEC Prep Clinic in the second term.
           </p>
         </div>
       </section>

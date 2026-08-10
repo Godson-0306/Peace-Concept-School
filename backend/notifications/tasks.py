@@ -67,9 +67,8 @@ def notify_guardians_results_published(term_id: int, class_arm_id: int):
             f"Results for {student.full_name} ({student.student_id}) have been published.\n"
             f"Total: {result['total']} | Average: {result['average']:.2f}\n\n"
             + "\n".join(summary_lines)
-            + "\n\nLog in to the Peace Concept International Mission Schools portal "
-            "to view the full report (subject to fee clearance).\n\n"
-            "Peace Concept International Mission Schools"
+            + "\n\nLog in to the Peace Concept School portal to view the full report "
+            "(subject to fee clearance).\n\nPeace Concept School"
         )
         if student.guardian_email:
             _send_email(

@@ -2,11 +2,17 @@
 
 import { FormEvent, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { CLASS_LEVELS } from "@/lib/brand";
 
 type Status = { type: "success" | "error"; message: string } | null;
 
-const classOptions = [...CLASS_LEVELS];
+const classOptions = [
+  "JSS1",
+  "JSS2",
+  "JSS3",
+  "SSS1",
+  "SSS2",
+  "SSS3",
+];
 
 export default function ApplicationForm() {
   const [status, setStatus] = useState<Status>(null);

@@ -1,39 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --brand-blue: #1649a0;
-  --brand-blue-deep: #0c2f6d;
-  --brand-blue-soft: #3a73c4;
-  --brand-pink: #e23b78;
-  --brand-pink-soft: #ef6f9c;
-  --brand-pink-wash: #fff1f6;
-  --brand-blue-wash: #eef3fb;
-
-  --brand-green: var(--brand-blue);
-  --brand-green-deep: var(--brand-blue-deep);
-  --brand-green-soft: var(--brand-blue-soft);
-  --brand-gold: var(--brand-pink);
-  --brand-gold-soft: var(--brand-pink-soft);
-
-  --ink: #1a2233;
-  --muted: #5d6678;
-  --line: rgba(26, 34, 51, 0.1);
-  --mist: #f7f8fb;
-  --mist-warm: #fff8fa;
-  --background: #f7f8fb;
+  /* Primary: blue · Accent: pink (legacy names kept for existing class refs) */
+  --brand-green: #1450a3;
+  --brand-green-deep: #0b3575;
+  --brand-green-soft: #2a6bc4;
+  --brand-gold: #e85a8c;
+  --brand-gold-soft: #f07aa8;
+  --brand-blue: var(--brand-green);
+  --brand-blue-deep: var(--brand-green-deep);
+  --brand-blue-soft: var(--brand-green-soft);
+  --brand-pink: var(--brand-gold);
+  --brand-pink-soft: var(--brand-gold-soft);
+  --mist: #f4f7fc;
+  --mist-warm: #faf4f7;
+  --ink: #142033;
+  --muted: #5a6578;
+  --line: rgba(20, 80, 163, 0.14);
+  --background: var(--mist);
   --foreground: var(--ink);
-  --surface: #ffffff;
-  --radius: 1.1rem;
+  --surface: rgba(255, 255, 255, 0.72);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-brand-green: var(--brand-blue);
-  --color-brand-green-deep: var(--brand-blue-deep);
-  --color-brand-green-soft: var(--brand-blue-soft);
-  --color-brand-gold: var(--brand-pink);
-  --color-brand-gold-soft: var(--brand-pink-soft);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-deep: var(--brand-green-deep);
+  --color-brand-green-soft: var(--brand-green-soft);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-gold-soft: var(--brand-gold-soft);
   --color-brand-blue: var(--brand-blue);
   --color-brand-pink: var(--brand-pink);
   --color-mist: var(--mist);
@@ -42,8 +38,8 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-surface: var(--surface);
-  --font-display: var(--font-display);
-  --font-sans: var(--font-body);
+  --font-display: var(--font-cormorant);
+  --font-sans: var(--font-manrope);
 }
 
 * {
@@ -55,13 +51,31 @@ html {
 }
 
 body {
-  min-height: 100%;
-  color: var(--foreground);
-  font-family: var(--font-body), "Gill Sans", sans-serif;
   background:
-    radial-gradient(920px 520px at 8% -5%, rgba(226, 59, 120, 0.09), transparent 55%),
-    radial-gradient(780px 460px at 96% 0%, rgba(22, 73, 160, 0.1), transparent 52%),
-    linear-gradient(180deg, #ffffff 0%, var(--mist) 50%, var(--mist-warm) 100%);
+    radial-gradient(1200px 600px at 10% -10%, rgba(232, 90, 140, 0.14), transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, rgba(20, 80, 163, 0.1), transparent 50%),
+    linear-gradient(180deg, #f7f9fd 0%, var(--mist) 40%, var(--mist-warm) 100%);
+  color: var(--foreground);
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  min-height: 100%;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image:
+    linear-gradient(rgba(20, 80, 163, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 80, 163, 0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+  z-index: 0;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 a {
@@ -70,37 +84,16 @@ a {
 }
 
 .font-display {
-  font-family: var(--font-display), Georgia, serif;
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
+  font-family: var(--font-cormorant), Georgia, serif;
 }
 
 .site-container {
-  width: min(1140px, calc(100% - 2rem));
+  width: min(1120px, calc(100% - 2rem));
   margin-inline: auto;
 }
 
 .section-pad {
-  padding-block: clamp(3.75rem, 7vw, 6rem);
-}
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--brand-pink);
-}
-
-.eyebrow::before {
-  content: "";
-  width: 1.35rem;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--brand-pink), var(--brand-blue));
+  padding-block: clamp(3.5rem, 7vw, 5.5rem);
 }
 
 .btn-primary {
@@ -110,17 +103,17 @@ a {
   gap: 0.5rem;
   background: var(--brand-pink);
   color: #fff;
-  font-weight: 700;
-  font-size: 0.95rem;
-  padding: 0.9rem 1.4rem;
-  border-radius: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  padding: 0.85rem 1.35rem;
+  border-radius: 0.35rem;
   transition: transform 220ms ease, background 220ms ease, box-shadow 220ms ease;
-  box-shadow: 0 12px 28px rgba(226, 59, 120, 0.25);
+  box-shadow: 0 10px 24px rgba(20, 80, 163, 0.14);
 }
 
 .btn-primary:hover {
   background: var(--brand-pink-soft);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -128,39 +121,36 @@ a {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   color: #fff;
-  font-weight: 700;
-  font-size: 0.95rem;
-  padding: 0.9rem 1.4rem;
-  border-radius: 0.75rem;
-  backdrop-filter: blur(6px);
+  font-weight: 600;
+  padding: 0.85rem 1.35rem;
+  border-radius: 0.35rem;
+  backdrop-filter: blur(4px);
   transition: background 220ms ease, border-color 220ms ease, transform 220ms ease;
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: #fff;
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
 }
 
 .btn-outline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid var(--brand-blue);
+  border: 1px solid var(--brand-blue);
   color: var(--brand-blue);
-  font-weight: 700;
-  font-size: 0.95rem;
-  padding: 0.85rem 1.3rem;
-  border-radius: 0.75rem;
-  transition: background 220ms ease, color 220ms ease, transform 220ms ease;
+  font-weight: 600;
+  padding: 0.8rem 1.25rem;
+  border-radius: 0.35rem;
+  transition: background 220ms ease, color 220ms ease;
 }
 
 .btn-outline:hover {
   background: var(--brand-blue);
   color: #fff;
-  transform: translateY(-2px);
 }
 
 .field {
@@ -171,8 +161,8 @@ a {
 
 .field label {
   font-size: 0.9rem;
-  font-weight: 650;
-  color: var(--brand-blue-deep);
+  font-weight: 600;
+  color: var(--brand-blue);
 }
 
 .field input,
@@ -180,9 +170,9 @@ a {
 .field textarea {
   width: 100%;
   border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 0.75rem;
-  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 0.35rem;
+  padding: 0.75rem 0.9rem;
   color: var(--ink);
   outline: none;
   transition: border-color 180ms ease, box-shadow 180ms ease;
@@ -192,31 +182,31 @@ a {
 .field select:focus,
 .field textarea:focus {
   border-color: var(--brand-blue-soft);
-  box-shadow: 0 0 0 4px rgba(22, 73, 160, 0.12);
+  box-shadow: 0 0 0 3px rgba(20, 80, 163, 0.12);
 }
 
 .form-status {
-  border-radius: 0.75rem;
-  padding: 0.85rem 1rem;
+  border-radius: 0.35rem;
+  padding: 0.8rem 1rem;
   font-size: 0.95rem;
 }
 
 .form-status.success {
-  background: rgba(22, 73, 160, 0.08);
-  color: var(--brand-blue-deep);
-  border: 1px solid rgba(22, 73, 160, 0.18);
+  background: rgba(20, 80, 163, 0.1);
+  color: var(--brand-blue);
+  border: 1px solid rgba(20, 80, 163, 0.2);
 }
 
 .form-status.error {
-  background: rgba(180, 40, 70, 0.08);
-  color: #8a1838;
-  border: 1px solid rgba(180, 40, 70, 0.16);
+  background: rgba(140, 40, 40, 0.08);
+  color: #7a1f1f;
+  border: 1px solid rgba(140, 40, 40, 0.18);
 }
 
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(22px);
   }
   to {
     opacity: 1;
@@ -233,14 +223,12 @@ a {
   }
 }
 
-@keyframes rise-line {
+@keyframes gold-line {
   from {
     transform: scaleX(0);
-    opacity: 0.2;
   }
   to {
     transform: scaleX(1);
-    opacity: 1;
   }
 }
 
@@ -250,33 +238,33 @@ a {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-7px);
+    transform: translateY(-6px);
   }
 }
 
 .animate-fade-up {
-  animation: fade-up 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-up 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-fade-up-delay {
-  animation: fade-up 950ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
+  animation: fade-up 1000ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
 }
 
 .animate-fade-up-delay-2 {
-  animation: fade-up 950ms cubic-bezier(0.22, 1, 0.36, 1) 260ms both;
+  animation: fade-up 1000ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both;
 }
 
 .animate-soft-zoom {
-  animation: soft-zoom 10s ease-out both;
+  animation: soft-zoom 8s ease-out both;
 }
 
 .animate-gold-line {
   transform-origin: left;
-  animation: rise-line 800ms cubic-bezier(0.22, 1, 0.36, 1) 220ms both;
+  animation: gold-line 900ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
 }
 
 .animate-float-soft {
-  animation: float-soft 5.5s ease-in-out infinite;
+  animation: float-soft 5s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
