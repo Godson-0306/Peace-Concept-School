@@ -42,7 +42,7 @@ export default async function NewsDetailPage({ params }: Props) {
         ) : null}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,53,117,0.35)_0%,rgba(11,53,117,0.85)_100%)]" />
         <div className="site-container relative flex min-h-[42vh] flex-col justify-end py-14">
-          <p className="text-xs uppercase tracking-[0.16em] text-[var(--brand-gold)]">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--brand-pink-soft)]">
             {item.category} ·{" "}
             {new Date(item.date).toLocaleDateString("en-NG", {
               day: "numeric",
@@ -50,7 +50,7 @@ export default async function NewsDetailPage({ params }: Props) {
               year: "numeric",
             })}
           </p>
-          <h1 className="mt-3 max-w-3xl font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+          <h1 className="mt-3 max-w-3xl font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
             {item.title}
           </h1>
         </div>
@@ -60,7 +60,7 @@ export default async function NewsDetailPage({ params }: Props) {
         <div className="site-container max-w-3xl">
           <Link
             href="/news"
-            className="text-sm font-semibold text-[var(--brand-green)] hover:underline"
+            className="text-sm font-bold text-[var(--brand-blue)] hover:text-[var(--brand-pink)]"
           >
             ← Back to news
           </Link>

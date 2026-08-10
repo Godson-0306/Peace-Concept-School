@@ -9,38 +9,35 @@ export default function HomePage() {
     <>
       <section className="relative min-h-[100svh] overflow-hidden text-white">
         <Image
-          src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=2000&q=80"
-          alt="Students gathered on a school campus"
+          src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=2200&q=80"
+          alt="Students walking across a bright school campus"
           fill
           priority
           className="animate-soft-zoom object-cover"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(11,53,117,0.9)_0%,rgba(20,80,163,0.72)_48%,rgba(232,90,140,0.35)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_30%,rgba(232,90,140,0.28),transparent_40%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(10,47,110,0.88)_0%,rgba(20,80,163,0.62)_52%,rgba(232,61,122,0.42)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[rgba(10,47,110,0.45)] to-transparent" />
 
-        <div className="site-container relative flex min-h-[100svh] flex-col justify-end pb-16 pt-28 sm:justify-center sm:pb-24 sm:pt-20">
-          <div className="max-w-3xl">
-            <p className="animate-fade-up font-display text-4xl font-semibold leading-none tracking-tight text-white sm:text-6xl md:text-7xl">
-              Peace Concept School
+        <div className="site-container relative flex min-h-[100svh] flex-col justify-end pb-16 pt-32 sm:justify-center sm:pb-24">
+          <div className="max-w-4xl">
+            <p className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] backdrop-blur">
+              <span className="animate-pulse-dot h-2 w-2 rounded-full bg-[var(--brand-pink-soft)]" />
+              Admissions open · 2025/2026
             </p>
-            <span
-              aria-hidden
-              className="animate-gold-line mt-5 block h-0.5 w-24 bg-[var(--brand-gold)]"
-            />
-            <h1 className="animate-fade-up-delay mt-6 max-w-2xl font-display text-2xl font-medium leading-snug text-white/95 sm:text-3xl md:text-[2.1rem]">
-              Character, discipline, and academic excellence for JSS &amp; SSS.
+            <p className="animate-fade-up mt-6 font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl md:text-8xl">
+              Peace Concept
+              <span className="block text-[var(--brand-pink-soft)]">School</span>
+            </p>
+            <h1 className="animate-fade-up-delay mt-6 max-w-2xl text-lg font-medium leading-relaxed text-white/90 sm:text-2xl">
+              Where focused learning meets lively campus spirit for JSS &amp; SSS.
             </h1>
-            <p className="animate-fade-up-delay-2 mt-4 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
-              Admissions open for the 2025/2026 session — nurturing thoughtful
-              learners from JSS1 through SSS3.
-            </p>
-            <div className="animate-fade-up-delay-2 mt-8 flex flex-wrap gap-3">
+            <div className="animate-fade-up-delay-2 mt-9 flex flex-wrap gap-3">
               <Link href="/admissions" className="btn-primary">
-                Apply for admission
+                Start admissions
               </Link>
               <Link href="/about" className="btn-secondary">
-                Discover our story
+                Meet the school
               </Link>
             </div>
           </div>
@@ -48,107 +45,113 @@ export default function HomePage() {
       </section>
 
       <section className="section-pad">
-        <div className="site-container grid items-end gap-8 md:grid-cols-[1.2fr_1fr]">
+        <div className="site-container grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-gold)]">
-              Why families choose us
-            </p>
-            <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-[var(--brand-green)] sm:text-5xl">
-              A calm campus where ambition meets care.
+            <p className="eyebrow">The PCS difference</p>
+            <h2 className="mt-4 font-display text-4xl font-extrabold tracking-tight text-[var(--brand-blue-deep)] sm:text-5xl">
+              Built for ambitious Nigerian students.
             </h2>
           </div>
-          <p className="text-base leading-relaxed text-[var(--muted)]">
-            Peace Concept School combines rigorous Junior and Senior Secondary
-            teaching with pastoral guidance, so every student grows in intellect,
-            character, and community responsibility.
+          <p className="max-w-xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
+            From JSS1 foundations to SSS exam readiness, Peace Concept School
+            blends rigorous teaching with warm pastoral care — so every learner
+            is challenged, supported, and seen.
           </p>
         </div>
 
-        <div className="site-container mt-12 grid gap-8 md:grid-cols-3">
+        <div className="site-container mt-12 grid gap-5 md:grid-cols-3">
           {[
             {
               title: "Junior Secondary",
-              copy: "JSS1–JSS3 foundations in literacy, numeracy, sciences, and civic values.",
+              copy: "Strong literacy, numeracy, sciences, and values from JSS1–JSS3.",
+              tone: "bg-[var(--brand-blue)] text-white",
             },
             {
               title: "Senior Secondary",
-              copy: "SSS1–SSS3 pathways preparing students for WAEC, NECO, and tertiary life.",
+              copy: "Focused SSS pathways for WAEC, NECO, and life after school.",
+              tone: "bg-[var(--brand-pink)] text-white",
             },
             {
-              title: "Whole-child care",
-              copy: "Guidance counselling, clubs, and a culture of peace-centred discipline.",
+              title: "Guided growth",
+              copy: "Counselling, clubs, and a culture that prizes peace and grit.",
+              tone: "bg-white text-[var(--ink)] border border-[var(--line)]",
             },
           ].map((item, index) => (
             <article
               key={item.title}
-              className="border-t border-[var(--brand-gold)] pt-5"
-              style={{ animationDelay: `${index * 80}ms` }}
+              className={`rounded-[1.5rem] p-7 shadow-[0_18px_40px_rgba(16,24,40,0.06)] ${item.tone}`}
+              style={{ animationDelay: `${index * 90}ms` }}
             >
-              <h3 className="font-display text-2xl font-semibold text-[var(--brand-green)]">
+              <p className="font-display text-5xl font-extrabold opacity-30">
+                0{index + 1}
+              </p>
+              <h3 className="mt-4 font-display text-2xl font-bold tracking-tight">
                 {item.title}
               </h3>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-                {item.copy}
-              </p>
+              <p className="mt-3 text-sm leading-relaxed opacity-90">{item.copy}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="border-y border-[var(--line)] bg-[rgba(255,255,255,0.45)] section-pad">
-        <div className="site-container grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
-          <div className="relative min-h-[280px] overflow-hidden rounded-sm lg:min-h-[360px]">
-            <Image
-              src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1400&q=80"
-              alt="Classroom learning at Peace Concept School"
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-gold)]">
-              Session 2025/2026
-            </p>
-            <h2 className="mt-3 font-display text-4xl font-semibold text-[var(--brand-green)]">
-              Admissions are open across JSS1–SSS3.
-            </h2>
-            <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--muted)]">
-              Prospective families may submit an online application, book an
-              enquiry visit, or collect forms from the school office. Entrance
-              assessments for selected classes begin in August.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/contact#application" className="btn-primary">
-                Start application
-              </Link>
-              <Link href="/admissions" className="btn-outline">
-                Admissions guide
-              </Link>
+      <section className="section-pad pt-0">
+        <div className="site-container overflow-hidden rounded-[2rem] bg-[var(--brand-blue-deep)] text-white">
+          <div className="grid lg:grid-cols-2">
+            <div className="relative min-h-[300px] lg:min-h-[420px]">
+              <Image
+                src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1400&q=80"
+                alt="Students learning in class"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+            </div>
+            <div className="flex flex-col justify-center p-8 sm:p-12">
+              <p className="eyebrow text-[var(--brand-pink-soft)]">Session 2025/2026</p>
+              <h2 className="mt-4 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
+                Your place on campus is waiting.
+              </h2>
+              <p className="mt-4 max-w-md text-base leading-relaxed text-white/75">
+                Submit an online application, visit for an enquiry, or speak with
+                our admissions desk. Entrance assessments for selected classes
+                begin soon.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/contact#application" className="btn-primary">
+                  Apply online
+                </Link>
+                <Link
+                  href="/admissions"
+                  className="inline-flex items-center rounded-full border border-white/35 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+                >
+                  Read the guide
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="section-pad">
-        <div className="site-container flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <section className="section-pad pt-0">
+        <div className="site-container flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-gold)]">
+            <p className="eyebrow">Campus pulse</p>
+            <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight text-[var(--brand-blue-deep)]">
               News &amp; events
-            </p>
-            <h2 className="mt-3 font-display text-4xl font-semibold text-[var(--brand-green)]">
-              From the school community
             </h2>
           </div>
           <Link href="/news" className="btn-outline">
-            View all news
+            See all updates
           </Link>
         </div>
 
-        <div className="site-container mt-10 grid gap-8 md:grid-cols-3">
+        <div className="site-container mt-10 grid gap-6 md:grid-cols-3">
           {latest.map((item) => (
-            <article key={item.slug} className="group">
-              <div className="relative mb-4 aspect-[16/10] overflow-hidden rounded-sm bg-[var(--brand-green)]">
+            <article
+              key={item.slug}
+              className="group overflow-hidden rounded-[1.5rem] border border-[var(--line)] bg-white shadow-[0_16px_36px_rgba(16,24,40,0.05)]"
+            >
+              <div className="relative aspect-[16/10] overflow-hidden bg-[var(--brand-blue)]">
                 {item.image ? (
                   <Image
                     src={item.image}
@@ -159,22 +162,19 @@ export default function HomePage() {
                   />
                 ) : null}
               </div>
-              <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-                {item.category} ·{" "}
-                {new Date(item.date).toLocaleDateString("en-NG", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold text-[var(--brand-green)]">
-                <Link href={`/news/${item.slug}`} className="hover:underline">
-                  {item.title}
-                </Link>
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-                {item.excerpt}
-              </p>
+              <div className="p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--brand-pink)]">
+                  {item.category}
+                </p>
+                <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-[var(--brand-blue-deep)]">
+                  <Link href={`/news/${item.slug}`} className="hover:text-[var(--brand-pink)]">
+                    {item.title}
+                  </Link>
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+                  {item.excerpt}
+                </p>
+              </div>
             </article>
           ))}
         </div>

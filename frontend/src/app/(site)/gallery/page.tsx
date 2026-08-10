@@ -45,12 +45,12 @@ const gallery: GalleryItem[] = [
   {
     kind: "gradient",
     title: "Science practicals",
-    gradient: "from-[#0B3575] to-[#2A6BC4]",
+    gradient: "from-[#0A2F6E] to-[#2F74D0]",
   },
   {
     kind: "gradient",
     title: "Cultural day",
-    gradient: "from-[#1450A3] to-[#E85A8C]",
+    gradient: "from-[#1450A3] to-[#E83D7A]",
   },
 ];
 
@@ -59,8 +59,9 @@ export default function GalleryPage() {
     <>
       <PageHero
         eyebrow="Gallery"
-        title="Moments from campus"
-        description="A glimpse of learning, sport, and celebration at Peace Concept School."
+        title="Life on campus, in colour"
+        description="Learning, sport, and celebration — glimpses of Peace Concept School."
+        image="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1800&q=80"
       />
 
       <section className="section-pad">
@@ -72,7 +73,7 @@ export default function GalleryPage() {
             return (
               <figure
                 key={key}
-                className={`relative overflow-hidden rounded-sm ${
+                className={`relative overflow-hidden rounded-[1.5rem] ${
                   index % 5 === 0
                     ? "sm:col-span-2 sm:aspect-[21/9]"
                     : "aspect-[4/3]"
@@ -91,7 +92,7 @@ export default function GalleryPage() {
                     className={`absolute inset-0 bg-gradient-to-br ${item.gradient}`}
                   />
                 )}
-                <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-4 pb-4 pt-10 text-sm font-medium text-white">
+                <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-4 pt-12 text-sm font-bold text-white">
                   {caption}
                 </figcaption>
               </figure>
