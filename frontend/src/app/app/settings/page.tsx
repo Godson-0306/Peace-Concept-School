@@ -27,12 +27,22 @@ type Term = {
   next_term_resumption: string | null;
 };
 
-type MissingClass = {
+type ClassReadiness = {
   class_arm_id: number;
   label: string;
   subject_count: number;
   subjects_with_scores: number;
   student_count: number;
+  can_publish: boolean;
+  blockers: string[];
+};
+
+type ReadinessPayload = {
+  classes_missing_results?: ClassReadiness[];
+  class_readiness?: ClassReadiness[];
+  can_publish_term?: boolean;
+  term_blockers?: string[];
+  next_term_begins?: string | null;
 };
 
 function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
@@ -47,7 +57,9 @@ export default function SettingsPage() {
   const [terms, setTerms] = useState<Term[]>([]);
   const [sessionId, setSessionId] = useState<number | "">("");
   const [selectedTermId, setSelectedTermId] = useState<number | "">("");
-  const [missing, setMissing] = useState<MissingClass[]>([]);
+  const [classReadiness, setClassReadiness] = useState<ClassReadiness[]>([]);
+  const [canPublishTerm, setCanPublishTerm] = useState(false);
+  const [termBlockers, setTermBlockers] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -86,10 +98,12 @@ export default function SettingsPage() {
   }, []);
 
   const loadReadiness = useCallback(async (termId: number) => {
-    const data = await apiJson<{ classes_missing_results: MissingClass[] }>(
-      `/api/dashboard/?term=${termId}`,
-    );
-    setMissing(data.classes_missing_results ?? []);
+    const data = await apiJson<ReadinessPayload>(`/api/dashboard/?term=${termId}`);
+    const rows =
+      data.class_readiness ?? data.classes_missing_results ?? [];
+    setClassReadiness(rows);
+    setCanPublishTerm(Boolean(data.can_publish_term));
+    setTermBlockers(data.term_blockers ?? []);
   }, []);
 
   useEffect(() => {
@@ -120,7 +134,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!selectedTermId || tab !== "term") return;
-    loadReadiness(selectedTermId).catch(() => setMissing([]));
+    loadReadiness(selectedTermId).catch(() => {
+      setClassReadiness([]);
+      setCanPublishTerm(false);
+      setTermBlockers([]);
+    });
   }, [selectedTermId, tab, loadReadiness]);
 
   async function createSession(event: FormEvent<HTMLFormElement>) {
@@ -508,6 +526,45 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
+
+                <form
+                  className="mt-6 flex flex-wrap items-end gap-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    const next = String(form.get("next_term_resumption") || "");
+                    patchTerm(
+                      selectedTerm.id,
+                      { next_term_resumption: next || null } as Partial<Term>,
+                      next
+                        ? "Next term begins date saved."
+                        : "Next term begins date cleared.",
+                    );
+                  }}
+                >
+                  <label className="field min-w-[14rem] flex-1">
+                    <span>Next term begins</span>
+                    <input
+                      name="next_term_resumption"
+                      type="date"
+                      required
+                      defaultValue={selectedTerm.next_term_resumption ?? ""}
+                      key={`next-${selectedTerm.id}-${selectedTerm.next_term_resumption}`}
+                      className="field-input"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-[var(--brand-blue)] px-4 py-2.5 text-sm font-bold text-white"
+                    disabled={pending}
+                  >
+                    Save date
+                  </button>
+                </form>
+                <p className="mt-3 text-sm text-[var(--muted)]">
+                  Publishing requires: Next term begins date, subjects set up for
+                  each class, and all student results entered.
+                </p>
               </div>
 
               <div className="rounded-2xl border border-[var(--line)] bg-white/90">
@@ -517,25 +574,36 @@ export default function SettingsPage() {
                       Class readiness & publish
                     </h2>
                     <p className="mt-1 text-sm text-[var(--muted)]">
-                      Incomplete score entry for {selectedTerm.name}. Publish when
-                      ready.
+                      Publish only when every class is fully ready for{" "}
+                      {selectedTerm.name}.
                     </p>
                   </div>
                   <button
                     type="button"
-                    disabled={pending}
-                    className="rounded-lg bg-[var(--brand-pink)] px-3 py-2 text-sm font-bold text-white"
+                    disabled={pending || !canPublishTerm}
+                    title={
+                      canPublishTerm
+                        ? "Publish all classes"
+                        : termBlockers[0] || "Not ready to publish"
+                    }
+                    className="rounded-lg bg-[var(--brand-pink)] px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
                     onClick={publishAll}
                   >
                     Publish all classes
                   </button>
                 </div>
 
-                {missing.length === 0 ? (
+                {!canPublishTerm && termBlockers.length > 0 ? (
+                  <ul className="space-y-1 border-b border-[var(--line)] px-5 py-4 text-sm text-[var(--brand-pink)] sm:px-6">
+                    {termBlockers.slice(0, 6).map((blocker) => (
+                      <li key={blocker}>• {blocker}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {classReadiness.length === 0 ? (
                   <p className="px-5 py-6 text-sm text-[var(--muted)] sm:px-6">
-                    All classes with students have complete subject coverage for
-                    this term — or there are no classes yet. You can still publish
-                    any remaining draft scores with “Publish all classes”.
+                    No classes with students yet for this term.
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -549,26 +617,48 @@ export default function SettingsPage() {
                           <th className="px-5 py-3 font-semibold sm:px-6">
                             Students
                           </th>
+                          <th className="px-5 py-3 font-semibold sm:px-6">Status</th>
                           <th className="px-5 py-3 font-semibold sm:px-6">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--line)]">
-                        {missing.map((row) => (
+                        {classReadiness.map((row) => (
                           <tr key={row.class_arm_id}>
                             <td className="px-5 py-3.5 font-semibold sm:px-6">
                               {row.label}
                             </td>
                             <td className="px-5 py-3.5 text-[var(--muted)] sm:px-6">
-                              {row.subjects_with_scores} / {row.subject_count}
+                              {row.subject_count > 0
+                                ? `${row.subjects_with_scores} / ${row.subject_count}`
+                                : "Not set"}
                             </td>
                             <td className="px-5 py-3.5 text-[var(--muted)] sm:px-6">
                               {row.student_count}
                             </td>
                             <td className="px-5 py-3.5 sm:px-6">
+                              {row.can_publish ? (
+                                <span className="font-semibold text-[var(--brand-blue)]">
+                                  Ready
+                                </span>
+                              ) : (
+                                <span
+                                  className="text-[var(--brand-pink)]"
+                                  title={row.blockers.join(" ")}
+                                >
+                                  {row.blockers[0] || "Not ready"}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3.5 sm:px-6">
                               <button
                                 type="button"
-                                disabled={pending}
-                                className="text-sm font-bold text-[var(--brand-blue)] hover:underline"
+                                disabled={pending || !row.can_publish}
+                                title={
+                                  row.can_publish
+                                    ? "Publish this class"
+                                    : row.blockers[0] || "Not ready"
+                                }
+                                className="text-sm font-bold text-[var(--brand-blue)] hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline"
                                 onClick={() => publishClass(row.class_arm_id)}
                               >
                                 Publish

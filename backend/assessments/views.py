@@ -23,7 +23,12 @@ from .serializers import (
     FormClassRecordSerializer,
     StudentFormRecordSerializer,
 )
-from .services import compute_student_result, rank_class_arm
+from .services import (
+    class_publish_blockers,
+    compute_student_result,
+    rank_class_arm,
+    term_publish_blockers,
+)
 
 
 def user_can_edit_score(user, score: AssessmentScore) -> bool:
@@ -156,6 +161,18 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
                 {"detail": "term and class_arm are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        from academics.models import ClassArm, Term
+
+        term = Term.objects.filter(id=term_id).first()
+        class_arm = ClassArm.objects.select_related("class_level").filter(id=class_arm_id).first()
+        if not term or not class_arm:
+            return Response({"detail": "Term or class not found."}, status=status.HTTP_404_NOT_FOUND)
+        blockers = class_publish_blockers(term, class_arm)
+        if blockers:
+            return Response(
+                {"detail": blockers[0], "blockers": blockers},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         qs = AssessmentScore.objects.filter(
             term_id=term_id, class_arm_id=class_arm_id, status=AssessmentScore.Status.DRAFT
         )
@@ -173,6 +190,17 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
         if not term_id:
             return Response(
                 {"detail": "term is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        from academics.models import Term
+
+        term = Term.objects.filter(id=term_id).first()
+        if not term:
+            return Response({"detail": "Term not found."}, status=status.HTTP_404_NOT_FOUND)
+        blockers = term_publish_blockers(term)
+        if blockers:
+            return Response(
+                {"detail": blockers[0], "blockers": blockers},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         class_arm_ids = list(
@@ -398,24 +426,29 @@ def dashboard_summary(request):
         subjects_by_level.setdefault(subject.class_level_id, []).append(subject.id)
 
     missing = []
+    class_readiness = []
     for arm in arms.order_by("class_level__order", "name"):
         subject_ids = subjects_by_level.get(arm.class_level_id, [])
         subject_count = subject_counts.get(arm.class_level_id, 0)
         subjects_with_scores = sum(
             1 for sid in subject_ids if (arm.id, sid) in scored
         )
-        if subjects_with_scores < subject_count:
-            missing.append(
-                {
-                    "class_arm_id": arm.id,
-                    "label": arm.label or str(arm),
-                    "subject_count": subject_count,
-                    "subjects_with_scores": subjects_with_scores,
-                    "student_count": arm.student_count,
-                    "next_term_begins": next_term_begins,
-                }
-            )
+        blockers = class_publish_blockers(term, arm)
+        row = {
+            "class_arm_id": arm.id,
+            "label": arm.label or str(arm),
+            "subject_count": subject_count,
+            "subjects_with_scores": subjects_with_scores,
+            "student_count": arm.student_count,
+            "next_term_begins": next_term_begins,
+            "can_publish": len(blockers) == 0,
+            "blockers": blockers,
+        }
+        class_readiness.append(row)
+        if subjects_with_scores < subject_count or blockers:
+            missing.append(row)
 
+    term_blockers = term_publish_blockers(term)
     return Response(
         {
             "active_term": {
@@ -426,5 +459,8 @@ def dashboard_summary(request):
             },
             "next_term_begins": next_term_begins,
             "classes_missing_results": missing,
+            "class_readiness": class_readiness,
+            "can_publish_term": len(term_blockers) == 0,
+            "term_blockers": term_blockers,
         }
     )
