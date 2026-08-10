@@ -1,4 +1,3 @@
-from django.contrib.auth import authenticate
 from django.db import transaction
 from rest_framework import serializers
 
@@ -20,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "id",
+            "username",
             "email",
             "first_name",
             "last_name",
@@ -42,17 +42,45 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    portal = serializers.ChoiceField(choices=["student", "staff"])
+    identifier = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        user = authenticate(
-            request=self.context.get("request"),
-            username=attrs["email"],
-            password=attrs["password"],
-        )
-        if not user:
-            raise serializers.ValidationError("Invalid email or password.")
+        portal = attrs["portal"]
+        identifier = attrs["identifier"].strip()
+        password = attrs["password"]
+
+        if portal == "student":
+            student = (
+                StudentProfile.objects.select_related("user")
+                .filter(student_id__iexact=identifier)
+                .first()
+            )
+            if not student or not student.user:
+                raise serializers.ValidationError(
+                    "Invalid Student ID or password."
+                )
+            user = student.user
+            if user.account_type != AccountType.STUDENT:
+                raise serializers.ValidationError(
+                    "Use the Staff tab with your username."
+                )
+            if not user.check_password(password):
+                raise serializers.ValidationError(
+                    "Invalid Student ID or password."
+                )
+        else:
+            user = User.objects.filter(username__iexact=identifier).first()
+            if not user:
+                raise serializers.ValidationError("Invalid username or password.")
+            if user.account_type == AccountType.STUDENT:
+                raise serializers.ValidationError(
+                    "Use the Student tab with your Student ID."
+                )
+            if not user.check_password(password):
+                raise serializers.ValidationError("Invalid username or password.")
+
         if not user.is_active:
             raise serializers.ValidationError("This account is disabled.")
         attrs["user"] = user
@@ -66,7 +94,8 @@ class PositionAssignmentSerializer(serializers.ModelSerializer):
 
 
 class StaffProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(write_only=True, required=False)
+    username = serializers.CharField(write_only=True, max_length=150)
+    email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     account_type = serializers.ChoiceField(choices=AccountType.choices, write_only=True)
     positions = PositionAssignmentSerializer(many=True, required=False)
@@ -77,6 +106,7 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user",
+            "username",
             "email",
             "password",
             "account_type",
@@ -97,9 +127,29 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["created_at"]
 
+    def validate_username(self, value):
+        username = value.strip()
+        if not username:
+            raise serializers.ValidationError("Username is required.")
+        if User.objects.filter(username__iexact=username).exists():
+            raise serializers.ValidationError("This username is already taken.")
+        return username
+
+    def validate_account_type(self, value):
+        if value == AccountType.STUDENT:
+            raise serializers.ValidationError(
+                "Use student registration for student accounts."
+            )
+        if value == AccountType.PARENT:
+            raise serializers.ValidationError(
+                "Use parent registration for parent accounts."
+            )
+        return value
+
     @transaction.atomic
     def create(self, validated_data):
         positions = validated_data.pop("positions", [])
+        username = validated_data.pop("username")
         email = validated_data.pop("email")
         password = validated_data.pop("password", None) or User.objects.make_random_password()
         account_type = validated_data.pop("account_type")
@@ -107,6 +157,7 @@ class StaffProfileSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(
             email=email,
             password=password,
+            username=username,
             account_type=account_type,
             first_name=name_parts[0],
             last_name=name_parts[1] if len(name_parts) > 1 else "",
@@ -163,9 +214,11 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             if not email:
                 email = f"{student_id.lower()}@students.peaceconceptschool.ng"
             name_parts = validated_data["full_name"].split(" ", 1)
+            # Students authenticate with Student ID; username stays internal.
             user = User.objects.create_user(
                 email=email,
                 password=password,
+                username=email,
                 account_type=AccountType.STUDENT,
                 first_name=name_parts[0],
                 last_name=name_parts[1] if len(name_parts) > 1 else "",
@@ -179,6 +232,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
 
 
 class ParentProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(write_only=True, max_length=150)
     email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     child_ids = serializers.ListField(
@@ -195,6 +249,7 @@ class ParentProfileSerializer(serializers.ModelSerializer):
             "full_name",
             "phone_number",
             "address",
+            "username",
             "email",
             "password",
             "child_ids",
@@ -203,15 +258,25 @@ class ParentProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["created_at"]
 
+    def validate_username(self, value):
+        username = value.strip()
+        if not username:
+            raise serializers.ValidationError("Username is required.")
+        if User.objects.filter(username__iexact=username).exists():
+            raise serializers.ValidationError("This username is already taken.")
+        return username
+
     @transaction.atomic
     def create(self, validated_data):
         child_ids = validated_data.pop("child_ids", [])
+        username = validated_data.pop("username")
         email = validated_data.pop("email")
         password = validated_data.pop("password", None) or User.objects.make_random_password()
         name_parts = validated_data["full_name"].split(" ", 1)
         user = User.objects.create_user(
             email=email,
             password=password,
+            username=username,
             account_type=AccountType.PARENT,
             first_name=name_parts[0],
             last_name=name_parts[1] if len(name_parts) > 1 else "",

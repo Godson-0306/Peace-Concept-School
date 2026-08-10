@@ -72,6 +72,7 @@ class StaffViewSet(viewsets.ModelViewSet):
         staff = serializer.save()
         headers = self.get_success_headers(serializer.data)
         payload = serializer.data
+        payload["username"] = staff.user.username
         payload["temporary_password"] = getattr(staff, "_temp_password", None)
         return Response(payload, status=status.HTTP_201_CREATED, headers=headers)
 
@@ -126,6 +127,7 @@ class ParentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         parent = serializer.save()
         payload = serializer.data
+        payload["username"] = parent.user.username
         payload["temporary_password"] = getattr(parent, "_temp_password", None)
         return Response(payload, status=status.HTTP_201_CREATED)
 

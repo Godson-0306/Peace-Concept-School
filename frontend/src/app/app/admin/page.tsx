@@ -14,7 +14,8 @@ type Student = {
 type Staff = {
   id: number;
   full_name: string;
-  user?: { email: string; account_type: string };
+  username?: string;
+  user?: { email: string; username?: string; account_type: string };
   temporary_password?: string;
 };
 
@@ -103,7 +104,7 @@ export default function AdminPage() {
         }),
       });
       setMessage(
-        `Student ${created.student_id} created` +
+        `Student created — Student ID: ${created.student_id}` +
           (created.temporary_password
             ? ` — temp password: ${created.temporary_password}`
             : ""),
@@ -125,14 +126,16 @@ export default function AdminPage() {
         method: "POST",
         body: JSON.stringify({
           full_name: data.get("full_name"),
+          username: data.get("username"),
           email: data.get("email"),
           account_type: data.get("account_type"),
           gender: data.get("gender"),
           phone_number: data.get("phone_number"),
         }),
       });
+      const username = created.username ?? created.user?.username ?? String(data.get("username"));
       setMessage(
-        `Staff created` +
+        `Staff created — username: ${username}` +
           (created.temporary_password
             ? ` — temp password: ${created.temporary_password}`
             : ""),
@@ -250,6 +253,13 @@ export default function AdminPage() {
       <Panel id="staff" title="Create staff">
         <form onSubmit={createStaff} className="grid gap-3 md:grid-cols-2">
           <input name="full_name" placeholder="Full name" required className="field-input" />
+          <input
+            name="username"
+            placeholder="Username (for portal login)"
+            required
+            autoComplete="off"
+            className="field-input"
+          />
           <input name="email" type="email" placeholder="Email" required className="field-input" />
           <select name="account_type" className="field-input" defaultValue="teacher">
             <option value="teacher">Teacher</option>
@@ -269,8 +279,13 @@ export default function AdminPage() {
         </form>
         <ul className="mt-5 divide-y divide-[var(--line)] text-sm">
           {staff.slice(0, 8).map((s) => (
-            <li key={s.id} className="flex justify-between py-2">
-              <span>{s.full_name}</span>
+            <li key={s.id} className="flex justify-between gap-2 py-2">
+              <span>
+                {s.full_name}
+                {s.user?.username ? (
+                  <span className="text-[var(--muted)]"> ({s.user.username})</span>
+                ) : null}
+              </span>
               <span className="capitalize text-[var(--muted)]">
                 {s.user?.account_type}
               </span>

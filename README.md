@@ -42,15 +42,17 @@ Open http://localhost:3000 — Next.js proxies `/api/*` to Django on port 8000.
 
 ### Demo logins (from `seed_demo`)
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@peaceconceptschool.ng | AdminPass123! |
-| Principal | principal@peaceconceptschool.ng | Principal123! |
-| Teacher | teacher@peaceconceptschool.ng | Teacher123! |
-| Accountant | accountant@peaceconceptschool.ng | Accountant123! |
-| Store | store@peaceconceptschool.ng | Store123! |
-| Student | student1@peaceconceptschool.ng | Student123! |
-| Parent | parent@peaceconceptschool.ng | Parent123! |
+Staff use the **Staff** tab (Username + password). Students use the **Student** tab (Student ID + password).
+
+| Role | Portal | Username / Student ID | Password |
+|------|--------|-----------------------|----------|
+| Admin | Staff | `admin` | AdminPass123! |
+| Principal | Staff | `principal` | Principal123! |
+| Teacher | Staff | `teacher1` | Teacher123! |
+| Accountant | Staff | `accountant` | Accountant123! |
+| Store | Staff | `store1` | Store123! |
+| Parent | Staff | `parent1` | Parent123! |
+| Student | Student | `PCS025001` (first seeded student) | Student123! |
 
 ## Product notes
 

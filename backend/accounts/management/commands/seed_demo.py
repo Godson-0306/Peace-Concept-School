@@ -20,6 +20,12 @@ from website.models import NewsPost
 def ensure_user(email, password, account_type, first_name, last_name, **extra):
     user = User.objects.filter(email=email).first()
     if user:
+        username = extra.get("username")
+        if username and user.username != username:
+            user.username = username
+            user.set_password(password)
+            user.must_change_password = False
+            user.save(update_fields=["username", "password", "must_change_password"])
         return user, False
     user = User.objects.create_user(
         email=email,
@@ -44,6 +50,7 @@ class Command(BaseCommand):
             AccountType.ADMIN,
             "System",
             "Admin",
+            username="admin",
             is_staff=True,
             is_superuser=True,
         )
@@ -109,6 +116,7 @@ class Command(BaseCommand):
             AccountType.PRINCIPAL,
             "Ada",
             "Okeke",
+            username="principal",
         )
         StaffProfile.objects.get_or_create(
             user=principal_user, defaults={"full_name": "Ada Okeke", "gender": "Female"}
@@ -121,6 +129,7 @@ class Command(BaseCommand):
             AccountType.ACCOUNTANT,
             "Chidi",
             "Eze",
+            username="accountant",
         )
         StaffProfile.objects.get_or_create(
             user=acc_user, defaults={"full_name": "Chidi Eze", "gender": "Male"}
@@ -133,6 +142,7 @@ class Command(BaseCommand):
             AccountType.TEACHER,
             "Ngozi",
             "Balogun",
+            username="teacher1",
         )
         teacher_staff, _ = StaffProfile.objects.get_or_create(
             user=teacher_user, defaults={"full_name": "Ngozi Balogun", "gender": "Female"}
@@ -164,6 +174,7 @@ class Command(BaseCommand):
             AccountType.STORE_STAFF,
             "Tunde",
             "Adeyemi",
+            username="store1",
         )
         store_staff, _ = StaffProfile.objects.get_or_create(
             user=store_user, defaults={"full_name": "Tunde Adeyemi", "gender": "Male"}
@@ -225,6 +236,7 @@ class Command(BaseCommand):
             AccountType.PARENT,
             "Grace",
             "Nwosu",
+            username="parent1",
         )
         parent, _ = ParentProfile.objects.get_or_create(
             user=parent_user, defaults={"full_name": "Grace Nwosu", "phone_number": "08022223333"}
@@ -243,11 +255,19 @@ class Command(BaseCommand):
             },
         )
 
+        first_student_id = (
+            StudentProfile.objects.filter(full_name="Amaka Nwosu")
+            .values_list("student_id", flat=True)
+            .first()
+            or "PCS025001"
+        )
         self.stdout.write(self.style.SUCCESS("Demo data seeded."))
-        self.stdout.write("Admin: admin@peaceconceptschool.ng / AdminPass123!")
-        self.stdout.write("Principal: principal@peaceconceptschool.ng / Principal123!")
-        self.stdout.write("Teacher: teacher@peaceconceptschool.ng / Teacher123!")
-        self.stdout.write("Accountant: accountant@peaceconceptschool.ng / Accountant123!")
-        self.stdout.write("Store: store@peaceconceptschool.ng / Store123!")
-        self.stdout.write("Student: student1@peaceconceptschool.ng / Student123!")
-        self.stdout.write("Parent: parent@peaceconceptschool.ng / Parent123!")
+        self.stdout.write("Staff login uses Username + password:")
+        self.stdout.write("  Admin: admin / AdminPass123!")
+        self.stdout.write("  Principal: principal / Principal123!")
+        self.stdout.write("  Teacher: teacher1 / Teacher123!")
+        self.stdout.write("  Accountant: accountant / Accountant123!")
+        self.stdout.write("  Store: store1 / Store123!")
+        self.stdout.write("  Parent: parent1 / Parent123!")
+        self.stdout.write("Student login uses Student ID + password:")
+        self.stdout.write(f"  Student: {first_student_id} / Student123!")
