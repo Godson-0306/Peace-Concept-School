@@ -91,7 +91,7 @@ export async function loginAction(formData: FormData) {
     fail(
       portal === "student"
         ? "Enter your Student ID and password."
-        : "Enter your username (or email) and password.",
+        : "Enter your username and password.",
     );
   }
 

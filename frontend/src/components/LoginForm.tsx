@@ -50,14 +50,14 @@ export default function LoginForm({
         Sign in with your Student ID and password issued by the school.
       </p>
       <p className="text-sm leading-relaxed text-[var(--muted)] when-staff">
-        Sign in with the username or email and password created when your staff
-        account was registered.
+        Sign in with the username and password created when your staff account
+        was registered.
       </p>
 
       <div className="field">
         <label htmlFor="login-identifier">
           <span className="when-student">Student ID</span>
-          <span className="when-staff">Username or email</span>
+          <span className="when-staff">Username</span>
         </label>
         <input
           id="login-identifier"
@@ -69,9 +69,9 @@ export default function LoginForm({
           spellCheck={false}
           className="login-identifier"
           data-student-placeholder="e.g. PCS025001"
-          data-staff-placeholder="e.g. admin or email"
+          data-staff-placeholder="e.g. admin"
           placeholder={
-            initialPortal === "student" ? "e.g. PCS025001" : "e.g. admin or email"
+            initialPortal === "student" ? "e.g. PCS025001" : "e.g. admin"
           }
         />
       </div>

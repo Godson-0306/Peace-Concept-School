@@ -56,7 +56,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           />
           <p className="mt-6 max-w-md text-base leading-relaxed text-white/80 sm:text-lg">
             Sign in to your portal — students with Student ID, staff with the
-            username or email created at registration.
+            username created at registration.
           </p>
           <p className="mt-8 text-sm text-white/65">
             Need an account? Contact the school office.{" "}
