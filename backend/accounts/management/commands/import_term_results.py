@@ -291,7 +291,14 @@ class Command(BaseCommand):
             "--dir",
             type=str,
             default=str(DEFAULT_RESULTS_DIR),
-            help="Directory containing 2025_2026_*_FIRST_TERM*.xlsx files",
+            help="Directory containing 2025_2026_*_*_TERM*.xlsx files",
+        )
+        parser.add_argument(
+            "--term",
+            type=str,
+            choices=["first", "second", "third", "1", "2", "3", "all"],
+            default="all",
+            help="Only import sheets for this term number (default: all files in dir)",
         )
         parser.add_argument(
             "--dry-run",
