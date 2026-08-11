@@ -191,33 +191,15 @@ function FormClassSheetInner() {
     setMessage("");
     setError("");
     try {
-      // Persist shared next-term date on the class form record once.
-      if (defaultNextTerm) {
-        await apiJson("/api/form-class/", {
-          method: "POST",
-          body: JSON.stringify({
-            class_arm: armId,
-            term: termId,
-            number_in_class: classSize,
-            next_term_resumption: defaultNextTerm || null,
-          }),
-        }).catch(async () => {
-          // If unique constraint blocks create, try patching existing.
-          const existing = await apiJson<{ results?: { id: number }[] } | { id: number }[]>(
-            `/api/form-class/?class_arm=${armId}&term=${termId}`,
-          );
-          const row = unwrapList(existing)[0];
-          if (row?.id) {
-            await apiJson(`/api/form-class/${row.id}/`, {
-              method: "PATCH",
-              body: JSON.stringify({
-                number_in_class: classSize,
-                next_term_resumption: defaultNextTerm || null,
-              }),
-            });
-          }
-        });
-      }
+      await apiJson("/api/form-class/", {
+        method: "POST",
+        body: JSON.stringify({
+          class_arm: armId,
+          term: termId,
+          number_in_class: classSize,
+          next_term_resumption: defaultNextTerm || null,
+        }),
+      });
 
       for (const student of students) {
         const row = rows[student.id];
