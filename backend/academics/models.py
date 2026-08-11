@@ -26,9 +26,9 @@ class AcademicSession(models.Model):
 
 class Term(models.Model):
     class TermNumber(models.IntegerChoices):
-        FIRST = 1, "1st Term"
-        SECOND = 2, "2nd Term"
-        THIRD = 3, "3rd Term"
+        FIRST = 1, "First Term"
+        SECOND = 2, "Second Term"
+        THIRD = 3, "Third Term"
 
     session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE, related_name="terms")
     number = models.PositiveSmallIntegerField(choices=TermNumber.choices)
@@ -45,13 +45,21 @@ class Term(models.Model):
     class Meta:
         unique_together = ("session", "number")
         ordering = ["session", "number"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(number__in=[1, 2, 3]),
+                name="term_number_first_second_or_third",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.session.name} — {self.get_number_display()}"
 
     def save(self, *args, **kwargs):
-        if not self.name:
-            self.name = self.get_number_display()
+        if self.number not in Term.TermNumber.values:
+            raise ValueError("A session may only have First, Second, or Third Term.")
+        # Always keep the canonical display name for the term number.
+        self.name = self.get_number_display()
         if self.is_active:
             Term.objects.exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)

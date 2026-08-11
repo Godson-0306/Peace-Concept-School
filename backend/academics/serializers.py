@@ -10,6 +10,7 @@ from .models import (
     Term,
 )
 from .services.promotion import promote_students_for_new_session
+from .services.terms import ensure_session_terms
 
 
 class AcademicSessionSerializer(serializers.ModelSerializer):
@@ -60,8 +61,7 @@ class AcademicSessionSerializer(serializers.ModelSerializer):
         previous_active_id = previous_active.id if previous_active else None
         becoming_active = bool(validated_data.get("is_active"))
         session = AcademicSession.objects.create(**validated_data)
-        for number in Term.TermNumber.values:
-            Term.objects.get_or_create(session=session, number=number)
+        ensure_session_terms(session)
         summary = self._maybe_promote(session, becoming_active, previous_active_id)
         session.promoted_count = summary["promoted_count"]
         session.graduated_count = summary["graduated_count"]
@@ -79,6 +79,7 @@ class AcademicSessionSerializer(serializers.ModelSerializer):
         # Promote only when switching onto this session as newly active.
         should_consider = becoming_active and not was_active
         session = super().update(instance, validated_data)
+        ensure_session_terms(session)
         summary = self._maybe_promote(
             session,
             should_consider,
@@ -108,6 +109,20 @@ class TermSerializer(serializers.ModelSerializer):
             "end_date",
             "next_term_resumption",
         ]
+        read_only_fields = ["session", "number", "name"]
+
+    def validate_number(self, value):
+        if value not in Term.TermNumber.values:
+            raise serializers.ValidationError(
+                "Each session may only have First, Second, and Third Term."
+            )
+        return value
+
+    def create(self, validated_data):
+        raise serializers.ValidationError(
+            "Terms are created automatically with each session "
+            "(First, Second, and Third Term only)."
+        )
 
 
 class ClassLevelSerializer(serializers.ModelSerializer):

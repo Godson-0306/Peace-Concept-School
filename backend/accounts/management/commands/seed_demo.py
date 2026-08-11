@@ -64,21 +64,21 @@ class Command(BaseCommand):
         session, _ = AcademicSession.objects.get_or_create(
             name="2025/2026", defaults={"start_year": 2025, "is_active": True}
         )
-        terms = []
-        for number in (1, 2, 3):
-            defaults = {"is_active": number == 1}
-            if number == 1:
-                defaults["next_term_resumption"] = date(2026, 1, 12)
-            term, _ = Term.objects.get_or_create(
-                session=session, number=number, defaults=defaults
-            )
-            if number == 1 and not term.next_term_resumption:
-                term.next_term_resumption = date(2026, 1, 12)
-                term.save(update_fields=["next_term_resumption"])
-            if number == 1 and not term.is_active:
-                term.is_active = True
-                term.save(update_fields=["is_active"])
-            terms.append(term)
+        from academics.services.terms import ensure_session_terms
+
+        ensure_session_terms(session)
+        terms = list(session.terms.order_by("number"))
+        for term in terms:
+            if term.number == 1:
+                changed = False
+                if not term.next_term_resumption:
+                    term.next_term_resumption = date(2026, 1, 12)
+                    changed = True
+                if not term.is_active:
+                    term.is_active = True
+                    changed = True
+                if changed:
+                    term.save()
 
         level_names = [
             "Day Care",

@@ -79,7 +79,7 @@ export default function SettingsSessionPage() {
         }),
       });
       setMessage(
-        `Session ${created.name} created with 1st, 2nd, and 3rd terms.${promotionMessage(created)}`,
+        `Session ${created.name} created with First, Second, and Third terms.${promotionMessage(created)}`,
       );
       event.currentTarget.reset();
       await loadSessions();
@@ -149,7 +149,7 @@ export default function SettingsSessionPage() {
             Create session
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Creating a session automatically adds 1st, 2nd, and 3rd terms.
+            Creating a session automatically adds First, Second, and Third terms.
           </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <label className="field">

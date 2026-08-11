@@ -217,7 +217,9 @@ export default function SettingsTermsPage() {
           Session Term
         </h1>
         <p className="mt-3 max-w-2xl text-base text-[var(--muted)]">
-          Control active term, result entry, next-term date, and publishing.
+          Control the active term (First, Second, or Third), result entry,
+          next-term date, and publishing. Every session has exactly these three
+          terms.
         </p>
       </header>
 
