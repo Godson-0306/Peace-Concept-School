@@ -138,7 +138,12 @@ class StudentViewSet(viewsets.ModelViewSet):
                 Value(0),
                 output_field=IntegerField(),
             ),
-        ).order_by("student_id")
+        ).order_by(
+            "class_arm__class_level__order",
+            "class_arm__name",
+            "full_name",
+            "student_id",
+        )
 
         if can_manage_accounts(user) or user.account_type in ("principal", "accountant"):
             return qs

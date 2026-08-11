@@ -3,17 +3,16 @@ from datetime import date
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from accounts.models import AccountType, ParentProfile, PositionAssignment, PositionType, StaffProfile, StudentProfile, User
+from accounts.models import AccountType, PositionAssignment, PositionType, StaffProfile, User
 from academics.models import (
     AcademicSession,
     ClassArm,
     ClassLevel,
     Department,
-    StudentIdSequence,
     Subject,
     TeacherAssignment,
 )
-from fees.models import FeeRecord, FeeStructure
+from fees.models import FeeStructure
 from inventory.models import Inventory, InventoryAssignment, StockItem
 from website.models import NewsPost
 
@@ -220,61 +219,14 @@ class Command(BaseCommand):
             defaults={"quantity": 50, "unit_price": 4500},
         )
 
-        # Students
-        for i, name in enumerate(["Amaka Nwosu", "Ibrahim Bello", "Funke Adeola"], start=1):
-            email = f"student{i}@peaceconceptschool.ng"
-            user, created = ensure_user(
-                email,
-                "Student123!",
-                AccountType.STUDENT,
-                name.split()[0],
-                name.split()[-1],
-            )
-            defaults = {
-                "full_name": name,
-                "gender": "Female" if i != 2 else "Male",
-                "admission_year": 2025,
-                "class_arm": jss1a,
-                "guardian_name": f"Guardian of {name.split()[0]}",
-                "guardian_email": f"guardian{i}@example.com",
-                "guardian_phone": f"0801111000{i}",
-            }
-            student = StudentProfile.objects.filter(user=user).first()
-            if not student:
-                defaults["student_id"] = StudentIdSequence.next_student_id(2025)
-                student = StudentProfile.objects.create(user=user, **defaults)
-            FeeStructure.objects.get_or_create(
-                name="Tuition",
-                term=terms[0],
-                class_level=jss1,
-                defaults={"session": session, "amount": 150000},
-            )
-            structure = FeeStructure.objects.get(name="Tuition", term=terms[0], class_level=jss1)
-            FeeRecord.objects.get_or_create(
-                student=student,
-                term=terms[0],
-                defaults={
-                    "fee_structure": structure,
-                    "amount_due": structure.amount,
-                    "amount_paid": structure.amount if i == 1 else 0,
-                },
-            )
-
-        # Parent linked to first student
-        parent_user, _ = ensure_user(
-            "parent@peaceconceptschool.ng",
-            "Parent123!",
-            AccountType.PARENT,
-            "Grace",
-            "Nwosu",
-            username="parent1",
+        # Students are imported from real User List rosters
+        # (manage.py import_student_roster). Keep fee structure for portal demos.
+        FeeStructure.objects.get_or_create(
+            name="Tuition",
+            term=terms[0],
+            class_level=jss1,
+            defaults={"session": session, "amount": 150000},
         )
-        parent, _ = ParentProfile.objects.get_or_create(
-            user=parent_user, defaults={"full_name": "Grace Nwosu", "phone_number": "08022223333"}
-        )
-        first_student = StudentProfile.objects.filter(full_name="Amaka Nwosu").first()
-        if first_student:
-            parent.children.add(first_student)
 
         NewsPost.objects.get_or_create(
             slug="session-2025-2026-resumption",
@@ -286,12 +238,6 @@ class Command(BaseCommand):
             },
         )
 
-        first_student_id = (
-            StudentProfile.objects.filter(full_name="Amaka Nwosu")
-            .values_list("student_id", flat=True)
-            .first()
-            or "PCS025001"
-        )
         self.stdout.write(self.style.SUCCESS("Demo data seeded."))
         self.stdout.write("Staff login uses Username + password:")
         self.stdout.write("  Admin: admin / AdminPass123!")
@@ -299,6 +245,7 @@ class Command(BaseCommand):
         self.stdout.write("  Teacher: teacher1 / Teacher123!")
         self.stdout.write("  Accountant: accountant / Accountant123!")
         self.stdout.write("  Store: store1 / Store123!")
-        self.stdout.write("  Parent: parent1 / Parent123!")
-        self.stdout.write("Student login uses Student ID + password:")
-        self.stdout.write(f"  Student: {first_student_id} / Student123!")
+        self.stdout.write(
+            "Students: run `python manage.py import_student_roster` "
+            "(login with Student ID + password from roster, usually `school`)."
+        )
