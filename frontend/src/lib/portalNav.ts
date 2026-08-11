@@ -197,7 +197,7 @@ export const SUBJECT_LEVEL_BANDS = [
   },
   {
     id: "primary",
-    label: "Primary",
+    label: "Basic",
     levels: ["Basic 1", "Basic 2", "Basic 3", "Basic 4", "Basic 5"],
   },
   {

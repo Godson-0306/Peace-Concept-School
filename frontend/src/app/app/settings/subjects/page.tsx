@@ -16,29 +16,55 @@ type Subject = {
   code: string;
   class_level: number;
   class_level_name: string;
-  department: number | null;
-  department_name?: string;
   subject_type: "subject" | "additional_assessment";
   is_active: boolean;
 };
 
-type Department = { id: number; name: string };
+type BandSubject = {
+  name: string;
+  code: string;
+  subject_type: Subject["subject_type"];
+  is_active: boolean;
+  /** One row per class level in the band that has this subject name. */
+  rows: Subject[];
+};
 
 function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
   return Array.isArray(data) ? data : data.results ?? [];
+}
+
+function groupBandSubjects(subjects: Subject[]): BandSubject[] {
+  const map = new Map<string, BandSubject>();
+  for (const subject of subjects) {
+    const key = subject.name.trim().toLowerCase();
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, {
+        name: subject.name,
+        code: subject.code,
+        subject_type: subject.subject_type,
+        is_active: subject.is_active,
+        rows: [subject],
+      });
+      continue;
+    }
+    existing.rows.push(subject);
+    // Prefer non-empty code / active flag if any row has it.
+    if (!existing.code && subject.code) existing.code = subject.code;
+    if (subject.is_active) existing.is_active = true;
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export default function SettingsSubjectsPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [levels, setLevels] = useState<ClassLevelNav[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [bandId, setBandId] = useState<(typeof SUBJECT_LEVEL_BANDS)[number]["id"]>(
-    "nursery",
+    "primary",
   );
-  const [levelId, setLevelId] = useState<number | "">("");
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [editing, setEditing] = useState<Subject | null>(null);
+  const [editing, setEditing] = useState<BandSubject | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -49,32 +75,38 @@ export default function SettingsSubjectsPage() {
 
   const orderedLevels = useMemo(() => sortClassLevelsForUsers(levels), [levels]);
 
-  const bandLevels = useMemo(() => {
-    const band = SUBJECT_LEVEL_BANDS.find((b) => b.id === bandId);
-    if (!band) return [];
-    const allowed = new Set(band.levels);
-    return orderedLevels.filter((level) => allowed.has(level.name as never));
-  }, [bandId, orderedLevels]);
-
-  const selectedLevel = useMemo(
-    () => bandLevels.find((level) => level.id === levelId) ?? null,
-    [bandLevels, levelId],
+  const band = useMemo(
+    () => SUBJECT_LEVEL_BANDS.find((item) => item.id === bandId) ?? SUBJECT_LEVEL_BANDS[1],
+    [bandId],
   );
 
-  const loadBase = useCallback(async () => {
-    const [levelData, deptData] = await Promise.all([
-      apiJson<{ results?: ClassLevelNav[] } | ClassLevelNav[]>("/api/class-levels/"),
-      apiJson<{ results?: Department[] } | Department[]>("/api/departments/"),
-    ]);
+  const bandLevels = useMemo(() => {
+    const allowed = new Set(band.levels);
+    return orderedLevels.filter((level) => allowed.has(level.name as never));
+  }, [band, orderedLevels]);
+
+  const bandSubjects = useMemo(() => groupBandSubjects(subjects), [subjects]);
+
+  const loadLevels = useCallback(async () => {
+    const levelData = await apiJson<{ results?: ClassLevelNav[] } | ClassLevelNav[]>(
+      "/api/class-levels/?page_size=200",
+    );
     setLevels(unwrapList(levelData));
-    setDepartments(unwrapList(deptData));
   }, []);
 
-  const loadSubjects = useCallback(async (classLevelId: number) => {
-    const data = await apiJson<{ results?: Subject[] } | Subject[]>(
-      `/api/subjects/?class_level=${classLevelId}`,
+  const loadBandSubjects = useCallback(async (levelIds: number[]) => {
+    if (!levelIds.length) {
+      setSubjects([]);
+      return;
+    }
+    const batches = await Promise.all(
+      levelIds.map((id) =>
+        apiJson<{ results?: Subject[] } | Subject[]>(
+          `/api/subjects/?class_level=${id}&page_size=500`,
+        ),
+      ),
     );
-    setSubjects(unwrapList(data));
+    setSubjects(batches.flatMap((batch) => unwrapList(batch)));
   }, []);
 
   useEffect(() => {
@@ -89,66 +121,129 @@ export default function SettingsSubjectsPage() {
       return;
     }
     setLoading(true);
-    loadBase()
+    loadLevels()
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
       .finally(() => setLoading(false));
-  }, [router, loadBase]);
+  }, [router, loadLevels]);
 
   useEffect(() => {
+    setEditing(null);
+    setMessage("");
+    setError("");
     if (!bandLevels.length) {
-      setLevelId("");
-      return;
-    }
-    setLevelId((current) =>
-      current && bandLevels.some((level) => level.id === current)
-        ? current
-        : bandLevels[0].id,
-    );
-  }, [bandLevels]);
-
-  useEffect(() => {
-    if (!levelId) {
       setSubjects([]);
       return;
     }
-    loadSubjects(levelId).catch((e) =>
+    loadBandSubjects(bandLevels.map((level) => level.id)).catch((e) =>
       setError(e instanceof Error ? e.message : "Failed to load subjects"),
     );
-  }, [levelId, loadSubjects]);
+  }, [bandLevels, loadBandSubjects]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canManage || !levelId) return;
+    if (!canManage || !bandLevels.length) return;
     setPending(true);
     setMessage("");
     setError("");
     const form = new FormData(event.currentTarget);
-    const departmentRaw = String(form.get("department") || "");
-    const payload = {
-      name: String(form.get("name") || "").trim(),
-      code: String(form.get("code") || "").trim(),
-      class_level: levelId,
-      department: departmentRaw ? Number(departmentRaw) : null,
-      subject_type: String(form.get("subject_type") || "subject"),
-      is_active: form.get("is_active") === "on",
-    };
+    const name = String(form.get("name") || "").trim();
+    const code = String(form.get("code") || "").trim();
+    const subject_type = String(form.get("subject_type") || "subject") as Subject["subject_type"];
+    const is_active = form.get("is_active") === "on";
+
+    if (!name) {
+      setError("Subject name is required.");
+      setPending(false);
+      return;
+    }
+
     try {
       if (editing) {
-        await apiJson(`/api/subjects/${editing.id}/`, {
-          method: "PATCH",
-          body: JSON.stringify(payload),
-        });
-        setMessage(`Updated “${payload.name}”.`);
+        await Promise.all(
+          editing.rows.map((row) =>
+            apiJson(`/api/subjects/${row.id}/`, {
+              method: "PATCH",
+              body: JSON.stringify({
+                name,
+                code,
+                subject_type,
+                is_active,
+                department: null,
+              }),
+            }),
+          ),
+        );
+        // Ensure every level in the band has this subject after rename/edit.
+        const existingLevelIds = new Set(editing.rows.map((row) => row.class_level));
+        const created: string[] = [];
+        for (const level of bandLevels) {
+          if (existingLevelIds.has(level.id)) continue;
+          try {
+            await apiJson("/api/subjects/", {
+              method: "POST",
+              body: JSON.stringify({
+                name,
+                code,
+                class_level: level.id,
+                department: null,
+                subject_type,
+                is_active,
+              }),
+            });
+            created.push(level.name);
+          } catch (e) {
+            const text = e instanceof Error ? e.message : "";
+            if (!text.includes("unique")) throw e;
+          }
+        }
+        setMessage(
+          created.length
+            ? `Updated “${name}” across ${band.label} (also added on ${created.join(", ")}).`
+            : `Updated “${name}” across ${band.label}.`,
+        );
       } else {
-        await apiJson("/api/subjects/", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-        setMessage(`Added “${payload.name}” for ${selectedLevel?.name ?? "class"}.`);
+        const created: string[] = [];
+        const skipped: string[] = [];
+        for (const level of bandLevels) {
+          try {
+            await apiJson("/api/subjects/", {
+              method: "POST",
+              body: JSON.stringify({
+                name,
+                code,
+                class_level: level.id,
+                department: null,
+                subject_type,
+                is_active,
+              }),
+            });
+            created.push(level.name);
+          } catch (e) {
+            const text = e instanceof Error ? e.message : "";
+            if (text.includes("unique") || text.includes("unique set")) {
+              skipped.push(level.name);
+              continue;
+            }
+            throw e;
+          }
+        }
+        if (!created.length && skipped.length) {
+          setMessage(
+            `“${name}” already exists for all ${band.label} classes (${skipped.join(", ")}).`,
+          );
+        } else if (skipped.length) {
+          setMessage(
+            `Added “${name}” for ${created.join(", ")}. Already present on ${skipped.join(", ")}.`,
+          );
+        } else {
+          setMessage(
+            `Added “${name}” for all ${band.label} classes (${created.join(", ")}).`,
+          );
+        }
       }
       setEditing(null);
       event.currentTarget.reset();
-      await loadSubjects(levelId);
+      await loadBandSubjects(bandLevels.map((level) => level.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save subject");
     } finally {
@@ -156,26 +251,35 @@ export default function SettingsSubjectsPage() {
     }
   }
 
-  async function onDelete(subject: Subject) {
-    if (!confirm(`Remove “${subject.name}” from ${subject.class_level_name}?`)) {
+  async function onDelete(item: BandSubject) {
+    const levelNames = item.rows.map((row) => row.class_level_name).join(", ");
+    if (
+      !confirm(
+        `Remove “${item.name}” from all ${band.label} classes (${levelNames})?`,
+      )
+    ) {
       return;
     }
     setPending(true);
     setError("");
     setMessage("");
     try {
-      const response = await apiFetch(`/api/subjects/${subject.id}/`, {
-        method: "DELETE",
-      });
-      if (!response.ok && response.status !== 204) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(
-          typeof payload.detail === "string" ? payload.detail : "Delete failed",
-        );
+      for (const row of item.rows) {
+        const response = await apiFetch(`/api/subjects/${row.id}/`, {
+          method: "DELETE",
+        });
+        if (!response.ok && response.status !== 204) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(
+            typeof payload.detail === "string" ? payload.detail : "Delete failed",
+          );
+        }
       }
-      setMessage(`Removed “${subject.name}”.`);
-      if (editing?.id === subject.id) setEditing(null);
-      if (levelId) await loadSubjects(levelId);
+      setMessage(`Removed “${item.name}” from ${band.label}.`);
+      if (editing?.name.toLowerCase() === item.name.toLowerCase()) {
+        setEditing(null);
+      }
+      await loadBandSubjects(bandLevels.map((level) => level.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not delete subject");
     } finally {
@@ -197,8 +301,8 @@ export default function SettingsSubjectsPage() {
           Subjects Settings
         </h1>
         <p className="mt-3 max-w-2xl text-base text-[var(--muted)]">
-          Set the subjects available for Nursery, Primary, Junior Secondary, and
-          Senior Secondary classes.
+          Add a subject once for a whole section. Basic 1–5 share one list, JSS1–3
+          share one list, and SS1–3 share one list (same for Nursery).
         </p>
       </header>
 
@@ -218,60 +322,46 @@ export default function SettingsSubjectsPage() {
           Section
         </p>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {SUBJECT_LEVEL_BANDS.map((band) => (
+          {SUBJECT_LEVEL_BANDS.map((item) => (
             <button
-              key={band.id}
+              key={item.id}
               type="button"
-              onClick={() => setBandId(band.id)}
+              onClick={() => setBandId(item.id)}
               className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${
-                bandId === band.id
+                bandId === item.id
                   ? "bg-[var(--brand-blue)] text-white"
                   : "bg-[var(--mist)] text-[var(--ink)] hover:bg-[var(--brand-blue-wash)]"
               }`}
             >
-              {band.label}
+              {item.label}
             </button>
           ))}
         </div>
-
-        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
-          Class level
+        <p className="mt-4 text-sm text-[var(--muted)]">
+          {loading
+            ? "Loading classes…"
+            : bandLevels.length
+              ? `Applies to: ${bandLevels.map((level) => level.name).join(" · ")}`
+              : "No class levels found for this section."}
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {loading ? (
-            <p className="text-sm text-[var(--muted)]">Loading classes…</p>
-          ) : bandLevels.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">
-              No class levels found for this section.
-            </p>
-          ) : (
-            bandLevels.map((level) => (
-              <button
-                key={level.id}
-                type="button"
-                onClick={() => setLevelId(level.id)}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold ${
-                  levelId === level.id
-                    ? "bg-[var(--brand-blue-deep)] text-white"
-                    : "border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--mist)]"
-                }`}
-              >
-                {level.name}
-              </button>
-            ))
-          )}
-        </div>
       </div>
 
-      {canManage && levelId ? (
+      {canManage && bandLevels.length ? (
         <form
           onSubmit={onSubmit}
-          key={editing ? `edit-${editing.id}` : `new-${levelId}`}
+          key={editing ? `edit-${editing.name}` : `new-${bandId}`}
           className="rounded-2xl border border-[var(--line)] bg-white/90 p-5 sm:p-6"
         >
           <h2 className="font-display text-2xl font-semibold text-[var(--brand-blue-deep)]">
-            {editing ? "Edit subject" : `Add subject · ${selectedLevel?.name ?? ""}`}
+            {editing
+              ? `Edit subject · ${band.label}`
+              : `Add subject · ${band.label}`}
           </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {editing
+              ? "Changes apply to every class in this section that has this subject."
+              : "Creates the subject on every class in this section. Existing copies are left as-is."}
+          </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <label className="field sm:col-span-2">
               <span>Subject name</span>
@@ -301,21 +391,6 @@ export default function SettingsSubjectsPage() {
               >
                 <option value="subject">Subject</option>
                 <option value="additional_assessment">Additional assessment</option>
-              </select>
-            </label>
-            <label className="field sm:col-span-2">
-              <span>Department (optional)</span>
-              <select
-                name="department"
-                defaultValue={editing?.department ?? ""}
-                className="field-input"
-              >
-                <option value="">— None —</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
               </select>
             </label>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
@@ -348,21 +423,20 @@ export default function SettingsSubjectsPage() {
       <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white/90">
         <div className="border-b border-[var(--line)] px-5 py-4 sm:px-6">
           <h2 className="font-display text-2xl font-semibold text-[var(--brand-blue-deep)]">
-            {selectedLevel
-              ? `Subjects · ${selectedLevel.name}`
-              : "Subjects"}
+            Subjects · {band.label}
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            {subjects.length} subject{subjects.length === 1 ? "" : "s"} configured
+            {bandSubjects.length} subject{bandSubjects.length === 1 ? "" : "s"} in
+            this section
           </p>
         </div>
-        {!levelId ? (
+        {!bandLevels.length ? (
           <p className="px-5 py-6 text-sm text-[var(--muted)] sm:px-6">
-            Choose a class level to view subjects.
+            No class levels found for this section.
           </p>
-        ) : subjects.length === 0 ? (
+        ) : bandSubjects.length === 0 ? (
           <p className="px-5 py-6 text-sm text-[var(--muted)] sm:px-6">
-            No subjects yet for this class. Add the first one above.
+            No subjects yet for {band.label}. Add the first one above.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -372,7 +446,7 @@ export default function SettingsSubjectsPage() {
                   <th className="px-5 py-3 font-semibold">Subject</th>
                   <th className="px-5 py-3 font-semibold">Code</th>
                   <th className="px-5 py-3 font-semibold">Type</th>
-                  <th className="px-5 py-3 font-semibold">Department</th>
+                  <th className="px-5 py-3 font-semibold">Classes</th>
                   <th className="px-5 py-3 font-semibold">Status</th>
                   {canManage ? (
                     <th className="px-5 py-3 font-semibold">Actions</th>
@@ -380,22 +454,26 @@ export default function SettingsSubjectsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
-                {subjects.map((subject) => (
-                  <tr key={subject.id}>
-                    <td className="px-5 py-3.5 font-semibold">{subject.name}</td>
+                {bandSubjects.map((item) => (
+                  <tr key={item.name.toLowerCase()}>
+                    <td className="px-5 py-3.5 font-semibold">{item.name}</td>
                     <td className="px-5 py-3.5 text-[var(--muted)]">
-                      {subject.code || "—"}
+                      {item.code || "—"}
                     </td>
                     <td className="px-5 py-3.5 text-[var(--muted)]">
-                      {subject.subject_type === "additional_assessment"
+                      {item.subject_type === "additional_assessment"
                         ? "Additional"
                         : "Subject"}
                     </td>
                     <td className="px-5 py-3.5 text-[var(--muted)]">
-                      {subject.department_name || "—"}
+                      {item.rows.length}/{bandLevels.length} ·{" "}
+                      {item.rows
+                        .map((row) => row.class_level_name)
+                        .sort()
+                        .join(", ")}
                     </td>
                     <td className="px-5 py-3.5">
-                      {subject.is_active ? (
+                      {item.is_active ? (
                         <span className="font-semibold text-[var(--brand-blue)]">
                           Active
                         </span>
@@ -410,7 +488,7 @@ export default function SettingsSubjectsPage() {
                             type="button"
                             className="text-sm font-semibold text-[var(--brand-blue)] hover:underline"
                             onClick={() => {
-                              setEditing(subject);
+                              setEditing(item);
                               setMessage("");
                             }}
                           >
@@ -419,7 +497,7 @@ export default function SettingsSubjectsPage() {
                           <button
                             type="button"
                             className="text-sm font-semibold text-[var(--brand-pink)] hover:underline"
-                            onClick={() => onDelete(subject)}
+                            onClick={() => onDelete(item)}
                             disabled={pending}
                           >
                             Delete
