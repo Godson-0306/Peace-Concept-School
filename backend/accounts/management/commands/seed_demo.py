@@ -179,3 +179,7 @@ class Command(BaseCommand):
             "Students: run `python manage.py import_student_roster` "
             "(login with Student ID + password from roster, usually `school`)."
         )
+        self.stdout.write(
+            "First Term scores: run `python manage.py import_term_results` "
+            "(activates 2025/2026 + First Term from class Excel sheets)."
+        )
