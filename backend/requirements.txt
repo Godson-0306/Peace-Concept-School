@@ -27,6 +27,7 @@ psycopg-binary==3.3.4
 python-barcode==0.16.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
+qrcode==8.2
 redis==8.1.0
 reportlab==5.0.0
 s3transfer==0.19.2

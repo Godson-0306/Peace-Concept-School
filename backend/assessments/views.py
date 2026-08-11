@@ -3,6 +3,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from datetime import date
 
 from accounts.models import AccountType
 from accounts.permissions import (
@@ -365,13 +366,185 @@ class StudentFormRecordViewSet(viewsets.ModelViewSet):
 
 
 class AttendanceRecordViewSet(viewsets.ModelViewSet):
-    queryset = AttendanceRecord.objects.select_related("student").all()
+    queryset = AttendanceRecord.objects.select_related("student", "class_arm", "term").all()
     serializer_class = AttendanceRecordSerializer
     permission_classes = [IsAuthenticated]
     filterset_fields = ["student", "class_arm", "term", "date", "status"]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if user.account_type == AccountType.STUDENT and hasattr(user, "student_profile"):
+            return qs.filter(student=user.student_profile)
+        if user.account_type == AccountType.PARENT and hasattr(user, "parent_profile"):
+            return qs.filter(student__in=user.parent_profile.children.all())
+        if can_view_all_results(user) or user.account_type == AccountType.ADMIN:
+            return qs
+        if user.account_type == AccountType.TEACHER:
+            arms = form_teacher_class_arm_ids(user)
+            if arms:
+                return qs.filter(class_arm_id__in=arms)
+            return qs.none()
+        return qs.none()
+
     def perform_create(self, serializer):
-        serializer.save(marked_by=self.request.user)
+        record = serializer.save(marked_by=self.request.user)
+        from assessments.attendance_ops import recompute_term_attendance, sync_days_opened
+
+        recompute_term_attendance(record.student, record.term)
+        sync_days_opened(record.class_arm, record.term)
+
+    def perform_update(self, serializer):
+        record = serializer.save(marked_by=self.request.user)
+        from assessments.attendance_ops import recompute_term_attendance, sync_days_opened
+
+        recompute_term_attendance(record.student, record.term)
+        sync_days_opened(record.class_arm, record.term)
+
+    def perform_destroy(self, instance):
+        student, term, class_arm = instance.student, instance.term, instance.class_arm
+        instance.delete()
+        from assessments.attendance_ops import recompute_term_attendance, sync_days_opened
+
+        recompute_term_attendance(student, term)
+        sync_days_opened(class_arm, term)
+
+    def _user_can_mark_arm(self, user, class_arm_id: int) -> bool:
+        if can_edit_all_results(user) or user.account_type == AccountType.ADMIN:
+            return True
+        if user.account_type == AccountType.TEACHER:
+            return class_arm_id in form_teacher_class_arm_ids(user)
+        return False
+
+    def _user_can_use_gate(self, user) -> bool:
+        return user.account_type in (
+            AccountType.ADMIN,
+            AccountType.PRINCIPAL,
+            AccountType.TEACHER,
+        ) or can_edit_all_results(user)
+
+    @action(detail=False, methods=["get"])
+    def register(self, request):
+        from academics.models import ClassArm, Term
+        from assessments.attendance_ops import build_register_payload
+
+        class_arm_id = request.query_params.get("class_arm")
+        term_id = request.query_params.get("term")
+        date_raw = request.query_params.get("date")
+        if not class_arm_id or not term_id or not date_raw:
+            return Response(
+                {"detail": "class_arm, term, and date are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            on_date = date.fromisoformat(date_raw)
+        except ValueError:
+            return Response({"detail": "Invalid date."}, status=status.HTTP_400_BAD_REQUEST)
+
+        class_arm = ClassArm.objects.select_related("class_level").filter(id=class_arm_id).first()
+        term = Term.objects.filter(id=term_id).first()
+        if not class_arm or not term:
+            return Response({"detail": "Class arm or term not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not self._user_can_mark_arm(request.user, class_arm.id):
+            return Response({"detail": "Not allowed for this class."}, status=status.HTTP_403_FORBIDDEN)
+
+        return Response(build_register_payload(class_arm=class_arm, term=term, on_date=on_date))
+
+    @action(detail=False, methods=["post"])
+    def bulk(self, request):
+        from academics.models import ClassArm, Term
+        from assessments.attendance_ops import upsert_daily_marks
+
+        class_arm_id = request.data.get("class_arm")
+        term_id = request.data.get("term")
+        date_raw = request.data.get("date")
+        marks = request.data.get("marks") or []
+        if not class_arm_id or not term_id or not date_raw:
+            return Response(
+                {"detail": "class_arm, term, and date are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            on_date = date.fromisoformat(str(date_raw))
+        except ValueError:
+            return Response({"detail": "Invalid date."}, status=status.HTTP_400_BAD_REQUEST)
+
+        class_arm = ClassArm.objects.filter(id=class_arm_id).first()
+        term = Term.objects.filter(id=term_id).first()
+        if not class_arm or not term:
+            return Response({"detail": "Class arm or term not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not self._user_can_mark_arm(request.user, class_arm.id):
+            return Response({"detail": "Not allowed for this class."}, status=status.HTTP_403_FORBIDDEN)
+
+        normalized = []
+        for item in marks:
+            student_id = item.get("student") or item.get("student_id")
+            if student_id is None:
+                continue
+            normalized.append({"student": student_id, "status": item.get("status")})
+
+        result = upsert_daily_marks(
+            class_arm=class_arm,
+            term=term,
+            on_date=on_date,
+            marks=normalized,
+            marked_by=request.user,
+        )
+        from assessments.attendance_ops import build_register_payload
+
+        payload = build_register_payload(class_arm=class_arm, term=term, on_date=on_date)
+        payload["saved"] = result["saved"]
+        return Response(payload)
+
+    @action(detail=False, methods=["post"], url_path="clock_in")
+    def clock_in(self, request):
+        from assessments.attendance_ops import clock_in as do_clock_in
+
+        if not self._user_can_use_gate(request.user):
+            return Response({"detail": "Staff only."}, status=status.HTTP_403_FORBIDDEN)
+
+        code = (
+            request.data.get("student_code")
+            or request.data.get("student_id")
+            or request.data.get("code")
+            or ""
+        )
+        try:
+            result = do_clock_in(student_code=str(code), marked_by=request.user)
+        except LookupError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_404_NOT_FOUND)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(result)
+
+    @action(detail=False, methods=["get"], url_path="my_summary")
+    def my_summary(self, request):
+        """Read-only summary for the logged-in student (active term)."""
+        from academics.models import Term
+
+        user = request.user
+        if user.account_type != AccountType.STUDENT or not hasattr(user, "student_profile"):
+            return Response({"detail": "Students only."}, status=status.HTTP_403_FORBIDDEN)
+        student = user.student_profile
+        term = Term.objects.filter(is_active=True).first()
+        if not term:
+            return Response({"detail": "No active term."}, status=status.HTTP_404_NOT_FOUND)
+        form = StudentFormRecord.objects.filter(student=student, term=term).first()
+        recent = list(
+            AttendanceRecord.objects.filter(student=student, term=term)
+            .order_by("-date")[:30]
+            .values("date", "status")
+        )
+        return Response(
+            {
+                "term": {"id": term.id, "name": term.name},
+                "days_present": form.days_present if form else 0,
+                "days_absent": form.days_absent if form else 0,
+                "recent": [
+                    {"date": row["date"].isoformat(), "status": row["status"]} for row in recent
+                ],
+            }
+        )
 
 
 def _resolve_next_term_begins(term):

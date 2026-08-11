@@ -63,5 +63,6 @@ def student_id_card(request, student_id):
             "student_id": student.student_id,
             "barcode_value": card.barcode_value,
             "barcode_image": card.barcode_image.url if card.barcode_image else None,
+            "qr_image": card.qr_image.url if card.qr_image else None,
         }
     )

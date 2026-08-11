@@ -197,12 +197,10 @@ export default function StudentReportEntryPage() {
           student: student.id,
           term: termId,
           class_arm: student.class_arm,
-          days_present: Number(daysPresent || 0),
-          days_absent: Number(daysAbsent || 0),
           teacher_remark: remark,
         }),
       });
-      setMessage("Report card scores and attendance saved.");
+      setMessage("Report card scores and remark saved.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save results");
     } finally {
@@ -375,21 +373,25 @@ export default function StudentReportEntryPage() {
           <h2 className="font-display text-2xl text-[var(--brand-blue-deep)]">
             Attendance & remark
           </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Days present / absent are synced from daily attendance and the gate
+            scanner.
+          </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-sm">
               <span className="mb-1 block text-[var(--muted)]">Days present</span>
               <input
-                className="field-input w-full"
+                className="field-input w-full bg-slate-50"
                 value={daysPresent}
-                onChange={(e) => setDaysPresent(e.target.value)}
+                readOnly
               />
             </label>
             <label className="text-sm">
               <span className="mb-1 block text-[var(--muted)]">Days absent</span>
               <input
-                className="field-input w-full"
+                className="field-input w-full bg-slate-50"
                 value={daysAbsent}
-                onChange={(e) => setDaysAbsent(e.target.value)}
+                readOnly
               />
             </label>
             <label className="text-sm sm:col-span-2">

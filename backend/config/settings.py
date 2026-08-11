@@ -175,3 +175,5 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 # School identity
 SCHOOL_NAME = "Peace Concept International Mission Schools"
 SCHOOL_STUDENT_ID_PREFIX = "PCS"
+# Gate clock-in marks Late after this local time (HH:MM).
+SCHOOL_ATTENDANCE_LATE_AFTER = os.environ.get("SCHOOL_ATTENDANCE_LATE_AFTER", "08:30")

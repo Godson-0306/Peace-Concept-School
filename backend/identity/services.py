@@ -1,11 +1,13 @@
 import io
 
 import barcode
+import qrcode
 from barcode.writer import ImageWriter
 from django.core.files.base import ContentFile
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from assessments.models import StudentFormRecord
@@ -23,7 +25,16 @@ def generate_barcode_for_student(student) -> StudentIdCard:
         defaults={"barcode_value": value},
     )
     card.barcode_value = value
-    card.barcode_image.save(f"{value}.png", ContentFile(buffer.getvalue()), save=True)
+    card.barcode_image.save(f"{value}.png", ContentFile(buffer.getvalue()), save=False)
+
+    qr_buffer = io.BytesIO()
+    qr = qrcode.QRCode(version=1, box_size=8, border=2)
+    qr.add_data(value)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    qr_img.save(qr_buffer, format="PNG")
+    card.qr_image.save(f"{value}-qr.png", ContentFile(qr_buffer.getvalue()), save=False)
+    card.save()
     return card
 
 
@@ -116,7 +127,6 @@ def build_report_card_pdf(student, term) -> bytes:
 def build_id_card_pdf(student) -> bytes:
     card = generate_barcode_for_student(student)
     buffer = io.BytesIO()
-    # Card-ish landscape small page
     page = (85.6 * mm, 53.98 * mm)
     c = canvas.Canvas(buffer, pagesize=page)
     w, h = page
@@ -132,12 +142,28 @@ def build_id_card_pdf(student) -> bytes:
     c.drawString(28 * mm, h - 28 * mm, f"ID: {student.student_id}")
     c.drawString(28 * mm, h - 33 * mm, f"Gender: {student.gender or '—'}")
     c.drawString(28 * mm, h - 38 * mm, f"Class: {student.class_arm or '—'}")
-    # Photo placeholder
     c.setStrokeColor(colors.HexColor("#E85A8C"))
     c.rect(4 * mm, h - 42 * mm, 20 * mm, 24 * mm)
     c.setFont("Helvetica", 6)
     c.drawCentredString(14 * mm, h - 30 * mm, "PHOTO")
-    # Back page with barcode note
+
+    if card.qr_image:
+        try:
+            with card.qr_image.open("rb") as fh:
+                qr_bytes = fh.read()
+            qr_reader = ImageReader(io.BytesIO(qr_bytes))
+            c.drawImage(
+                qr_reader,
+                w - 24 * mm,
+                4 * mm,
+                width=18 * mm,
+                height=18 * mm,
+                preserveAspectRatio=True,
+                mask="auto",
+            )
+        except Exception:
+            pass
+
     c.showPage()
     c.setFillColor(colors.HexColor("#0B3575"))
     c.rect(0, 0, w, h, fill=1, stroke=0)
@@ -145,7 +171,23 @@ def build_id_card_pdf(student) -> bytes:
     c.setFont("Helvetica", 7)
     c.drawCentredString(w / 2, h - 12 * mm, "Property of Peace Concept Int'l Mission Schools")
     c.drawCentredString(w / 2, h - 18 * mm, "If found, please return to the school office.")
-    c.drawCentredString(w / 2, h - 28 * mm, f"Barcode: {card.barcode_value}")
+    c.drawCentredString(w / 2, h - 28 * mm, f"Scan QR at the gate · {card.barcode_value}")
+    if card.qr_image:
+        try:
+            with card.qr_image.open("rb") as fh:
+                qr_bytes = fh.read()
+            qr_reader = ImageReader(io.BytesIO(qr_bytes))
+            c.drawImage(
+                qr_reader,
+                w / 2 - 12 * mm,
+                8 * mm,
+                width=24 * mm,
+                height=24 * mm,
+                preserveAspectRatio=True,
+                mask="auto",
+            )
+        except Exception:
+            pass
     c.showPage()
     c.save()
     return buffer.getvalue()

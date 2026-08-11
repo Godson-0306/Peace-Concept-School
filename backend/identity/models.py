@@ -7,6 +7,7 @@ class StudentIdCard(models.Model):
     )
     barcode_value = models.CharField(max_length=64)
     barcode_image = models.ImageField(upload_to="idcards/barcodes/", blank=True, null=True)
+    qr_image = models.ImageField(upload_to="idcards/qr/", blank=True, null=True)
     issued_at = models.DateTimeField(auto_now_add=True)
     notes = models.CharField(max_length=255, blank=True)
 

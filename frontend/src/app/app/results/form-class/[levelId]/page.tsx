@@ -30,6 +30,7 @@ type FormRecord = {
   term: number;
   class_arm: number;
   days_present: number;
+  days_absent: number;
   teacher_remark: string;
 } & Partial<Record<FormClassAssessmentKey, number | null>>;
 
@@ -42,6 +43,7 @@ type RankRow = {
 
 type RowState = {
   days_present: string;
+  days_absent: string;
   next_term_begins: string;
   teacher_remark: string;
   assessments: Record<FormClassAssessmentKey, string>;
@@ -127,7 +129,8 @@ function FormClassSheetInner() {
               value === null || value === undefined ? "" : String(value);
           }
           init[student.id] = {
-            days_present: form ? String(form.days_present ?? "") : "",
+            days_present: form ? String(form.days_present ?? 0) : "0",
+            days_absent: form ? String(form.days_absent ?? 0) : "0",
             next_term_begins: nextDefault,
             teacher_remark: form?.teacher_remark || "",
             assessments,
@@ -211,7 +214,6 @@ function FormClassSheetInner() {
           student: student.id,
           term: termId,
           class_arm: armId,
-          days_present: Number(row.days_present) || 0,
           teacher_remark: row.teacher_remark,
         };
         for (const item of FORM_CLASS_ASSESSMENTS) {
@@ -310,7 +312,9 @@ function FormClassSheetInner() {
                 <th className="sticky left-28 z-10 bg-[var(--mist)] px-3 py-3">Name</th>
                 <th className="px-3 py-3">Arm</th>
                 <th className="px-3 py-3">No. Subject</th>
-                <th className="px-3 py-3">Attendance</th>
+                <th className="px-3 py-3" title="Synced from daily attendance">
+                  Attendance
+                </th>
                 <th className="px-3 py-3">Next Term Begins</th>
                 <th className="px-3 py-3">Average</th>
                 <th className="px-3 py-3">Position</th>
@@ -330,7 +334,8 @@ function FormClassSheetInner() {
             <tbody>
               {students.map((student) => {
                 const row = rows[student.id] ?? {
-                  days_present: "",
+                  days_present: "0",
+                  days_absent: "0",
                   next_term_begins: defaultNextTerm,
                   teacher_remark: "",
                   assessments: emptyAssessments(),
@@ -356,12 +361,10 @@ function FormClassSheetInner() {
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        className="field-input w-16"
-                        inputMode="numeric"
-                        value={row.days_present}
-                        onChange={(e) =>
-                          updateRow(student.id, { days_present: e.target.value })
-                        }
+                        className="field-input w-24 bg-slate-50"
+                        readOnly
+                        title="Synced from daily attendance (Present / Absent)"
+                        value={`${row.days_present || "0"} / ${row.days_absent || "0"}`}
                       />
                     </td>
                     <td className="px-3 py-2">

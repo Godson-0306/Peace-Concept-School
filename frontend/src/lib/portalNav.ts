@@ -241,8 +241,8 @@ export function isExactPortalNavActive(pathname: string, href: string): boolean 
       pathname === href || pathname.startsWith("/app/results/subject-results/")
     );
   }
-  if (href === "/app/results/form-class") {
-    return pathname === href || pathname.startsWith("/app/results/form-class/");
+  if (href === "/app/attendance") {
+    return pathname === href || pathname.startsWith("/app/attendance/");
   }
   if (href === "/app/results/general-report-sheet") {
     return (
