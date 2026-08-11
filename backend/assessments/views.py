@@ -298,8 +298,21 @@ class FormClassRecordViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filterset_fields = ["class_arm", "term"]
 
-    def perform_create(self, serializer):
-        serializer.save(updated_by=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        record, _ = FormClassRecord.objects.update_or_create(
+            class_arm=data["class_arm"],
+            term=data["term"],
+            defaults={
+                k: v
+                for k, v in data.items()
+                if k not in ("class_arm", "term")
+            }
+            | {"updated_by": request.user},
+        )
+        return Response(self.get_serializer(record).data, status=status.HTTP_201_CREATED)
 
     def perform_update(self, serializer):
         if is_vice_principal(self.request.user) and not can_edit_all_results(self.request.user):

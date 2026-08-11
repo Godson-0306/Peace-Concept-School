@@ -51,6 +51,7 @@ class FormClassRecordSerializer(serializers.ModelSerializer):
         model = FormClassRecord
         fields = "__all__"
         read_only_fields = ["updated_by", "updated_at"]
+        validators = []
 
 
 class StudentFormRecordSerializer(serializers.ModelSerializer):
@@ -61,6 +62,8 @@ class StudentFormRecordSerializer(serializers.ModelSerializer):
         model = StudentFormRecord
         fields = "__all__"
         read_only_fields = ["updated_at"]
+        # POST /api/student-form/ upserts by (student, term).
+        validators = []
 
 
 class AttendanceRecordSerializer(serializers.ModelSerializer):

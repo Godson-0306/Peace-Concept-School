@@ -241,6 +241,9 @@ export function isExactPortalNavActive(pathname: string, href: string): boolean 
       pathname === href || pathname.startsWith("/app/results/subject-results/")
     );
   }
+  if (href === "/app/results/form-class") {
+    return pathname === href || pathname.startsWith("/app/results/form-class/");
+  }
   return pathname === href;
 }
 

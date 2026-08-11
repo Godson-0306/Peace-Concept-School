@@ -357,8 +357,8 @@ function ScoreSheetInner() {
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Student ID</th>
-                <th className="px-4 py-3">CA1 /20</th>
-                <th className="px-4 py-3">CA2 /20</th>
+                <th className="px-4 py-3">1st from order /20</th>
+                <th className="px-4 py-3">2nd from order /20</th>
                 <th className="px-4 py-3">Exam /60</th>
                 <th className="px-4 py-3">Total</th>
               </tr>

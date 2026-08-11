@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { apiJson } from "@/lib/api";
+import { SUBJECT_SCORE_ASSESSMENTS } from "@/lib/assessments";
 import { getStoredUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
 import type { ClassLevelNav } from "@/lib/portalNav";
@@ -326,6 +327,16 @@ export default function SubjectResultsPage() {
                     <span className="text-emerald-600" aria-hidden>
                       ✓
                     </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-1 border border-[var(--line)] bg-white/80 p-2 text-center text-[0.65rem] font-semibold uppercase tracking-wide">
+                    {SUBJECT_SCORE_ASSESSMENTS.map((item) => (
+                      <div key={item.key} className="space-y-1">
+                        <div className="truncate" title={item.label}>
+                          {item.label}
+                        </div>
+                        <div className="text-emerald-600">✓</div>
+                      </div>
+                    ))}
                   </div>
                   <dl className="mt-2 space-y-1 text-[var(--ink)]">
                     <div className="flex justify-between gap-3">

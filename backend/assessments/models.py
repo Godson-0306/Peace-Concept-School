@@ -60,6 +60,8 @@ class FormClassRecord(models.Model):
 
 
 class StudentFormRecord(models.Model):
+    """Form-class sheet: attendance, remark, and default affective/psychomotor ratings."""
+
     student = models.ForeignKey(
         "accounts.StudentProfile", on_delete=models.CASCADE, related_name="form_records"
     )
@@ -72,15 +74,24 @@ class StudentFormRecord(models.Model):
     height_cm = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     weight_kg = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     teacher_remark = models.TextField(blank=True)
-    punctuality = models.PositiveSmallIntegerField(null=True, blank=True)
-    neatness = models.PositiveSmallIntegerField(null=True, blank=True)
-    politeness = models.PositiveSmallIntegerField(null=True, blank=True)
-    honesty = models.PositiveSmallIntegerField(null=True, blank=True)
-    cooperation = models.PositiveSmallIntegerField(null=True, blank=True)
-    leadership = models.PositiveSmallIntegerField(null=True, blank=True)
-    handwriting = models.PositiveSmallIntegerField(null=True, blank=True)
-    sports = models.PositiveSmallIntegerField(null=True, blank=True)
+    # Default form-class assessments (used for all classes)
+    reading = models.PositiveSmallIntegerField(null=True, blank=True)
+    verbal_fluency = models.PositiveSmallIntegerField(null=True, blank=True)
+    games = models.PositiveSmallIntegerField(null=True, blank=True)
     tool_handling = models.PositiveSmallIntegerField(null=True, blank=True)
+    handwriting = models.PositiveSmallIntegerField(null=True, blank=True)
+    leadership = models.PositiveSmallIntegerField(null=True, blank=True)
+    punctuality = models.PositiveSmallIntegerField(null=True, blank=True)
+    self_control = models.PositiveSmallIntegerField(null=True, blank=True)
+    politeness = models.PositiveSmallIntegerField(null=True, blank=True)
+    neatness = models.PositiveSmallIntegerField(null=True, blank=True)
+    obedience = models.PositiveSmallIntegerField(null=True, blank=True)
+    honesty = models.PositiveSmallIntegerField(null=True, blank=True)
+    creativity = models.PositiveSmallIntegerField(null=True, blank=True)
+    attentiveness = models.PositiveSmallIntegerField(null=True, blank=True)
+    # Legacy aliases kept for older report code
+    cooperation = models.PositiveSmallIntegerField(null=True, blank=True)
+    sports = models.PositiveSmallIntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
