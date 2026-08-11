@@ -356,15 +356,34 @@ class Command(BaseCommand):
         }
 
         # Group by session from filenames; typically one session.
+        term_filter = str(options["term"]).lower()
+        term_wanted = {
+            "all": None,
+            "first": 1,
+            "1": 1,
+            "second": 2,
+            "2": 2,
+            "third": 3,
+            "3": 3,
+        }[term_filter]
+
         parsed_files: list[tuple[Path, tuple]] = []
         for path in files:
             meta = parse_file_meta(path)
+            if term_wanted is not None and meta[3] != term_wanted:
+                continue
             if options["session"]:
                 # Keep class/term from file; override session name.
                 session_name = options["session"]
                 start_year = int(session_name.split("/")[0])
                 meta = (session_name, meta[1], meta[2], meta[3], start_year)
             parsed_files.append((path, meta))
+
+        if not parsed_files:
+            raise CommandError(
+                f"No matching result files in {results_dir}"
+                + (f" for term={term_filter}" if term_wanted else "")
+            )
 
         with transaction.atomic():
             for path, meta in parsed_files:
