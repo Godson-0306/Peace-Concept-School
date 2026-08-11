@@ -236,6 +236,11 @@ export function isExactPortalNavActive(pathname: string, href: string): boolean 
   }
   if (href === "/app/settings") return pathname === "/app/settings";
   if (href === "/app/results") return pathname === "/app/results";
+  if (href === "/app/results/subject-results") {
+    return (
+      pathname === href || pathname.startsWith("/app/results/subject-results/")
+    );
+  }
   return pathname === href;
 }
 
