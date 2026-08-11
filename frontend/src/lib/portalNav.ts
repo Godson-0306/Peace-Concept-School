@@ -41,7 +41,16 @@ export const STAFF_PORTAL_NAV: PortalNavItem[] = [
   },
   { href: "/app/admission", label: "Admission" },
   { href: "/app/assessments", label: "Assessments" },
-  { href: "/app/results", label: "Results" },
+  {
+    href: "/app/results",
+    label: "Results",
+    children: [
+      { href: "/app/results/subject-results", label: "Subject Results" },
+      { href: "/app/results/form-class", label: "Form Class" },
+      { href: "/app/results/general-report-sheet", label: "General Report Sheet" },
+      { href: "/app/results/result-insight", label: "Result Insight" },
+    ],
+  },
   { href: "/app/accounts", label: "Accounts" },
   { href: "/app/inventory", label: "Inventory" },
   { href: "/app/attendance", label: "Attendance" },
@@ -154,7 +163,13 @@ export function withUsersClassLevels(
 
 export function portalNavFor(accountType: AccountType | null | undefined): PortalNavItem[] {
   if (accountType === "student") {
-    return STAFF_PORTAL_NAV.filter((item) => STUDENT_HREFS.has(item.href));
+    // Students see a flat Results link (their fee-gated view), not staff tools.
+    return STAFF_PORTAL_NAV.filter((item) => STUDENT_HREFS.has(item.href)).map(
+      (item) =>
+        item.href === "/app/results"
+          ? { href: "/app/results", label: "Results" }
+          : item,
+    );
   }
 
   let links = STAFF_PORTAL_NAV;
@@ -208,6 +223,9 @@ export function isPortalNavActive(pathname: string, href: string): boolean {
   if (href === "/app/settings") {
     return pathname === "/app/settings" || pathname.startsWith("/app/settings/");
   }
+  if (href === "/app/results") {
+    return pathname === "/app/results" || pathname.startsWith("/app/results/");
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -217,6 +235,7 @@ export function isExactPortalNavActive(pathname: string, href: string): boolean 
     return pathname === "/app/users/new" || pathname.startsWith("/app/users/new/");
   }
   if (href === "/app/settings") return pathname === "/app/settings";
+  if (href === "/app/results") return pathname === "/app/results";
   return pathname === href;
 }
 
