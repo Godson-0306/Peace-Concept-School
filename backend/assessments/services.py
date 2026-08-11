@@ -152,3 +152,94 @@ def rank_class_arm(class_arm_id: int, term_id: int, published_only: bool = True)
             last_total = row["total"]
         row["position"] = position
     return results
+
+
+def build_general_report(class_arm_id: int, term_id: int, published_only: bool = True):
+    """Matrix report for General Report Sheet: all students × class subjects."""
+    from academics.models import ClassArm, Term
+
+    class_arm = (
+        ClassArm.objects.select_related("class_level").filter(id=class_arm_id).first()
+    )
+    term = Term.objects.select_related("session").filter(id=term_id).first()
+    if not class_arm or not term:
+        return None
+
+    subjects = class_subjects_for_arm(class_arm)
+    students = list(
+        StudentProfile.objects.filter(class_arm_id=class_arm_id, is_active=True)
+        .order_by("full_name")
+        .only("id", "full_name", "student_id")
+    )
+
+    qs = AssessmentScore.objects.filter(
+        class_arm_id=class_arm_id, term_id=term_id
+    ).select_related("subject")
+    if published_only:
+        qs = qs.filter(status=AssessmentScore.Status.PUBLISHED)
+
+    scores_by_student: dict[int, dict[int, dict]] = defaultdict(dict)
+    for score in qs:
+        scores_by_student[score.student_id][score.subject_id] = {
+            "ca1": float(score.ca1 or 0),
+            "ca2": float(score.ca2 or 0),
+            "exam": float(score.exam or 0),
+            "total": float(score_total(score)),
+            "status": score.status,
+        }
+
+    subject_count = len(subjects)
+    rows = []
+    for student in students:
+        by_subject = scores_by_student.get(student.id, {})
+        total = Decimal("0")
+        cells: dict[str, dict] = {}
+        for subject in subjects:
+            cell = by_subject.get(subject.id)
+            if cell:
+                total += Decimal(str(cell["total"]))
+                cells[str(subject.id)] = cell
+            else:
+                cells[str(subject.id)] = {
+                    "ca1": 0,
+                    "ca2": 0,
+                    "exam": 0,
+                    "total": 0,
+                    "status": None,
+                }
+        average = (total / subject_count) if subject_count else Decimal("0")
+        rows.append(
+            {
+                "student_id": student.id,
+                "student_name": student.full_name,
+                "student_code": student.student_id,
+                "total": float(total),
+                "average": float(round(average, 2)),
+                "by_subject": cells,
+            }
+        )
+
+    rows.sort(key=lambda r: (-r["total"], r["student_name"]))
+    position = 0
+    last_total = None
+    for index, row in enumerate(rows, start=1):
+        if last_total is None or row["total"] != last_total:
+            position = index
+            last_total = row["total"]
+        row["position"] = position
+
+    return {
+        "session": {"id": term.session_id, "name": term.session.name},
+        "term": {"id": term.id, "name": term.name, "number": term.number},
+        "class_level": {
+            "id": class_arm.class_level_id,
+            "name": class_arm.class_level.name,
+        },
+        "class_arm": {
+            "id": class_arm.id,
+            "name": class_arm.name,
+            "label": class_arm.label or str(class_arm),
+        },
+        "subjects": [{"id": s.id, "name": s.name} for s in subjects],
+        "rows": rows,
+    }

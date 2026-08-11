@@ -24,6 +24,7 @@ from .serializers import (
     StudentFormRecordSerializer,
 )
 from .services import (
+    build_general_report,
     class_publish_blockers,
     compute_student_result,
     rank_class_arm,
@@ -237,6 +238,29 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
         if request.user.account_type == AccountType.ADMIN:
             published_only = False
         data = rank_class_arm(int(class_arm_id), int(term_id), published_only=published_only)
+        return Response(data)
+
+    @action(detail=False, methods=["get"])
+    def general_report(self, request):
+        """Class × subject matrix for the General Report Sheet."""
+        term_id = request.query_params.get("term")
+        class_arm_id = request.query_params.get("class_arm")
+        if not term_id or not class_arm_id:
+            return Response(
+                {"detail": "term and class_arm are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        published_only = not can_view_all_results(request.user)
+        if request.user.account_type == AccountType.ADMIN:
+            published_only = False
+        data = build_general_report(
+            int(class_arm_id), int(term_id), published_only=published_only
+        )
+        if data is None:
+            return Response(
+                {"detail": "Term or class not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         return Response(data)
 
 
