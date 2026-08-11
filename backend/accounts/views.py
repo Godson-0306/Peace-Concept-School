@@ -64,10 +64,14 @@ def csrf_view(request):
 
 
 class StaffViewSet(viewsets.ModelViewSet):
-    queryset = StaffProfile.objects.select_related("user").prefetch_related("positions").all()
+    queryset = (
+        StaffProfile.objects.select_related("user")
+        .prefetch_related("positions")
+        .order_by("full_name")
+    )
     serializer_class = StaffProfileSerializer
     permission_classes = [IsAdminAccount]
-    search_fields = ["full_name", "user__email", "phone_number"]
+    search_fields = ["full_name", "user__username", "user__email", "phone_number"]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

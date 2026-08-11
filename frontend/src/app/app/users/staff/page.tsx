@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
@@ -9,8 +9,7 @@ import { AuthUser, getStoredUser } from "@/lib/auth";
 type Staff = {
   id: number;
   full_name: string;
-  phone_number?: string;
-  username?: string;
+  gender?: string;
   user?: {
     email: string;
     username?: string;
@@ -27,9 +26,12 @@ export default function UsersStaffPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
-    const data = await apiJson<{ results?: Staff[] } | Staff[]>("/api/staff/");
+    const data = await apiJson<{ results?: Staff[] } | Staff[]>(
+      "/api/staff/?page_size=500",
+    );
     setStaff(unwrapList(data));
   }, []);
 
@@ -49,6 +51,19 @@ export default function UsersStaffPage() {
     );
   }, [router, load]);
 
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const rows = [...staff].sort((a, b) =>
+      a.full_name.localeCompare(b.full_name),
+    );
+    if (!q) return rows;
+    return rows.filter(
+      (member) =>
+        member.full_name.toLowerCase().includes(q) ||
+        (member.user?.username || "").toLowerCase().includes(q),
+    );
+  }, [staff, search]);
+
   if (user && user.account_type !== "admin" && user.account_type !== "principal") {
     return <p className="text-sm text-[var(--muted)]">Redirecting…</p>;
   }
@@ -56,7 +71,7 @@ export default function UsersStaffPage() {
   const isAdmin = user?.account_type === "admin";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-pink)]">
@@ -66,8 +81,7 @@ export default function UsersStaffPage() {
             Staff
           </h1>
           <p className="mt-3 max-w-2xl text-base text-[var(--muted)]">
-            Staff accounts for the management portal. Create new staff under Users
-            → New User → New Staff.
+            Staff directory. Open Edit to complete each profile.
           </p>
         </div>
         {isAdmin ? (
@@ -86,8 +100,25 @@ export default function UsersStaffPage() {
         </p>
       ) : null}
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-[var(--muted)]">
+          {visible.length} staff
+          {search.trim() ? ` matching “${search.trim()}”` : ""}
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          Search
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Name or username"
+            className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm outline-none focus:border-[var(--brand-blue)]"
+          />
+        </label>
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white/90">
-        {staff.length === 0 ? (
+        {visible.length === 0 ? (
           <p className="px-5 py-8 text-sm text-[var(--muted)]">No staff accounts yet.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -96,29 +127,21 @@ export default function UsersStaffPage() {
                 <tr>
                   <th className="px-5 py-3 font-semibold">Name</th>
                   <th className="px-5 py-3 font-semibold">Username</th>
-                  <th className="px-5 py-3 font-semibold">Email</th>
-                  <th className="px-5 py-3 font-semibold">Role</th>
-                  <th className="px-5 py-3 font-semibold">Phone</th>
+                  <th className="px-5 py-3 font-semibold">Gender</th>
                   {isAdmin ? (
                     <th className="px-5 py-3 font-semibold">Actions</th>
                   ) : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
-                {staff.map((member) => (
+                {visible.map((member) => (
                   <tr key={member.id}>
                     <td className="px-5 py-3.5 font-semibold">{member.full_name}</td>
                     <td className="px-5 py-3.5 text-[var(--muted)]">
                       {member.user?.username || "—"}
                     </td>
                     <td className="px-5 py-3.5 text-[var(--muted)]">
-                      {member.user?.email || "—"}
-                    </td>
-                    <td className="px-5 py-3.5 capitalize text-[var(--muted)]">
-                      {(member.user?.account_type || "").replace("_", " ")}
-                    </td>
-                    <td className="px-5 py-3.5 text-[var(--muted)]">
-                      {member.phone_number || "—"}
+                      {member.gender || "—"}
                     </td>
                     {isAdmin ? (
                       <td className="px-5 py-3.5">

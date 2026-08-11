@@ -3,17 +3,16 @@ from datetime import date
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from accounts.models import AccountType, PositionAssignment, PositionType, StaffProfile, User
+from accounts.models import AccountType, StaffProfile, User
 from academics.models import (
     AcademicSession,
     ClassArm,
     ClassLevel,
     Department,
     Subject,
-    TeacherAssignment,
 )
 from fees.models import FeeStructure
-from inventory.models import Inventory, InventoryAssignment, StockItem
+from inventory.models import Inventory, StockItem
 from website.models import NewsPost
 
 
@@ -139,80 +138,11 @@ class Command(BaseCommand):
 
         sync_nursery_daycare_subjects(replace_others=True)
 
-        # Principal
-        principal_user, _ = ensure_user(
-            "principal@peaceconceptschool.ng",
-            "Principal123!",
-            AccountType.PRINCIPAL,
-            "Ada",
-            "Okeke",
-            username="principal",
-        )
-        StaffProfile.objects.get_or_create(
-            user=principal_user, defaults={"full_name": "Ada Okeke", "gender": "Female"}
-        )
-
-        # Accountant
-        acc_user, _ = ensure_user(
-            "accountant@peaceconceptschool.ng",
-            "Accountant123!",
-            AccountType.ACCOUNTANT,
-            "Chidi",
-            "Eze",
-            username="accountant",
-        )
-        StaffProfile.objects.get_or_create(
-            user=acc_user, defaults={"full_name": "Chidi Eze", "gender": "Male"}
-        )
-
-        # Teacher + Form Teacher + HOD
-        teacher_user, _ = ensure_user(
-            "teacher@peaceconceptschool.ng",
-            "Teacher123!",
-            AccountType.TEACHER,
-            "Ngozi",
-            "Balogun",
-            username="teacher1",
-        )
-        teacher_staff, _ = StaffProfile.objects.get_or_create(
-            user=teacher_user, defaults={"full_name": "Ngozi Balogun", "gender": "Female"}
-        )
-        jss1a = ClassArm.objects.get(class_level=jss1, name="A")
-        math = Subject.objects.get(name="Mathematics", class_level=jss1)
-        basic_sci = Subject.objects.get(name="Basic Science", class_level=jss1)
-        TeacherAssignment.objects.get_or_create(
-            staff=teacher_staff, class_arm=jss1a, subject=math, session=session
-        )
-        TeacherAssignment.objects.get_or_create(
-            staff=teacher_staff, class_arm=jss1a, subject=basic_sci, session=session
-        )
-        PositionAssignment.objects.get_or_create(
-            staff=teacher_staff,
-            position=PositionType.FORM_TEACHER,
-            class_arm=jss1a,
-        )
-        PositionAssignment.objects.get_or_create(
-            staff=teacher_staff,
-            position=PositionType.HOD,
-            department=sciences,
-        )
-
-        # Store staff
-        store_user, _ = ensure_user(
-            "store@peaceconceptschool.ng",
-            "Store123!",
-            AccountType.STORE_STAFF,
-            "Tunde",
-            "Adeyemi",
-            username="store1",
-        )
-        store_staff, _ = StaffProfile.objects.get_or_create(
-            user=store_user, defaults={"full_name": "Tunde Adeyemi", "gender": "Male"}
-        )
+        # Real staff are loaded via `manage.py import_staff_roster`.
+        # Keep inventory catalog without placeholder store-staff accounts.
         uniforms, _ = Inventory.objects.get_or_create(
             name="Uniforms", defaults={"category": "Apparel", "description": "School uniforms"}
         )
-        InventoryAssignment.objects.get_or_create(inventory=uniforms, staff=store_staff)
         StockItem.objects.get_or_create(
             inventory=uniforms,
             name="JSS Shirt",
@@ -241,10 +171,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Demo data seeded."))
         self.stdout.write("Staff login uses Username + password:")
         self.stdout.write("  Admin: admin / AdminPass123!")
-        self.stdout.write("  Principal: principal / Principal123!")
-        self.stdout.write("  Teacher: teacher1 / Teacher123!")
-        self.stdout.write("  Accountant: accountant / Accountant123!")
-        self.stdout.write("  Store: store1 / Store123!")
+        self.stdout.write(
+            "Staff roster: run `python manage.py import_staff_roster` "
+            "(username from roster + password `school`)."
+        )
         self.stdout.write(
             "Students: run `python manage.py import_student_roster` "
             "(login with Student ID + password from roster, usually `school`)."
