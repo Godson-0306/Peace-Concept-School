@@ -99,10 +99,23 @@ class PositionAssignmentSerializer(serializers.ModelSerializer):
     staff = serializers.PrimaryKeyRelatedField(
         queryset=StaffProfile.objects.all(), required=False, allow_null=True
     )
+    class_arm_label = serializers.CharField(
+        source="class_arm.label", read_only=True, default=""
+    )
+    position_label = serializers.SerializerMethodField()
 
     class Meta:
         model = PositionAssignment
-        fields = ["id", "staff", "position", "department", "class_arm", "is_active"]
+        fields = [
+            "id",
+            "staff",
+            "position",
+            "position_label",
+            "department",
+            "class_arm",
+            "class_arm_label",
+            "is_active",
+        ]
         # UniqueConstraint on (staff, position, department, class_arm) would otherwise
         # force those FKs required on every nested write.
         validators = []
@@ -111,6 +124,9 @@ class PositionAssignmentSerializer(serializers.ModelSerializer):
             "class_arm": {"required": False, "allow_null": True},
             "is_active": {"required": False},
         }
+
+    def get_position_label(self, obj):
+        return obj.get_position_display()
 
     def validate(self, attrs):
         position = attrs.get("position")
