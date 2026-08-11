@@ -75,9 +75,7 @@ function ScoreCellView({
 function GeneralReportViewInner() {
   const searchParams = useSearchParams();
   const armId = Number(searchParams.get("arm"));
-  const levelId = Number(searchParams.get("class"));
   const termId = Number(searchParams.get("term"));
-  const sessionId = Number(searchParams.get("session"));
 
   const [report, setReport] = useState<GeneralReport | null>(null);
   const [loading, setLoading] = useState(true);
