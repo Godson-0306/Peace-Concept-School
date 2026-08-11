@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
+import { mediaUrl } from "@/lib/media";
 
 type PositionRow = {
   id?: number;
@@ -19,6 +20,7 @@ type Staff = {
   id: number;
   full_name: string;
   gender?: string;
+  passport_photo?: string | null;
   positions?: PositionRow[];
   user?: {
     email: string;
@@ -39,6 +41,13 @@ function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
   return Array.isArray(data) ? data : data.results ?? [];
 }
 
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase();
+}
+
 function formatPosition(row: PositionRow): string {
   const base =
     row.position_label ||
@@ -56,6 +65,28 @@ function positionsLabel(member: Staff): string {
   }
   const accountType = member.user?.account_type || "";
   return ACCOUNT_TYPE_LABELS[accountType] || "—";
+}
+
+function StaffAvatar({ member }: { member: Staff }) {
+  const photo = mediaUrl(member.passport_photo);
+  if (photo) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photo}
+        alt=""
+        className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-[var(--line)]"
+      />
+    );
+  }
+  return (
+    <span
+      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--brand-blue-wash)] text-xs font-bold text-[var(--brand-blue)]"
+      aria-hidden
+    >
+      {initials(member.full_name)}
+    </span>
+  );
 }
 
 export default function UsersStaffPage() {
@@ -167,6 +198,7 @@ export default function UsersStaffPage() {
             <table className="min-w-full text-left text-sm">
               <thead className="bg-[var(--mist)] text-xs uppercase tracking-[0.08em] text-[var(--muted)]">
                 <tr>
+                  <th className="px-5 py-3 font-semibold">Photo</th>
                   <th className="px-5 py-3 font-semibold">Name</th>
                   <th className="px-5 py-3 font-semibold">Username</th>
                   <th className="px-5 py-3 font-semibold">Gender</th>
@@ -179,6 +211,9 @@ export default function UsersStaffPage() {
               <tbody className="divide-y divide-[var(--line)]">
                 {visible.map((member) => (
                   <tr key={member.id}>
+                    <td className="px-5 py-3.5">
+                      <StaffAvatar member={member} />
+                    </td>
                     <td className="px-5 py-3.5 font-semibold">{member.full_name}</td>
                     <td className="px-5 py-3.5 text-[var(--muted)]">
                       {member.user?.username || "—"}
