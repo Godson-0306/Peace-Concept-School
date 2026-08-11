@@ -18,6 +18,7 @@ type Subject = {
   class_level_name: string;
   subject_type: "subject" | "additional_assessment";
   is_active: boolean;
+  order?: number;
 };
 
 type BandSubject = {
@@ -53,7 +54,12 @@ function groupBandSubjects(subjects: Subject[]): BandSubject[] {
     if (!existing.code && subject.code) existing.code = subject.code;
     if (subject.is_active) existing.is_active = true;
   }
-  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return [...map.values()].sort((a, b) => {
+    const orderA = Math.min(...a.rows.map((r) => r.order ?? 0));
+    const orderB = Math.min(...b.rows.map((r) => r.order ?? 0));
+    if (orderA !== orderB) return orderA - orderB;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export default function SettingsSubjectsPage() {
