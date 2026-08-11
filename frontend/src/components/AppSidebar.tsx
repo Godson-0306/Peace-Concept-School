@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch, apiJson } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { AuthUser, clearUser, getStoredUser } from "@/lib/auth";
 import { SCHOOL_SHORT } from "@/lib/brand";
+import { loadClassLevels } from "@/lib/classLevels";
 import {
   ClassLevelNav,
   collectOpenNavGroups,
@@ -16,10 +17,6 @@ import {
   portalNavFor,
   withUsersClassLevels,
 } from "@/lib/portalNav";
-
-function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
-  return Array.isArray(data) ? data : data.results ?? [];
-}
 
 function NavChildLinks({
   items,
@@ -104,8 +101,8 @@ export default function AppSidebar() {
     if (user?.account_type !== "admin" && user?.account_type !== "principal") {
       return;
     }
-    apiJson<{ results?: ClassLevelNav[] } | ClassLevelNav[]>("/api/class-levels/")
-      .then((data) => setLevels(unwrapList(data)))
+    loadClassLevels()
+      .then((data) => setLevels(data))
       .catch(() => setLevels([]));
   }, [user?.account_type]);
 

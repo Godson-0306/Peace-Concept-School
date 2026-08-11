@@ -346,8 +346,12 @@ export default function StudentEnrollForm({
       setLoading(true);
       try {
         const [levelData, armData] = await Promise.all([
-          apiJson<{ results?: ClassLevel[] } | ClassLevel[]>("/api/class-levels/"),
-          apiJson<{ results?: ClassArm[] } | ClassArm[]>("/api/class-arms/"),
+          apiJson<{ results?: ClassLevel[] } | ClassLevel[]>(
+            "/api/class-levels/?page_size=200",
+          ),
+          apiJson<{ results?: ClassArm[] } | ClassArm[]>(
+            "/api/class-arms/?page_size=500",
+          ),
         ]);
         if (cancelled) return;
         const levelList = unwrapList(levelData);

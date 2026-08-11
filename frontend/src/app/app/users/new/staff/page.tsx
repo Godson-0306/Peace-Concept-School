@@ -169,10 +169,10 @@ function UsersNewStaffInner() {
       setLoading(true);
       try {
         const [levelsData, armsData, subjectsData, sessionsData] = await Promise.all([
-          fetchAllPages<ClassLevel>("/api/class-levels/"),
-          fetchAllPages<ClassArm>("/api/class-arms/"),
-          fetchAllPages<Subject>("/api/subjects/"),
-          fetchAllPages<Session>("/api/sessions/"),
+          fetchAllPages<ClassLevel>("/api/class-levels/?page_size=200"),
+          fetchAllPages<ClassArm>("/api/class-arms/?page_size=500"),
+          fetchAllPages<Subject>("/api/subjects/?page_size=500"),
+          fetchAllPages<Session>("/api/sessions/?page_size=100"),
         ]);
         if (cancelled) return;
         setLevels(sortClassLevelsForUsers(levelsData));

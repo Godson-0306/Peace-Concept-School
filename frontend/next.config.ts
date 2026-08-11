@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
     "*.cursor.sh",
     "*.cursorapi.com",
   ],
+  // Less UI chrome overhead in Simple Browser / port-forwarded previews.
+  devIndicators: false,
   images: {
     remotePatterns: [
       {

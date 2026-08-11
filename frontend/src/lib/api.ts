@@ -6,10 +6,13 @@ function normalizeApiPath(path: string): string {
   const withSlash = path.startsWith("/") ? path : `/${path}`;
   // Next.js redirects trailing-slash API routes with 308; strip before fetch.
   // The server proxy re-appends a slash for Django/DRF.
-  if (withSlash.startsWith("/api/") && withSlash.length > 5 && withSlash.endsWith("/")) {
-    return withSlash.slice(0, -1);
-  }
-  return withSlash;
+  if (!withSlash.startsWith("/api/")) return withSlash;
+  const q = withSlash.indexOf("?");
+  const base = q === -1 ? withSlash : withSlash.slice(0, q);
+  const query = q === -1 ? "" : withSlash.slice(q);
+  const trimmed =
+    base.length > 5 && base.endsWith("/") ? base.slice(0, -1) : base;
+  return `${trimmed}${query}`;
 }
 
 export async function apiFetch(

@@ -4,22 +4,27 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getStoredUser } from "@/lib/auth";
 
+function hasPortalSession(): boolean {
+  if (typeof window === "undefined") return false;
+  const user = getStoredUser();
+  const hasCookie = document.cookie
+    .split(";")
+    .some((part) => part.trim().startsWith("pcs_session="));
+  return Boolean(user || hasCookie);
+}
+
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
+  // Sync check avoids a full "Checking session..." paint on every /app load.
+  const [ready, setReady] = useState(hasPortalSession);
 
   useEffect(() => {
-    const user = getStoredUser();
-    const hasCookie =
-      typeof document !== "undefined" &&
-      document.cookie.split(";").some((part) => part.trim().startsWith("pcs_session="));
-
-    if (!user && !hasCookie) {
+    if (!hasPortalSession()) {
+      setReady(false);
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
-
     setReady(true);
   }, [pathname, router]);
 
