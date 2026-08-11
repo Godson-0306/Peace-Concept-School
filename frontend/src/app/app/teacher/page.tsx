@@ -2,6 +2,11 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
+import {
+  clampScoreInput,
+  parseClampedScore,
+  SCORE_LIMITS,
+} from "@/lib/assessments";
 
 type Assignment = {
   id: number;
@@ -88,9 +93,9 @@ export default function TeacherPage() {
             subject: selected.subject,
             term: termId,
             class_arm: selected.class_arm,
-            ca1: Number(row.ca1),
-            ca2: Number(row.ca2),
-            exam: Number(row.exam),
+            ca1: parseClampedScore(row.ca1, SCORE_LIMITS.ca1),
+            ca2: parseClampedScore(row.ca2, SCORE_LIMITS.ca2),
+            exam: parseClampedScore(row.exam, SCORE_LIMITS.exam),
           }),
         });
       }
@@ -201,11 +206,19 @@ export default function TeacherPage() {
                   <td key={field} className="px-3 py-2">
                     <input
                       className="field-input w-20"
+                      min={0}
+                      max={SCORE_LIMITS[field]}
                       value={scores[s.id]?.[field] ?? "0"}
                       onChange={(e) =>
                         setScores((prev) => ({
                           ...prev,
-                          [s.id]: { ...prev[s.id], [field]: e.target.value },
+                          [s.id]: {
+                            ...prev[s.id],
+                            [field]: clampScoreInput(
+                              e.target.value,
+                              SCORE_LIMITS[field],
+                            ),
+                          },
                         }))
                       }
                     />

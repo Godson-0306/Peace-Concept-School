@@ -4,6 +4,11 @@ import Link from "next/link";
 import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiJson } from "@/lib/api";
+import {
+  clampScoreInput,
+  parseClampedScore,
+  SCORE_LIMITS,
+} from "@/lib/assessments";
 import { getStoredUser } from "@/lib/auth";
 
 type ClassLevel = { id: number; name: string };
@@ -279,9 +284,9 @@ function ScoreSheetInner() {
             subject: subjectId,
             term: termId,
             class_arm: armId,
-            ca1: Number(row.ca1) || 0,
-            ca2: Number(row.ca2) || 0,
-            exam: Number(row.exam) || 0,
+            ca1: parseClampedScore(row.ca1, SCORE_LIMITS.ca1),
+            ca2: parseClampedScore(row.ca2, SCORE_LIMITS.ca2),
+            exam: parseClampedScore(row.exam, SCORE_LIMITS.exam),
           }),
         });
       }
@@ -385,13 +390,18 @@ function ScoreSheetInner() {
                         <input
                           className="field-input w-20"
                           inputMode="decimal"
+                          min={0}
+                          max={SCORE_LIMITS[field]}
                           value={row[field]}
                           onChange={(e) =>
                             setScores((prev) => ({
                               ...prev,
                               [student.id]: {
                                 ...prev[student.id],
-                                [field]: e.target.value,
+                                [field]: clampScoreInput(
+                                  e.target.value,
+                                  SCORE_LIMITS[field],
+                                ),
                               },
                             }))
                           }
@@ -406,7 +416,7 @@ function ScoreSheetInner() {
           </table>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] px-4 py-3">
             <p className="text-sm text-[var(--muted)]">
-              Edit existing scores or enter new ones, then save.
+              Limits: 1st from order ≤ 20, 2nd from order ≤ 20, Exam ≤ 60.
             </p>
             <button type="submit" className="btn-primary" disabled={pending}>
               {pending ? "Saving…" : "Save scores"}

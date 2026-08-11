@@ -1,5 +1,12 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+
+SCORE_FIELD_VALIDATORS = [MinValueValidator(0)]
+CA_VALIDATORS = [MinValueValidator(0), MaxValueValidator(20)]
+EXAM_VALIDATORS = [MinValueValidator(0), MaxValueValidator(60)]
+FORM_RATING_VALIDATORS = [MinValueValidator(0), MaxValueValidator(5)]
 
 
 class AssessmentScore(models.Model):
@@ -15,9 +22,15 @@ class AssessmentScore(models.Model):
     class_arm = models.ForeignKey(
         "academics.ClassArm", on_delete=models.CASCADE, related_name="scores"
     )
-    ca1 = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    ca2 = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    exam = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    ca1 = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0, validators=CA_VALIDATORS
+    )
+    ca2 = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0, validators=CA_VALIDATORS
+    )
+    exam = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0, validators=EXAM_VALIDATORS
+    )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
     entered_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -74,24 +87,56 @@ class StudentFormRecord(models.Model):
     height_cm = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     weight_kg = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     teacher_remark = models.TextField(blank=True)
-    # Default form-class assessments (used for all classes)
-    reading = models.PositiveSmallIntegerField(null=True, blank=True)
-    verbal_fluency = models.PositiveSmallIntegerField(null=True, blank=True)
-    games = models.PositiveSmallIntegerField(null=True, blank=True)
-    tool_handling = models.PositiveSmallIntegerField(null=True, blank=True)
-    handwriting = models.PositiveSmallIntegerField(null=True, blank=True)
-    leadership = models.PositiveSmallIntegerField(null=True, blank=True)
-    punctuality = models.PositiveSmallIntegerField(null=True, blank=True)
-    self_control = models.PositiveSmallIntegerField(null=True, blank=True)
-    politeness = models.PositiveSmallIntegerField(null=True, blank=True)
-    neatness = models.PositiveSmallIntegerField(null=True, blank=True)
-    obedience = models.PositiveSmallIntegerField(null=True, blank=True)
-    honesty = models.PositiveSmallIntegerField(null=True, blank=True)
-    creativity = models.PositiveSmallIntegerField(null=True, blank=True)
-    attentiveness = models.PositiveSmallIntegerField(null=True, blank=True)
+    # Default form-class assessments (used for all classes) — max 5
+    reading = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    verbal_fluency = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    games = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    tool_handling = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    handwriting = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    leadership = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    punctuality = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    self_control = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    politeness = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    neatness = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    obedience = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    honesty = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    creativity = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    attentiveness = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
     # Legacy aliases kept for older report code
-    cooperation = models.PositiveSmallIntegerField(null=True, blank=True)
-    sports = models.PositiveSmallIntegerField(null=True, blank=True)
+    cooperation = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
+    sports = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=FORM_RATING_VALIDATORS
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

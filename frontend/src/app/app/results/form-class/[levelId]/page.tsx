@@ -5,8 +5,11 @@ import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { apiJson } from "@/lib/api";
 import {
+  FORM_CLASS_ASSESSMENT_MAX,
   FORM_CLASS_ASSESSMENTS,
   type FormClassAssessmentKey,
+  clampScoreInput,
+  parseClampedScore,
 } from "@/lib/assessments";
 
 type ClassLevel = { id: number; name: string };
@@ -213,7 +216,8 @@ function FormClassSheetInner() {
         };
         for (const item of FORM_CLASS_ASSESSMENTS) {
           const raw = row.assessments[item.key];
-          payload[item.key] = raw === "" ? null : Number(raw);
+          payload[item.key] =
+            raw === "" ? null : parseClampedScore(raw, FORM_CLASS_ASSESSMENT_MAX);
         }
         await apiJson("/api/student-form/", {
           method: "POST",
@@ -392,9 +396,15 @@ function FormClassSheetInner() {
                         <input
                           className="field-input w-12"
                           inputMode="numeric"
+                          min={0}
+                          max={FORM_CLASS_ASSESSMENT_MAX}
                           value={row.assessments[item.key]}
                           onChange={(e) =>
-                            updateAssessment(student.id, item.key, e.target.value)
+                            updateAssessment(
+                              student.id,
+                              item.key,
+                              clampScoreInput(e.target.value, FORM_CLASS_ASSESSMENT_MAX),
+                            )
                           }
                         />
                       </td>
@@ -406,7 +416,7 @@ function FormClassSheetInner() {
           </table>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] px-4 py-3">
             <p className="text-sm text-[var(--muted)]">
-              Ratings use the default form-class assessments for every class.
+              Form-class ratings are 0–5 for every assessment.
             </p>
             <button type="submit" className="btn-primary" disabled={pending}>
               {pending ? "Saving…" : "Save form class results"}

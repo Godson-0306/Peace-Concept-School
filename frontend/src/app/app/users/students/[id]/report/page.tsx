@@ -4,6 +4,11 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiJson } from "@/lib/api";
+import {
+  clampScoreInput,
+  parseClampedScore,
+  SCORE_LIMITS,
+} from "@/lib/assessments";
 import { AuthUser, getStoredUser } from "@/lib/auth";
 
 type Student = {
@@ -180,9 +185,9 @@ export default function StudentReportEntryPage() {
             subject: subject.id,
             term: termId,
             class_arm: student.class_arm,
-            ca1: Number(row.ca1 || 0),
-            ca2: Number(row.ca2 || 0),
-            exam: Number(row.exam || 0),
+            ca1: parseClampedScore(row.ca1 || "0", SCORE_LIMITS.ca1),
+            ca2: parseClampedScore(row.ca2 || "0", SCORE_LIMITS.ca2),
+            exam: parseClampedScore(row.exam || "0", SCORE_LIMITS.exam),
           }),
         });
       }
@@ -338,13 +343,18 @@ export default function StudentReportEntryPage() {
                             <input
                               className="field-input w-20"
                               inputMode="decimal"
+                              min={0}
+                              max={SCORE_LIMITS[field]}
                               value={row[field]}
                               onChange={(e) =>
                                 setScores((prev) => ({
                                   ...prev,
                                   [subject.id]: {
                                     ...prev[subject.id],
-                                    [field]: e.target.value,
+                                    [field]: clampScoreInput(
+                                      e.target.value,
+                                      SCORE_LIMITS[field],
+                                    ),
                                   },
                                 }))
                               }

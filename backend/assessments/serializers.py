@@ -58,12 +58,43 @@ class StudentFormRecordSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source="student.full_name", read_only=True)
     student_code = serializers.CharField(source="student.student_id", read_only=True)
 
+    FORM_RATING_FIELDS = (
+        "reading",
+        "verbal_fluency",
+        "games",
+        "tool_handling",
+        "handwriting",
+        "leadership",
+        "punctuality",
+        "self_control",
+        "politeness",
+        "neatness",
+        "obedience",
+        "honesty",
+        "creativity",
+        "attentiveness",
+        "cooperation",
+        "sports",
+    )
+
     class Meta:
         model = StudentFormRecord
         fields = "__all__"
         read_only_fields = ["updated_at"]
         # POST /api/student-form/ upserts by (student, term).
         validators = []
+
+    def validate(self, attrs):
+        errors = {}
+        for field in self.FORM_RATING_FIELDS:
+            value = attrs.get(field)
+            if value is None:
+                continue
+            if value < 0 or value > 5:
+                errors[field] = "Must be between 0 and 5."
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs
 
 
 class AttendanceRecordSerializer(serializers.ModelSerializer):
