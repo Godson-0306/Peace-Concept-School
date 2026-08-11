@@ -117,10 +117,14 @@ class Subject(models.Model):
         max_length=32, choices=SubjectType.choices, default=SubjectType.SUBJECT
     )
     is_active = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Display order within the class level (lower first).",
+    )
 
     class Meta:
         unique_together = ("name", "class_level")
-        ordering = ["class_level__order", "name"]
+        ordering = ["class_level__order", "order", "name"]
 
     def __str__(self):
         return f"{self.name} ({self.class_level.name})"

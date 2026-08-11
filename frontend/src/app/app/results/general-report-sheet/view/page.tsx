@@ -38,18 +38,7 @@ function formatNum(n: number): string {
   return Number(n.toFixed(2)).toString();
 }
 
-function shortSubject(name: string, max = 5): string {
-  const compact = name.replace(/\s+/g, "").toUpperCase();
-  return compact.length <= max ? compact : compact.slice(0, max);
-}
-
-function ScoreCellView({
-  cell,
-  subjectName,
-}: {
-  cell: ScoreCell | undefined;
-  subjectName: string;
-}) {
+function ScoreCellView({ cell }: { cell: ScoreCell | undefined }) {
   const total = cell?.total ?? 0;
   const ca1 = cell?.ca1 ?? 0;
   const ca2 = cell?.ca2 ?? 0;
@@ -64,9 +53,6 @@ function ScoreCellView({
       </span>
       <span className="whitespace-nowrap tabular-nums">
         - {formatNum(exam)}-
-      </span>
-      <span className="max-w-[3rem] truncate font-semibold uppercase text-slate-500">
-        {shortSubject(subjectName)}
       </span>
     </div>
   );
@@ -382,7 +368,6 @@ function GeneralReportViewInner() {
                     >
                       <ScoreCellView
                         cell={row.by_subject[String(subject.id)]}
-                        subjectName={subject.name}
                       />
                     </td>
                   ))}

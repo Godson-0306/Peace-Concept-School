@@ -161,6 +161,7 @@ class SubjectSerializer(serializers.ModelSerializer):
             "department_name",
             "subject_type",
             "is_active",
+            "order",
         ]
 
 

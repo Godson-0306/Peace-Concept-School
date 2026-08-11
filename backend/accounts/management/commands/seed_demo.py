@@ -136,6 +136,10 @@ class Command(BaseCommand):
                 defaults={"department": dept, "subject_type": stype},
             )
 
+        from academics.services.subjects import sync_nursery_daycare_subjects
+
+        sync_nursery_daycare_subjects(replace_others=True)
+
         # Principal
         principal_user, _ = ensure_user(
             "principal@peaceconceptschool.ng",

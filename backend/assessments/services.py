@@ -12,7 +12,9 @@ def class_subjects_for_arm(class_arm: ClassArm):
             class_level_id=class_arm.class_level_id,
             is_active=True,
             subject_type=Subject.SubjectType.SUBJECT,
-        ).only("id", "name")
+        )
+        .order_by("order", "name")
+        .only("id", "name")
     )
 
 
