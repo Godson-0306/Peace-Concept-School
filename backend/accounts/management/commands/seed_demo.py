@@ -12,7 +12,6 @@ from academics.models import (
     StudentIdSequence,
     Subject,
     TeacherAssignment,
-    Term,
 )
 from fees.models import FeeRecord, FeeStructure
 from inventory.models import Inventory, InventoryAssignment, StockItem
