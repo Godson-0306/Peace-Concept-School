@@ -6,10 +6,20 @@ import { useRouter } from "next/navigation";
 import { apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
 
+type PositionRow = {
+  id?: number;
+  position: string;
+  position_label?: string;
+  class_arm?: number | null;
+  class_arm_label?: string | null;
+  is_active?: boolean;
+};
+
 type Staff = {
   id: number;
   full_name: string;
   gender?: string;
+  positions?: PositionRow[];
   user?: {
     email: string;
     username?: string;
@@ -17,8 +27,35 @@ type Staff = {
   };
 };
 
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  principal: "Principal",
+  accountant: "Accountant",
+  store_staff: "Store Staff",
+  teacher: "Teacher",
+};
+
 function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
   return Array.isArray(data) ? data : data.results ?? [];
+}
+
+function formatPosition(row: PositionRow): string {
+  const base =
+    row.position_label ||
+    row.position.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  if (row.position === "form_teacher" && row.class_arm_label) {
+    return `${base} (${row.class_arm_label})`;
+  }
+  return base;
+}
+
+function positionsLabel(member: Staff): string {
+  const active = (member.positions || []).filter((p) => p.is_active !== false);
+  if (active.length > 0) {
+    return active.map(formatPosition).join(", ");
+  }
+  const accountType = member.user?.account_type || "";
+  return ACCOUNT_TYPE_LABELS[accountType] || "—";
 }
 
 export default function UsersStaffPage() {
@@ -57,11 +94,16 @@ export default function UsersStaffPage() {
       a.full_name.localeCompare(b.full_name),
     );
     if (!q) return rows;
-    return rows.filter(
-      (member) =>
-        member.full_name.toLowerCase().includes(q) ||
-        (member.user?.username || "").toLowerCase().includes(q),
-    );
+    return rows.filter((member) => {
+      const haystack = [
+        member.full_name,
+        member.user?.username || "",
+        positionsLabel(member),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
   }, [staff, search]);
 
   if (user && user.account_type !== "admin" && user.account_type !== "principal") {
@@ -71,7 +113,7 @@ export default function UsersStaffPage() {
   const isAdmin = user?.account_type === "admin";
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-pink)]">
@@ -111,7 +153,7 @@ export default function UsersStaffPage() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name or username"
+            placeholder="Name, username, or position"
             className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm outline-none focus:border-[var(--brand-blue)]"
           />
         </label>
@@ -128,6 +170,7 @@ export default function UsersStaffPage() {
                   <th className="px-5 py-3 font-semibold">Name</th>
                   <th className="px-5 py-3 font-semibold">Username</th>
                   <th className="px-5 py-3 font-semibold">Gender</th>
+                  <th className="px-5 py-3 font-semibold">Position</th>
                   {isAdmin ? (
                     <th className="px-5 py-3 font-semibold">Actions</th>
                   ) : null}
@@ -142,6 +185,9 @@ export default function UsersStaffPage() {
                     </td>
                     <td className="px-5 py-3.5 text-[var(--muted)]">
                       {member.gender || "—"}
+                    </td>
+                    <td className="px-5 py-3.5 text-[var(--muted)]">
+                      {positionsLabel(member)}
                     </td>
                     {isAdmin ? (
                       <td className="px-5 py-3.5">
