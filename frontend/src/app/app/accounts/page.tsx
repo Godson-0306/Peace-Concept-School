@@ -2,6 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { apiJson, errorFromUnknown } from "@/lib/api";
+import { loadClassLevels } from "@/lib/classLevels";
+import type { ClassLevelNav } from "@/lib/portalNav";
 
 type Tab = "structures" | "bills" | "debtors";
 
@@ -12,6 +14,12 @@ type Term = {
   number: number;
   session: number;
   is_active: boolean;
+};
+type ClassArm = {
+  id: number;
+  name: string;
+  label: string;
+  class_level: number;
 };
 
 type FeeSection =
@@ -91,9 +99,12 @@ export default function AccountsPage() {
   const [tab, setTab] = useState<Tab>("structures");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
+  const [levels, setLevels] = useState<ClassLevelNav[]>([]);
+  const [arms, setArms] = useState<ClassArm[]>([]);
   const [structures, setStructures] = useState<FeeStructure[]>([]);
   const [records, setRecords] = useState<FeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [savingFees, setSavingFees] = useState(false);
@@ -104,6 +115,8 @@ export default function AccountsPage() {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
 
   const [filterTerm, setFilterTerm] = useState<number | "">("");
+  const [filterClassLevel, setFilterClassLevel] = useState<number | "">("");
+  const [filterArm, setFilterArm] = useState<number | "">("");
   const [filterStatus, setFilterStatus] = useState("");
   const [search, setSearch] = useState("");
 
@@ -115,6 +128,30 @@ export default function AccountsPage() {
     () => (feeSession ? terms.filter((t) => t.session === feeSession) : terms),
     [terms, feeSession],
   );
+
+  const armsForLevel = useMemo(
+    () =>
+      filterClassLevel
+        ? arms.filter((a) => a.class_level === filterClassLevel)
+        : [],
+    [arms, filterClassLevel],
+  );
+
+  const selectedLevelName = useMemo(
+    () => levels.find((l) => l.id === filterClassLevel)?.name ?? "",
+    [levels, filterClassLevel],
+  );
+
+  const selectedTermName = useMemo(
+    () => terms.find((t) => t.id === filterTerm)?.name ?? "",
+    [terms, filterTerm],
+  );
+
+  const selectedArmLabel = useMemo(() => {
+    if (!filterArm) return "";
+    const arm = arms.find((a) => a.id === filterArm);
+    return arm?.label || arm?.name || "";
+  }, [arms, filterArm]);
 
   const amountKey = (section: FeeSection, studentType: "new" | "returning") =>
     `${section}:${studentType}`;
@@ -149,15 +186,26 @@ export default function AccountsPage() {
   );
 
   const loadRecords = useCallback(async () => {
-    const params = new URLSearchParams({ page_size: "500" });
-    if (filterTerm) params.set("term", String(filterTerm));
-    if (filterStatus) params.set("status", filterStatus);
-    if (search.trim()) params.set("search", search.trim());
-    const data = await apiJson<{ results?: FeeRecord[] } | FeeRecord[]>(
-      `/api/fee-records/?${params.toString()}`,
-    );
-    setRecords(unwrapList(data));
-  }, [filterTerm, filterStatus, search]);
+    if (!filterClassLevel) {
+      setRecords([]);
+      return;
+    }
+    setRecordsLoading(true);
+    try {
+      const params = new URLSearchParams({ page_size: "500" });
+      params.set("class_level", String(filterClassLevel));
+      if (filterArm) params.set("class_arm", String(filterArm));
+      if (filterTerm) params.set("term", String(filterTerm));
+      if (filterStatus) params.set("status", filterStatus);
+      if (search.trim()) params.set("search", search.trim());
+      const data = await apiJson<{ results?: FeeRecord[] } | FeeRecord[]>(
+        `/api/fee-records/?${params.toString()}`,
+      );
+      setRecords(unwrapList(data));
+    } finally {
+      setRecordsLoading(false);
+    }
+  }, [filterClassLevel, filterArm, filterTerm, filterStatus, search]);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,17 +213,23 @@ export default function AccountsPage() {
       setLoading(true);
       setError("");
       try {
-        const [sessionData, termData] = await Promise.all([
+        const [sessionData, termData, levelList, armData] = await Promise.all([
           apiJson<{ results?: Session[] } | Session[]>(
             "/api/sessions/?page_size=100",
           ),
           apiJson<{ results?: Term[] } | Term[]>("/api/terms/?page_size=100"),
+          loadClassLevels(),
+          apiJson<{ results?: ClassArm[] } | ClassArm[]>(
+            "/api/class-arms/?page_size=500",
+          ),
         ]);
         if (cancelled) return;
         const sessionList = unwrapList(sessionData);
         const termList = unwrapList(termData);
         setSessions(sessionList);
         setTerms(termList);
+        setLevels(levelList);
+        setArms(unwrapList(armData));
         const activeSession =
           sessionList.find((s) => s.is_active) ?? sessionList[0];
         const activeTerm = termList.find((t) => t.is_active) ?? termList[0];
@@ -195,7 +249,6 @@ export default function AccountsPage() {
             setFilterTerm(termForSession.id);
           }
         }
-        await loadRecords();
       } catch (e) {
         if (!cancelled) {
           setError(errorFromUnknown(e, "Failed to load accounts data"));
@@ -212,10 +265,22 @@ export default function AccountsPage() {
 
   useEffect(() => {
     if (loading) return;
+    if (!filterClassLevel) {
+      setRecords([]);
+      return;
+    }
     loadRecords().catch((e) =>
       setError(errorFromUnknown(e, "Failed to load fee records")),
     );
-  }, [filterTerm, filterStatus, search, loadRecords, loading]);
+  }, [
+    filterClassLevel,
+    filterArm,
+    filterTerm,
+    filterStatus,
+    search,
+    loadRecords,
+    loading,
+  ]);
 
   async function onFeeSessionChange(sessionId: number) {
     setFeeSession(sessionId);
@@ -280,9 +345,11 @@ export default function AccountsPage() {
             : "") +
           ` (${result.total_students} students).`,
       );
-      await loadRecords();
-      setTab("bills");
       setFilterTerm(generateTerm);
+      if (filterClassLevel) {
+        await loadRecords();
+      }
+      setTab("bills");
     } catch (e) {
       setError(errorFromUnknown(e, "Bill generation failed"));
     } finally {
@@ -370,6 +437,77 @@ export default function AccountsPage() {
     setExpandedId(record.id);
     setAdjustDue((prev) => ({ ...prev, [record.id]: record.amount_due }));
     setAdjustNotes((prev) => ({ ...prev, [record.id]: record.notes || "" }));
+  }
+
+  function onClassLevelChange(value: string) {
+    setFilterClassLevel(value ? Number(value) : "");
+    setFilterArm("");
+    setExpandedId(null);
+  }
+
+  function renderClassFilters() {
+    return (
+      <div className="flex flex-wrap gap-2">
+        <select
+          className="field-input"
+          value={filterTerm}
+          onChange={(e) =>
+            setFilterTerm(e.target.value ? Number(e.target.value) : "")
+          }
+        >
+          <option value="">All terms</option>
+          {terms.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="field-input"
+          value={filterClassLevel}
+          onChange={(e) => onClassLevelChange(e.target.value)}
+        >
+          <option value="">Select class</option>
+          {levels.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="field-input"
+          value={filterArm}
+          disabled={!filterClassLevel}
+          onChange={(e) =>
+            setFilterArm(e.target.value ? Number(e.target.value) : "")
+          }
+        >
+          <option value="">All arms</option>
+          {armsForLevel.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.label || a.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="field-input"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="">All statuses</option>
+          <option value="unpaid">Unpaid</option>
+          <option value="partial">Partial</option>
+          <option value="paid">Paid</option>
+        </select>
+        <input
+          className="field-input min-w-[14rem] flex-1"
+          placeholder="Search student name or ID"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          disabled={!filterClassLevel}
+        />
+      </div>
+    );
   }
 
   function renderBillCard(record: FeeRecord) {
@@ -548,7 +686,7 @@ export default function AccountsPage() {
         </h1>
         <p className="mt-2 max-w-2xl text-[var(--ink-soft)]">
           Edit section fees for new and returning students, generate term bills,
-          record offline payments, and unlock results when needed.
+          then update each class&apos;s student financial records.
         </p>
       </header>
 
@@ -716,93 +854,69 @@ export default function AccountsPage() {
 
       {tab === "bills" ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="field-input"
-              value={filterTerm}
-              onChange={(e) =>
-                setFilterTerm(e.target.value ? Number(e.target.value) : "")
-              }
-            >
-              <option value="">All terms</option>
-              {terms.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="field-input"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="">All statuses</option>
-              <option value="unpaid">Unpaid</option>
-              <option value="partial">Partial</option>
-              <option value="paid">Paid</option>
-            </select>
-            <input
-              className="field-input min-w-[14rem] flex-1"
-              placeholder="Search student name or ID"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          {records.length === 0 ? (
+          {renderClassFilters()}
+          {!filterClassLevel ? (
             <p className="text-sm text-[var(--muted)]">
-              No fee records. Save the fee schedule and generate bills for a
-              term.
+              Select a class to manage student bills.
             </p>
           ) : (
-            records.map(renderBillCard)
+            <>
+              <div className="border border-[var(--line)] bg-white/80 px-4 py-3">
+                <h2 className="font-display text-2xl text-[var(--brand-green)]">
+                  {selectedLevelName}
+                  {selectedArmLabel ? ` ${selectedArmLabel}` : ""}
+                  {selectedTermName ? ` — ${selectedTermName}` : ""}
+                </h2>
+                <p className="text-sm text-[var(--muted)]">
+                  {recordsLoading
+                    ? "Loading…"
+                    : `${records.length} student bill${records.length === 1 ? "" : "s"}`}
+                </p>
+              </div>
+              {!recordsLoading && records.length === 0 ? (
+                <p className="text-sm text-[var(--muted)]">
+                  No fee records for this class. Generate bills from the Fee
+                  schedule tab first.
+                </p>
+              ) : (
+                records.map(renderBillCard)
+              )}
+            </>
           )}
         </div>
       ) : null}
 
       {tab === "debtors" ? (
         <div className="space-y-4">
-          <div className="border border-[var(--line)] bg-white/80 p-4">
-            <p className="text-sm text-[var(--muted)]">Outstanding total</p>
-            <p className="font-display text-3xl text-[var(--brand-green)]">
-              {naira(debtorTotal)}
-            </p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              {debtors.length} student{debtors.length === 1 ? "" : "s"} with
-              unpaid or partial balances
-              {filterTerm
-                ? ` (filtered to ${terms.find((t) => t.id === filterTerm)?.name ?? "term"})`
-                : ""}
-              .
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="field-input"
-              value={filterTerm}
-              onChange={(e) =>
-                setFilterTerm(e.target.value ? Number(e.target.value) : "")
-              }
-            >
-              <option value="">All terms</option>
-              {terms.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="field-input min-w-[14rem] flex-1"
-              placeholder="Search student name or ID"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          {debtors.length === 0 ? (
+          {renderClassFilters()}
+          {!filterClassLevel ? (
             <p className="text-sm text-[var(--muted)]">
-              No debtors for this filter.
+              Select a class to review debtors.
             </p>
           ) : (
-            debtors.map(renderBillCard)
+            <>
+              <div className="border border-[var(--line)] bg-white/80 p-4">
+                <p className="text-sm text-[var(--muted)]">
+                  Outstanding · {selectedLevelName}
+                  {selectedArmLabel ? ` ${selectedArmLabel}` : ""}
+                  {selectedTermName ? ` · ${selectedTermName}` : ""}
+                </p>
+                <p className="font-display text-3xl text-[var(--brand-green)]">
+                  {naira(debtorTotal)}
+                </p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {debtors.length} student{debtors.length === 1 ? "" : "s"} with
+                  unpaid or partial balances.
+                </p>
+              </div>
+              {debtors.length === 0 ? (
+                <p className="text-sm text-[var(--muted)]">
+                  No debtors for this class filter.
+                </p>
+              ) : (
+                debtors.map(renderBillCard)
+              )}
+            </>
           )}
         </div>
       ) : null}

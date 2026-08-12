@@ -180,12 +180,22 @@ class FeeRecordViewSet(viewsets.ModelViewSet):
         user = self.request.user
         qs = super().get_queryset()
         if can_manage_fees(user) or user.account_type == AccountType.PRINCIPAL:
-            return qs
-        if user.account_type == AccountType.STUDENT and hasattr(user, "student_profile"):
-            return qs.filter(student=user.student_profile)
-        if user.account_type == AccountType.PARENT and hasattr(user, "parent_profile"):
-            return qs.filter(student__in=user.parent_profile.children.all())
-        return qs.none()
+            pass
+        elif user.account_type == AccountType.STUDENT and hasattr(user, "student_profile"):
+            qs = qs.filter(student=user.student_profile)
+        elif user.account_type == AccountType.PARENT and hasattr(user, "parent_profile"):
+            qs = qs.filter(student__in=user.parent_profile.children.all())
+        else:
+            return qs.none()
+
+        # Nested class filters (not expressible as simple filterset_fields).
+        class_level = self.request.query_params.get("class_level")
+        if class_level:
+            qs = qs.filter(student__class_arm__class_level_id=class_level)
+        class_arm = self.request.query_params.get("class_arm")
+        if class_arm:
+            qs = qs.filter(student__class_arm_id=class_arm)
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(updated_by=self.request.user)
