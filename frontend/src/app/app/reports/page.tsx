@@ -453,7 +453,7 @@ export default function ReportsPage() {
                         </a>
                         <a
                           className="text-[var(--brand-blue)] underline-offset-2 hover:underline"
-                          href={`/api/identity/id-card/${student.id}/?format=pdf`}
+                          href={`/api/identity/id-card/${student.id}/?pack=pdf`}
                           target="_blank"
                           rel="noreferrer"
                         >

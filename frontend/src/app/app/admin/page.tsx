@@ -235,7 +235,7 @@ export default function AdminPage() {
                 <span>{s.class_arm_label}</span>
                 <a
                   className="text-[var(--brand-green)] underline-offset-2 hover:underline"
-                  href={`/api/identity/id-card/${s.id}/?format=pdf`}
+                  href={`/api/identity/id-card/${s.id}/?pack=pdf`}
                   target="_blank"
                   rel="noreferrer"
                 >

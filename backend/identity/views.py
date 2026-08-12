@@ -116,7 +116,12 @@ def student_id_card(request, student_id):
     if request.method == "POST" and not can_manage_accounts(request.user):
         return Response({"detail": "Admin only."}, status=403)
     card = generate_barcode_for_student(student)
-    if request.query_params.get("format") == "pdf" or request.method == "POST":
+    # Use `pack=pdf` — DRF reserves `format` for content negotiation and 404s.
+    want_pdf = (
+        request.method == "POST"
+        or (request.query_params.get("pack") or "").lower() == "pdf"
+    )
+    if want_pdf:
         pdf = build_id_card_pdf(student)
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = f'inline; filename="id-{student.student_id}.pdf"'
