@@ -7,6 +7,7 @@ import {
   parseClampedScore,
   SCORE_LIMITS,
 } from "@/lib/assessments";
+import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
 
 type Assignment = {
   id: number;
@@ -22,11 +23,9 @@ type Student = {
   student_id: string;
 };
 
-type Term = { id: number; name: string; is_active: boolean };
-
 export default function TeacherPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
+  const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [selected, setSelected] = useState<Assignment | null>(null);
   const [termId, setTermId] = useState<number | "">("");
   const [students, setStudents] = useState<Student[]>([]);
@@ -40,15 +39,14 @@ export default function TeacherPage() {
 
   const load = useCallback(async () => {
     try {
-      const [asg, tm] = await Promise.all([
+      const [asg, termList] = await Promise.all([
         apiJson<{ results?: Assignment[] } | Assignment[]>("/api/teacher-assignments/"),
-        apiJson<{ results?: Term[] } | Term[]>("/api/terms/"),
+        loadActiveSessionTerms(),
       ]);
       const list = Array.isArray(asg) ? asg : asg.results ?? [];
-      const termList = Array.isArray(tm) ? tm : tm.results ?? [];
       setAssignments(list);
       setTerms(termList);
-      const active = termList.find((t) => t.is_active);
+      const active = termList.find((t) => t.is_active) ?? termList[0];
       if (active) setTermId(active.id);
       if (list[0]) setSelected(list[0]);
     } catch (e) {

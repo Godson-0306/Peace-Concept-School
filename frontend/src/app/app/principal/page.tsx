@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
+import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
 
 type ClassArm = { id: number; label: string };
-type Term = { id: number; name: string; is_active: boolean };
 type ResultRow = {
   student_id: number;
   student_name: string;
@@ -16,7 +16,7 @@ type ResultRow = {
 
 export default function PrincipalPage() {
   const [arms, setArms] = useState<ClassArm[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
+  const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [armId, setArmId] = useState<number | "">("");
   const [termId, setTermId] = useState<number | "">("");
   const [rows, setRows] = useState<ResultRow[]>([]);
@@ -26,11 +26,10 @@ export default function PrincipalPage() {
   useEffect(() => {
     Promise.all([
       apiJson<{ results?: ClassArm[] } | ClassArm[]>("/api/class-arms/"),
-      apiJson<{ results?: Term[] } | Term[]>("/api/terms/"),
+      loadActiveSessionTerms(),
     ])
-      .then(([a, t]) => {
+      .then(([a, termsList]) => {
         const armsList = Array.isArray(a) ? a : a.results ?? [];
-        const termsList = Array.isArray(t) ? t : t.results ?? [];
         setArms(armsList);
         setTerms(termsList);
         if (armsList[0]) setArmId(armsList[0].id);

@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth";
+import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
 
 type Child = { id: number; student_id: string; full_name: string };
-type Term = { id: number; name: string; is_active: boolean };
 type ResultPayload = {
   locked?: boolean;
   detail?: string;
@@ -31,7 +31,7 @@ type FeeRecord = {
 export default function ParentPage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [childId, setChildId] = useState<number | "">("");
-  const [terms, setTerms] = useState<Term[]>([]);
+  const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [fees, setFees] = useState<FeeRecord[]>([]);
@@ -45,8 +45,7 @@ export default function ParentPage() {
         if (list[0]) setChildId(list[0].id);
       })
       .catch((e) => setError(e.message));
-    apiJson<{ results?: Term[] } | Term[]>("/api/terms/").then((data) => {
-      const list = Array.isArray(data) ? data : data.results ?? [];
+    loadActiveSessionTerms().then((list) => {
       setTerms(list);
       const active = list.find((t) => t.is_active) ?? list[0];
       if (active) setTermId(active.id);

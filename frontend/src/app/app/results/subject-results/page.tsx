@@ -7,21 +7,13 @@ import { SUBJECT_SCORE_ASSESSMENTS } from "@/lib/assessments";
 import { getStoredUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
 import type { ClassLevelNav } from "@/lib/portalNav";
+import { termsForOneSession, type PortalTerm } from "@/lib/terms";
 
 type ClassArm = {
   id: number;
   name: string;
   label: string;
   class_level: number;
-};
-
-type Term = {
-  id: number;
-  name: string;
-  number: number;
-  is_active: boolean;
-  results_entry_open?: boolean;
-  next_term_resumption?: string | null;
 };
 
 type Subject = {
@@ -64,7 +56,7 @@ function PeopleIcon() {
 export default function SubjectResultsPage() {
   const [levels, setLevels] = useState<ClassLevelNav[]>([]);
   const [arms, setArms] = useState<ClassArm[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
+  const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [classSizes, setClassSizes] = useState<Record<number, number>>({});
@@ -85,7 +77,9 @@ export default function SubjectResultsPage() {
             apiJson<{ results?: ClassArm[] } | ClassArm[]>(
               "/api/class-arms/?page_size=500",
             ),
-            apiJson<{ results?: Term[] } | Term[]>("/api/terms/?page_size=100"),
+            apiJson<{ results?: PortalTerm[] } | PortalTerm[]>(
+              "/api/terms/?page_size=100",
+            ),
             apiJson<{ results?: Subject[] } | Subject[]>(
               "/api/subjects/?page_size=500&is_active=true",
             ),
@@ -98,7 +92,7 @@ export default function SubjectResultsPage() {
         if (cancelled) return;
 
         const armList = unwrapList(armData);
-        const termList = unwrapList(termData);
+        const termList = termsForOneSession(unwrapList(termData));
         const subjectList = unwrapList(subjectData).filter(
           (s) => s.subject_type !== "additional_assessment",
         );

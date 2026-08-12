@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { apiJson, errorFromUnknown } from "@/lib/api";
 import { loadClassLevels } from "@/lib/classLevels";
 import type { ClassLevelNav } from "@/lib/portalNav";
+import { termsForOneSession } from "@/lib/terms";
 
 type Tab = "structures" | "bills" | "debtors";
 
@@ -125,7 +126,7 @@ export default function AccountsPage() {
   const [adjustNotes, setAdjustNotes] = useState<Record<number, string>>({});
 
   const sessionTerms = useMemo(
-    () => (feeSession ? terms.filter((t) => t.session === feeSession) : terms),
+    () => termsForOneSession(terms, feeSession || null),
     [terms, feeSession],
   );
 
@@ -288,8 +289,11 @@ export default function AccountsPage() {
     setError("");
     try {
       await loadStructuresForSession(sessionId);
-      const first = terms.find((t) => t.session === sessionId);
-      if (first) setGenerateTerm(first.id);
+      const first = termsForOneSession(terms, sessionId)[0];
+      if (first) {
+        setGenerateTerm(first.id);
+        setFilterTerm(first.id);
+      }
     } catch (e) {
       setError(errorFromUnknown(e, "Failed to load fee schedule"));
     }
@@ -456,7 +460,7 @@ export default function AccountsPage() {
           }
         >
           <option value="">All terms</option>
-          {terms.map((t) => (
+          {sessionTerms.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>

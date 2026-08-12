@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
+import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
 
 type ResultPayload = {
   locked?: boolean;
@@ -31,19 +32,16 @@ type FeeRecord = {
   term_name?: string;
 };
 
-type Term = { id: number; name: string; is_active: boolean };
-
 export default function StudentPage() {
-  const [terms, setTerms] = useState<Term[]>([]);
+  const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [fees, setFees] = useState<FeeRecord[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    apiJson<{ results?: Term[] } | Term[]>("/api/terms/")
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data.results ?? [];
+    loadActiveSessionTerms()
+      .then((list) => {
         setTerms(list);
         const active = list.find((t) => t.is_active) ?? list[0];
         if (active) setTermId(active.id);

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
+import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
 
 type Student = {
   id: number;
@@ -12,8 +13,6 @@ type Student = {
   full_name: string;
   class_arm_label?: string;
 };
-
-type Term = { id: number; name: string; is_active: boolean };
 
 type ResultSubject = {
   subject_id: number;
@@ -38,10 +37,6 @@ type ResultPayload = {
   subjects?: ResultSubject[];
 };
 
-function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
-  return Array.isArray(data) ? data : data.results ?? [];
-}
-
 export default function StudentPerformancePage() {
   const params = useParams();
   const router = useRouter();
@@ -49,7 +44,7 @@ export default function StudentPerformancePage() {
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
-  const [terms, setTerms] = useState<Term[]>([]);
+  const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [error, setError] = useState("");
@@ -59,15 +54,14 @@ export default function StudentPerformancePage() {
     user?.account_type === "admin" || user?.account_type === "principal";
 
   const loadBase = useCallback(async () => {
-    const [studentData, termData] = await Promise.all([
+    const [studentData, termList] = await Promise.all([
       apiJson<Student>(`/api/students/${studentId}/`),
-      apiJson<{ results?: Term[] } | Term[]>("/api/terms/"),
+      loadActiveSessionTerms(),
     ]);
     setStudent(studentData);
-    const list = unwrapList(termData);
-    setTerms(list);
-    const active = list.find((t) => t.is_active);
-    setTermId((prev) => prev || active?.id || list[0]?.id || "");
+    setTerms(termList);
+    const active = termList.find((t) => t.is_active);
+    setTermId((prev) => prev || active?.id || termList[0]?.id || "");
   }, [studentId]);
 
   useEffect(() => {

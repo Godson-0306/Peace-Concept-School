@@ -10,6 +10,7 @@ import {
   SCORE_LIMITS,
 } from "@/lib/assessments";
 import { AuthUser, getStoredUser } from "@/lib/auth";
+import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
 
 type Student = {
   id: number;
@@ -21,7 +22,6 @@ type Student = {
   class_level_name?: string;
 };
 
-type Term = { id: number; name: string; is_active: boolean };
 type Subject = { id: number; name: string; subject_type: string; is_active?: boolean };
 type Score = {
   id: number;
@@ -51,7 +51,7 @@ export default function StudentReportEntryPage() {
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
-  const [terms, setTerms] = useState<Term[]>([]);
+  const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [termId, setTermId] = useState<number | "">("");
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [scores, setScores] = useState<Record<number, ScoreDraft>>({});
@@ -73,8 +73,7 @@ export default function StudentReportEntryPage() {
   }, [studentId]);
 
   const loadTerms = useCallback(async () => {
-    const data = await apiJson<{ results?: Term[] } | Term[]>("/api/terms/");
-    const list = unwrapList(data);
+    const list = await loadActiveSessionTerms();
     setTerms(list);
     const active = list.find((t) => t.is_active);
     setTermId((prev) => prev || active?.id || list[0]?.id || "");
