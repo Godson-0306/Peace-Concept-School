@@ -373,18 +373,34 @@ export default function AccountsPage() {
     [debtors],
   );
 
+  function applyRecordUpdate(updated: FeeRecord) {
+    setRecords((prev) =>
+      prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)),
+    );
+    setAdjustDue((prev) => ({
+      ...prev,
+      [updated.id]: updated.amount_due,
+    }));
+    if (updated.notes != null) {
+      setAdjustNotes((prev) => ({
+        ...prev,
+        [updated.id]: updated.notes || "",
+      }));
+    }
+  }
+
   async function saveAdjustment(record: FeeRecord) {
     setMessage("");
     setError("");
     const amount_due = adjustDue[record.id] ?? record.amount_due;
     const notes = adjustNotes[record.id] ?? record.notes ?? "";
     try {
-      await apiJson(`/api/fee-records/${record.id}/`, {
+      const updated = await apiJson<FeeRecord>(`/api/fee-records/${record.id}/`, {
         method: "PATCH",
         body: JSON.stringify({ amount_due, notes }),
       });
+      applyRecordUpdate(updated);
       setMessage(`Adjusted bill for ${record.student_code}.`);
-      await loadRecords();
     } catch (e) {
       setError(errorFromUnknown(e, "Adjustment failed"));
     }
@@ -397,9 +413,10 @@ export default function AccountsPage() {
     event.preventDefault();
     setMessage("");
     setError("");
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     try {
-      await apiJson(`/api/fee-records/${record.id}/`, {
+      const updated = await apiJson<FeeRecord>(`/api/fee-records/${record.id}/`, {
         method: "PATCH",
         body: JSON.stringify({
           payment: {
@@ -410,9 +427,9 @@ export default function AccountsPage() {
           },
         }),
       });
+      applyRecordUpdate(updated);
+      form.reset();
       setMessage(`Payment recorded for ${record.student_code}.`);
-      event.currentTarget.reset();
-      await loadRecords();
     } catch (e) {
       setError(errorFromUnknown(e, "Payment failed"));
     }
@@ -422,12 +439,15 @@ export default function AccountsPage() {
     setMessage("");
     setError("");
     try {
-      await apiJson(`/api/fee-records/${record.id}/unlock-results/`, {
-        method: "POST",
-        body: "{}",
-      });
+      const updated = await apiJson<FeeRecord>(
+        `/api/fee-records/${record.id}/unlock-results/`,
+        {
+          method: "POST",
+          body: "{}",
+        },
+      );
+      applyRecordUpdate(updated);
       setMessage(`Results unlocked for ${record.student_code}.`);
-      await loadRecords();
     } catch (e) {
       setError(errorFromUnknown(e, "Unlock failed"));
     }
@@ -603,7 +623,7 @@ export default function AccountsPage() {
               {!record.results_unlocked ? (
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="btn-outline"
                   onClick={() => unlockResults(record)}
                 >
                   Unlock results
