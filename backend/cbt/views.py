@@ -244,6 +244,127 @@ class CbtPaperViewSet(viewsets.ModelViewSet):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
+def cbt_options(request):
+    """
+    Catalog for Normal CBT create forms: class levels, arms, subjects,
+    sessions, and terms — scoped to the current user's permissions.
+    """
+    from academics.models import AcademicSession, ClassArm, ClassLevel, Subject, Term
+    from academics.services.terms import ensure_all_session_terms
+
+    ensure_all_session_terms()
+    user = request.user
+
+    levels = list(ClassLevel.objects.order_by("order", "name").values("id", "name", "order"))
+    arms_qs = ClassArm.objects.select_related("class_level").order_by(
+        "class_level__order", "name"
+    )
+    subjects_qs = Subject.objects.filter(
+        is_active=True, subject_type=Subject.SubjectType.SUBJECT
+    ).select_related("class_level").order_by("class_level__order", "order", "name")
+
+    assignments = []
+    if user.account_type == AccountType.TEACHER and hasattr(user, "staff_profile"):
+        assignments = list(
+            user.staff_profile.assignments.filter(is_active=True).values(
+                "id", "class_arm_id", "subject_id", "session_id"
+            )
+        )
+        allowed_arm_ids = {a["class_arm_id"] for a in assignments}
+        allowed_subject_ids = {a["subject_id"] for a in assignments}
+        arms_qs = arms_qs.filter(id__in=allowed_arm_ids)
+        subjects_qs = subjects_qs.filter(id__in=allowed_subject_ids)
+        level_ids = set(arms_qs.values_list("class_level_id", flat=True))
+        levels = [lv for lv in levels if lv["id"] in level_ids]
+    elif not (
+        can_edit_all_results(user)
+        or user.account_type == AccountType.ADMIN
+        or user.account_type == AccountType.PRINCIPAL
+    ):
+        return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+
+    sessions = list(
+        AcademicSession.objects.order_by("-start_year").values(
+            "id", "name", "is_active", "start_year"
+        )
+    )
+    terms = list(
+        Term.objects.select_related("session")
+        .order_by("session__start_year", "number")
+        .values("id", "name", "number", "session_id", "is_active", "results_entry_open")
+    )
+    # Normalize term session key for the frontend.
+    terms_out = [
+        {
+            "id": t["id"],
+            "name": t["name"],
+            "number": t["number"],
+            "session": t["session_id"],
+            "is_active": t["is_active"],
+            "results_entry_open": t["results_entry_open"],
+        }
+        for t in terms
+    ]
+
+    arms = [
+        {
+            "id": a.id,
+            "name": a.name,
+            "label": a.label or f"{a.class_level.name}{a.name}",
+            "class_level": a.class_level_id,
+            "class_level_name": a.class_level.name,
+        }
+        for a in arms_qs
+    ]
+    subjects = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "class_level": s.class_level_id,
+            "class_level_name": s.class_level.name,
+            "order": s.order,
+        }
+        for s in subjects_qs
+    ]
+
+    active_session = next((s for s in sessions if s["is_active"]), sessions[0] if sessions else None)
+    active_term = next(
+        (
+            t
+            for t in terms_out
+            if t["is_active"]
+            and (not active_session or t["session"] == active_session["id"])
+        ),
+        next(
+            (t for t in terms_out if active_session and t["session"] == active_session["id"]),
+            terms_out[0] if terms_out else None,
+        ),
+    )
+
+    return Response(
+        {
+            "levels": levels,
+            "arms": arms,
+            "subjects": subjects,
+            "sessions": sessions,
+            "terms": terms_out,
+            "assignments": assignments,
+            "defaults": {
+                "session_id": active_session["id"] if active_session else None,
+                "term_id": active_term["id"] if active_term else None,
+                "level_id": levels[0]["id"] if levels else None,
+            },
+            "score_components": [
+                {"value": "ca1", "label": "CA1", "max": 20},
+                {"value": "ca2", "label": "CA2", "max": 20},
+                {"value": "exam", "label": "Exam", "max": 60},
+            ],
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def jamb_progress(request):
     """
     Progress-only JAMB attempts for the logged-in student (or admin filter).

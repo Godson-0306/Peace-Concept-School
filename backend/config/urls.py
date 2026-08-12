@@ -42,7 +42,7 @@ from inventory.views import (
     StockMovementViewSet,
 )
 from website.views import ApplicationViewSet, EnquiryViewSet, GalleryImageViewSet, NewsPostViewSet
-from cbt.views import CbtPaperViewSet, jamb_progress
+from cbt.views import CbtPaperViewSet, cbt_options, jamb_progress
 
 router = DefaultRouter()
 router.register(r"staff", StaffViewSet, basename="staff")
@@ -89,6 +89,7 @@ urlpatterns = [
     path("api/results/me/", my_results),
     path("api/dashboard/", dashboard_summary),
     path("api/cbt/jamb/progress/", jamb_progress),
+    path("api/cbt/options/", cbt_options),
     path("api/identity/report-card/<int:student_id>/", report_card_pdf),
     path("api/identity/id-card/<int:student_id>/", student_id_card),
     path("api/", include(router.urls)),

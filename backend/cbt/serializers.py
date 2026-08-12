@@ -70,6 +70,20 @@ class CbtPaperSerializer(serializers.ModelSerializer):
     def get_question_count(self, obj):
         return obj.questions.count()
 
+    def validate(self, attrs):
+        subject = attrs.get("subject") or getattr(self.instance, "subject", None)
+        class_arm = attrs.get("class_arm") or getattr(self.instance, "class_arm", None)
+        if subject and class_arm and subject.class_level_id != class_arm.class_level_id:
+            raise serializers.ValidationError(
+                {
+                    "subject": (
+                        f"Subject '{subject.name}' belongs to {subject.class_level.name}, "
+                        f"but the selected arm is {class_arm.label}."
+                    )
+                }
+            )
+        return attrs
+
     def create(self, validated_data):
         questions_data = validated_data.pop("questions", [])
         paper = CbtPaper.objects.create(**validated_data)

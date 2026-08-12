@@ -4,13 +4,50 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { apiJson } from "@/lib/api";
 import { getStoredUser, type AuthUser } from "@/lib/auth";
-import { loadClassLevels } from "@/lib/classLevels";
-import type { ClassLevelNav } from "@/lib/portalNav";
 
-type ClassArm = { id: number; name: string; label: string; class_level: number };
-type Subject = { id: number; name: string; class_level: number };
-type Term = { id: number; name: string; number: number; session: number; is_active: boolean };
-type Session = { id: number; name: string; is_active: boolean };
+type ClassLevel = { id: number; name: string; order: number };
+type ClassArm = {
+  id: number;
+  name: string;
+  label: string;
+  class_level: number;
+  class_level_name?: string;
+};
+type Subject = {
+  id: number;
+  name: string;
+  class_level: number;
+  class_level_name?: string;
+  order?: number;
+};
+type Term = {
+  id: number;
+  name: string;
+  number: number;
+  session: number;
+  is_active: boolean;
+};
+type Session = { id: number; name: string; is_active: boolean; start_year?: number };
+type Assignment = {
+  id: number;
+  class_arm_id: number;
+  subject_id: number;
+  session_id: number;
+};
+type CbtOptions = {
+  levels: ClassLevel[];
+  arms: ClassArm[];
+  subjects: Subject[];
+  sessions: Session[];
+  terms: Term[];
+  assignments: Assignment[];
+  defaults: {
+    session_id: number | null;
+    term_id: number | null;
+    level_id: number | null;
+  };
+  score_components: Array<{ value: "ca1" | "ca2" | "exam"; label: string; max: number }>;
+};
 type Paper = {
   id: number;
   title: string;
@@ -31,17 +68,14 @@ function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
 export default function NormalCbtListPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const isStudent = user?.account_type === "student";
+  const isTeacher = user?.account_type === "teacher";
   const canCreate =
     user?.account_type === "admin" ||
     user?.account_type === "principal" ||
     user?.account_type === "teacher";
 
   const [papers, setPapers] = useState<Paper[]>([]);
-  const [levels, setLevels] = useState<ClassLevelNav[]>([]);
-  const [arms, setArms] = useState<ClassArm[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [options, setOptions] = useState<CbtOptions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -76,33 +110,14 @@ export default function NormalCbtListPage() {
       try {
         await loadPapers();
         if (!cancelled && user.account_type !== "student") {
-          const [levelList, armData, subjectData, termData, sessionData] =
-            await Promise.all([
-              loadClassLevels(),
-              apiJson<{ results?: ClassArm[] } | ClassArm[]>(
-                "/api/class-arms/?page_size=500",
-              ),
-              apiJson<{ results?: Subject[] } | Subject[]>(
-                "/api/subjects/?page_size=500",
-              ),
-              apiJson<{ results?: Term[] } | Term[]>(
-                "/api/terms/?page_size=100",
-              ),
-              apiJson<{ results?: Session[] } | Session[]>(
-                "/api/sessions/?page_size=100",
-              ),
-            ]);
+          const catalog = await apiJson<CbtOptions>("/api/cbt/options/");
           if (cancelled) return;
-          setLevels(levelList);
-          setArms(unwrapList(armData));
-          setSubjects(unwrapList(subjectData));
-          setTerms(unwrapList(termData));
-          const sessionList = unwrapList(sessionData);
-          setSessions(sessionList);
-          const active =
-            sessionList.find((s) => s.is_active) || sessionList[0];
-          if (active) setSessionId(active.id);
-          if (levelList[0]) setLevelId(levelList[0].id);
+          setOptions(catalog);
+          const defaultLevel =
+            catalog.defaults.level_id ?? catalog.levels[0]?.id ?? "";
+          setLevelId(defaultLevel || "");
+          setSessionId(catalog.defaults.session_id ?? catalog.sessions[0]?.id ?? "");
+          setTermId(catalog.defaults.term_id ?? "");
         }
         if (!cancelled) setError("");
       } catch (e) {
@@ -118,42 +133,79 @@ export default function NormalCbtListPage() {
     };
   }, [user]);
 
-  const armsForClass = useMemo(
-    () => arms.filter((a) => a.class_level === levelId),
-    [arms, levelId],
-  );
-  const subjectsForClass = useMemo(
-    () => subjects.filter((s) => s.class_level === levelId),
-    [subjects, levelId],
-  );
-  const termsForSession = useMemo(
-    () => terms.filter((t) => t.session === sessionId).sort((a, b) => a.number - b.number),
-    [terms, sessionId],
-  );
+  const levels = options?.levels ?? [];
+  const arms = options?.arms ?? [];
+  const subjects = options?.subjects ?? [];
+  const sessions = options?.sessions ?? [];
+  const terms = options?.terms ?? [];
+  const assignments = options?.assignments ?? [];
+
+  const armsForClass = useMemo(() => {
+    if (!levelId) return [];
+    return arms
+      .filter((a) => a.class_level === levelId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [arms, levelId]);
+
+  const subjectsForArm = useMemo(() => {
+    if (!levelId) return [];
+    let list = subjects.filter((s) => s.class_level === levelId);
+    if (isTeacher && armId) {
+      const allowed = new Set(
+        assignments
+          .filter((a) => a.class_arm_id === armId)
+          .map((a) => a.subject_id),
+      );
+      list = list.filter((s) => allowed.has(s.id));
+    }
+    return list.sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name),
+    );
+  }, [subjects, levelId, armId, isTeacher, assignments]);
+
+  const termsForSession = useMemo(() => {
+    if (!sessionId) return [];
+    return terms
+      .filter((t) => t.session === sessionId)
+      .sort((a, b) => a.number - b.number);
+  }, [terms, sessionId]);
 
   useEffect(() => {
+    if (!levelId) {
+      setArmId("");
+      return;
+    }
+    const preferred =
+      armsForClass.find((a) => a.name.toUpperCase() === "A") || armsForClass[0];
     if (!armsForClass.find((a) => a.id === armId)) {
-      setArmId(armsForClass[0]?.id ?? "");
+      setArmId(preferred?.id ?? "");
     }
-  }, [armsForClass, armId]);
+  }, [levelId, armsForClass, armId]);
 
   useEffect(() => {
-    if (!subjectsForClass.find((s) => s.id === subjectId)) {
-      setSubjectId(subjectsForClass[0]?.id ?? "");
+    if (!subjectsForArm.find((s) => s.id === subjectId)) {
+      setSubjectId(subjectsForArm[0]?.id ?? "");
     }
-  }, [subjectsForClass, subjectId]);
+  }, [subjectsForArm, subjectId]);
 
   useEffect(() => {
+    if (!sessionId) {
+      setTermId("");
+      return;
+    }
     if (!termsForSession.find((t) => t.id === termId)) {
       const preferred =
         termsForSession.find((t) => t.is_active) || termsForSession[0];
       setTermId(preferred?.id ?? "");
     }
-  }, [termsForSession, termId]);
+  }, [sessionId, termsForSession, termId]);
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
-    if (!title || !armId || !subjectId || !termId) return;
+    if (!title || !armId || !subjectId || !termId) {
+      setError("Select class, arm, subject, and term.");
+      return;
+    }
     setPending(true);
     setError("");
     setMessage("");
@@ -186,6 +238,12 @@ export default function NormalCbtListPage() {
   const fieldClass =
     "mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--brand-blue)]";
 
+  const noCatalog =
+    canCreate &&
+    !isStudent &&
+    options &&
+    (levels.length === 0 || arms.length === 0 || subjects.length === 0);
+
   return (
     <div className="mx-auto max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -202,10 +260,10 @@ export default function NormalCbtListPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">
             {isStudent
               ? "Open tests published for your class."
-              : "Create MCQ papers tied to CA1, CA2, or Exam."}
+              : "Create MCQ papers using existing classes, arms, subjects, and terms."}
           </p>
         </div>
-        {canCreate ? (
+        {canCreate && !noCatalog ? (
           <button
             type="button"
             className="btn-primary"
@@ -225,7 +283,15 @@ export default function NormalCbtListPage() {
         </p>
       ) : null}
 
-      {showCreate && canCreate ? (
+      {noCatalog ? (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          {isTeacher
+            ? "No teaching assignments found. Ask an admin to assign your class, arm, and subjects before creating CBT papers."
+            : "No classes, arms, or subjects are set up yet. Configure them under Settings / Subjects first."}
+        </p>
+      ) : null}
+
+      {showCreate && canCreate && !noCatalog ? (
         <form
           onSubmit={onCreate}
           className="mt-6 grid gap-3 rounded-xl border border-[var(--line)] bg-white p-4 sm:grid-cols-2"
@@ -247,12 +313,17 @@ export default function NormalCbtListPage() {
               onChange={(e) =>
                 setLevelId(e.target.value ? Number(e.target.value) : "")
               }
+              required
             >
-              {levels.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
+              {levels.length === 0 ? (
+                <option value="">No classes</option>
+              ) : (
+                levels.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))
+              )}
             </select>
           </label>
           <label className="text-sm font-medium">
@@ -263,12 +334,17 @@ export default function NormalCbtListPage() {
               onChange={(e) =>
                 setArmId(e.target.value ? Number(e.target.value) : "")
               }
+              required
             >
-              {armsForClass.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.label || a.name}
-                </option>
-              ))}
+              {armsForClass.length === 0 ? (
+                <option value="">No arms for class</option>
+              ) : (
+                armsForClass.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label || a.name}
+                  </option>
+                ))
+              )}
             </select>
           </label>
           <label className="text-sm font-medium">
@@ -279,12 +355,17 @@ export default function NormalCbtListPage() {
               onChange={(e) =>
                 setSubjectId(e.target.value ? Number(e.target.value) : "")
               }
+              required
             >
-              {subjectsForClass.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
+              {subjectsForArm.length === 0 ? (
+                <option value="">No subjects for this class/arm</option>
+              ) : (
+                subjectsForArm.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))
+              )}
             </select>
           </label>
           <label className="text-sm font-medium">
@@ -296,9 +377,11 @@ export default function NormalCbtListPage() {
                 setComponent(e.target.value as "ca1" | "ca2" | "exam")
               }
             >
-              <option value="ca1">CA1 (max 20)</option>
-              <option value="ca2">CA2 (max 20)</option>
-              <option value="exam">Exam (max 60)</option>
+              {(options?.score_components ?? []).map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label} (max {c.max})
+                </option>
+              ))}
             </select>
           </label>
           <label className="text-sm font-medium">
@@ -309,10 +392,12 @@ export default function NormalCbtListPage() {
               onChange={(e) =>
                 setSessionId(e.target.value ? Number(e.target.value) : "")
               }
+              required
             >
               {sessions.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
+                  {s.is_active ? " (active)" : ""}
                 </option>
               ))}
             </select>
@@ -325,12 +410,18 @@ export default function NormalCbtListPage() {
               onChange={(e) =>
                 setTermId(e.target.value ? Number(e.target.value) : "")
               }
+              required
             >
-              {termsForSession.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
+              {termsForSession.length === 0 ? (
+                <option value="">No terms</option>
+              ) : (
+                termsForSession.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                    {t.is_active ? " (active)" : ""}
+                  </option>
+                ))
+              )}
             </select>
           </label>
           <label className="text-sm font-medium">
@@ -343,8 +434,17 @@ export default function NormalCbtListPage() {
               onChange={(e) => setDuration(e.target.value)}
             />
           </label>
+          <div className="sm:col-span-2 text-xs text-[var(--muted)]">
+            Subject list is filtered to the selected class
+            {isTeacher ? " and your teaching assignments" : ""}. Scores write to
+            the chosen CA1 / CA2 / Exam field for that class subject and term.
+          </div>
           <div className="sm:col-span-2">
-            <button type="submit" className="btn-primary" disabled={pending}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={pending || !armId || !subjectId || !termId}
+            >
               {pending ? "Creating…" : "Create draft"}
             </button>
           </div>
