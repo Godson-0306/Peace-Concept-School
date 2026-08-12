@@ -456,73 +456,113 @@ def build_report_card_pdf(student, term) -> bytes:
     story.append(Spacer(1, 3.5 * mm))
 
     # --- Academic table ---
+    include_prior = bool(report.get("include_prior_terms"))
     term_n = term.number
     term_tag = {1: "1st", 2: "2nd", 3: "3rd"}.get(term_n, f"{term_n}th")
-    headers = [
-        Paragraph("SUBJECTS", styles["th"]),
-        Paragraph("1st Term", styles["th"]),
-        Paragraph("2nd Term", styles["th"]),
-        Paragraph(f"{term_tag} CA1<br/>(20)", styles["th"]),
-        Paragraph(f"{term_tag} CA2<br/>(20)", styles["th"]),
-        Paragraph(f"{term_tag} Exam<br/>(60)", styles["th"]),
-        Paragraph(f"{term_tag} Total<br/>(100)", styles["th"]),
-        Paragraph("Session<br/>Total", styles["th"]),
-        Paragraph("Average", styles["th"]),
-        Paragraph("Grade", styles["th"]),
-        Paragraph("Remark", styles["th"]),
-        Paragraph("Pos.", styles["th"]),
-    ]
+
+    if include_prior:
+        headers = [
+            Paragraph("SUBJECTS", styles["th"]),
+            Paragraph("1st Term", styles["th"]),
+            Paragraph("2nd Term", styles["th"]),
+            Paragraph(f"{term_tag} CA1<br/>(20)", styles["th"]),
+            Paragraph(f"{term_tag} CA2<br/>(20)", styles["th"]),
+            Paragraph(f"{term_tag} Exam<br/>(60)", styles["th"]),
+            Paragraph(f"{term_tag} Total<br/>(100)", styles["th"]),
+            Paragraph("Session<br/>Total", styles["th"]),
+            Paragraph("Average", styles["th"]),
+            Paragraph("Grade", styles["th"]),
+            Paragraph("Remark", styles["th"]),
+            Paragraph("Pos.", styles["th"]),
+        ]
+        col_w = [
+            page_width * 0.22,
+            page_width * 0.065,
+            page_width * 0.065,
+            page_width * 0.065,
+            page_width * 0.065,
+            page_width * 0.065,
+            page_width * 0.075,
+            page_width * 0.075,
+            page_width * 0.065,
+            page_width * 0.10,
+            page_width * 0.06,
+            page_width * 0.06,
+        ]
+        total_col = 6
+        grade_cols = (9, 10)
+        empty_pad = 11
+    else:
+        headers = [
+            Paragraph("SUBJECTS", styles["th"]),
+            Paragraph("CA1<br/>(20)", styles["th"]),
+            Paragraph("CA2<br/>(20)", styles["th"]),
+            Paragraph("Exam<br/>(60)", styles["th"]),
+            Paragraph("Total<br/>(100)", styles["th"]),
+            Paragraph("Grade", styles["th"]),
+            Paragraph("Remark", styles["th"]),
+            Paragraph("Pos.", styles["th"]),
+        ]
+        col_w = [
+            page_width * 0.28,
+            page_width * 0.10,
+            page_width * 0.10,
+            page_width * 0.10,
+            page_width * 0.12,
+            page_width * 0.14,
+            page_width * 0.08,
+            page_width * 0.08,
+        ]
+        total_col = 4
+        grade_cols = (5, 6)
+        empty_pad = 7
 
     data = [headers]
     for row in report["subjects"]:
-        avg_txt = (
-            f"{float(row['average_total']):.1f}"
-            if row["average_total"] is not None
-            else ""
-        )
-        data.append(
-            [
-                Paragraph(str(row["subject_name"])[:34], styles["td_left"]),
-                Paragraph(_fmt_score(row["term1_total"]), styles["td"]),
-                Paragraph(_fmt_score(row["term2_total"]), styles["td"]),
-                Paragraph(_fmt_score(row["ca1"]), styles["td"]),
-                Paragraph(_fmt_score(row["ca2"]), styles["td"]),
-                Paragraph(_fmt_score(row["exam"]), styles["td"]),
-                Paragraph(_fmt_score(row["term_total"]), styles["td"]),
-                Paragraph(_fmt_score(row["cumulative"]), styles["td"]),
-                Paragraph(avg_txt, styles["td"]),
-                Paragraph(
-                    row["grade_word"] if row["grade_word"] != "—" else "",
-                    styles["td"],
-                ),
-                Paragraph(
-                    row["grade_letter"] if row["grade_letter"] != "—" else "",
-                    styles["td"],
-                ),
-                Paragraph(row["position"], styles["td"]),
-            ]
-        )
+        grade_word = row["grade_word"] if row["grade_word"] != "—" else ""
+        grade_letter = row["grade_letter"] if row["grade_letter"] != "—" else ""
+        if include_prior:
+            avg_txt = (
+                f"{float(row['average_total']):.1f}"
+                if row["average_total"] is not None
+                else ""
+            )
+            data.append(
+                [
+                    Paragraph(str(row["subject_name"])[:34], styles["td_left"]),
+                    Paragraph(_fmt_score(row["term1_total"]), styles["td"]),
+                    Paragraph(_fmt_score(row["term2_total"]), styles["td"]),
+                    Paragraph(_fmt_score(row["ca1"]), styles["td"]),
+                    Paragraph(_fmt_score(row["ca2"]), styles["td"]),
+                    Paragraph(_fmt_score(row["exam"]), styles["td"]),
+                    Paragraph(_fmt_score(row["term_total"]), styles["td"]),
+                    Paragraph(_fmt_score(row["cumulative"]), styles["td"]),
+                    Paragraph(avg_txt, styles["td"]),
+                    Paragraph(grade_word, styles["td"]),
+                    Paragraph(grade_letter, styles["td"]),
+                    Paragraph(row["position"], styles["td"]),
+                ]
+            )
+        else:
+            data.append(
+                [
+                    Paragraph(str(row["subject_name"])[:40], styles["td_left"]),
+                    Paragraph(_fmt_score(row["ca1"]), styles["td"]),
+                    Paragraph(_fmt_score(row["ca2"]), styles["td"]),
+                    Paragraph(_fmt_score(row["exam"]), styles["td"]),
+                    Paragraph(_fmt_score(row["term_total"]), styles["td"]),
+                    Paragraph(grade_word, styles["td"]),
+                    Paragraph(grade_letter, styles["td"]),
+                    Paragraph(row["position"], styles["td"]),
+                ]
+            )
 
     if len(data) == 1:
         data.append(
             [Paragraph("No subject scores recorded for this term yet.", styles["td_left"])]
-            + [Paragraph("", styles["td"])] * 11
+            + [Paragraph("", styles["td"])] * empty_pad
         )
 
-    col_w = [
-        page_width * 0.22,
-        page_width * 0.065,
-        page_width * 0.065,
-        page_width * 0.065,
-        page_width * 0.065,
-        page_width * 0.065,
-        page_width * 0.075,
-        page_width * 0.075,
-        page_width * 0.065,
-        page_width * 0.10,
-        page_width * 0.06,
-        page_width * 0.06,
-    ]
     scores_table = Table(data, colWidths=col_w, repeatRows=1)
     score_style_cmds = [
         ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE_DEEP),
@@ -535,14 +575,18 @@ def build_report_card_pdf(student, term) -> bytes:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ("LEFTPADDING", (0, 0), (-1, -1), 2),
         ("RIGHTPADDING", (0, 0), (-1, -1), 2),
-        ("BACKGROUND", (6, 1), (6, -1), BRAND_PINK_SOFT),
-        ("BACKGROUND", (9, 1), (10, -1), BRAND_BLUE_SOFT),
+        ("BACKGROUND", (total_col, 1), (total_col, -1), BRAND_PINK_SOFT),
+        ("BACKGROUND", (grade_cols[0], 1), (grade_cols[1], -1), BRAND_BLUE_SOFT),
     ]
     for i in range(1, len(data)):
         if i % 2 == 0:
-            score_style_cmds.append(("BACKGROUND", (0, i), (5, i), ROW_ALT))
-            score_style_cmds.append(("BACKGROUND", (7, i), (8, i), ROW_ALT))
-            score_style_cmds.append(("BACKGROUND", (11, i), (11, i), ROW_ALT))
+            if include_prior:
+                score_style_cmds.append(("BACKGROUND", (0, i), (5, i), ROW_ALT))
+                score_style_cmds.append(("BACKGROUND", (7, i), (8, i), ROW_ALT))
+                score_style_cmds.append(("BACKGROUND", (11, i), (11, i), ROW_ALT))
+            else:
+                score_style_cmds.append(("BACKGROUND", (0, i), (3, i), ROW_ALT))
+                score_style_cmds.append(("BACKGROUND", (7, i), (7, i), ROW_ALT))
     scores_table.setStyle(TableStyle(score_style_cmds))
     story.append(scores_table)
     story.append(Spacer(1, 3.5 * mm))

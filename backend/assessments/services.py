@@ -226,11 +226,16 @@ def compute_progressive_report(student, term, published_only: bool = False):
         Term.objects.filter(session_id=term.session_id).order_by("number")
     )
     term_by_number = {t.number: t for t in session_terms}
+    include_prior_terms = term.number == 3
 
-    score_qs = AssessmentScore.objects.filter(
-        student_id=student.id,
-        term__session_id=term.session_id,
-    ).select_related("subject", "term")
+    score_qs = AssessmentScore.objects.filter(student_id=student.id).select_related(
+        "subject", "term"
+    )
+    if include_prior_terms:
+        score_qs = score_qs.filter(term__session_id=term.session_id)
+    else:
+        # First/Second term cards only need this term's scores.
+        score_qs = score_qs.filter(term_id=term.id)
     if published_only:
         score_qs = score_qs.filter(status=AssessmentScore.Status.PUBLISHED)
 
@@ -293,29 +298,32 @@ def compute_progressive_report(student, term, published_only: bool = False):
     scored_count = 0
     for entry in subject_rows_raw:
         terms = entry["terms"]
-        t1 = terms.get(1, {}).get("total")
-        t2 = terms.get(2, {}).get("total")
         current = terms.get(current_n, {})
         ca1 = current.get("ca1")
         ca2 = current.get("ca2")
         exam = current.get("exam")
         t_cur = current.get("total")
 
-        prior_vals = [v for v in (t1, t2) if v is not None]
-        # Cumulative across terms that have scores (plus current if present)
-        cum_parts = []
-        for n in (1, 2, 3):
-            if n in terms:
-                cum_parts.append(terms[n]["total"])
-        cumulative = sum(cum_parts, Decimal("0")) if cum_parts else None
-        terms_with_scores = len(cum_parts)
-        average_total = (
-            (cumulative / terms_with_scores) if terms_with_scores else None
-        )
+        t1 = None
+        t2 = None
+        cumulative = None
+        average_total = None
+        if include_prior_terms:
+            t1 = terms.get(1, {}).get("total")
+            t2 = terms.get(2, {}).get("total")
+            # Cumulative across terms that have scores
+            cum_parts = []
+            for n in (1, 2, 3):
+                if n in terms:
+                    cum_parts.append(terms[n]["total"])
+            cumulative = sum(cum_parts, Decimal("0")) if cum_parts else None
+            terms_with_scores = len(cum_parts)
+            average_total = (
+                (cumulative / terms_with_scores) if terms_with_scores else None
+            )
 
-        # Grade/remark from current term total (fallback to session average)
-        grade_source = t_cur if t_cur is not None else average_total
-        letter, word = grade_for_score(grade_source if grade_source is not None else 0)
+        # Grade/remark from current term total only
+        letter, word = grade_for_score(t_cur if t_cur is not None else 0)
 
         if t_cur is not None and entry.get("subject_type") == Subject.SubjectType.SUBJECT:
             current_total += t_cur
@@ -354,6 +362,7 @@ def compute_progressive_report(student, term, published_only: bool = False):
     return {
         "student_id": student.id,
         "term_id": term.id,
+        "include_prior_terms": include_prior_terms,
         "session_terms": session_terms,
         "term_by_number": term_by_number,
         "total": current_total,
