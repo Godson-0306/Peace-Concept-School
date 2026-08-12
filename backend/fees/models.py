@@ -57,6 +57,7 @@ class FeeRecord(models.Model):
 
     class Meta:
         unique_together = ("student", "term")
+        ordering = ["student__full_name", "term_id"]
 
     def refresh_status(self):
         if self.amount_paid <= 0:
