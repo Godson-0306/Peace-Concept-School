@@ -548,7 +548,7 @@ export default function AccountsPage() {
             </span>
             <button
               type="button"
-              className="btn-secondary text-sm"
+              className="btn-outline text-sm"
               onClick={() => toggleExpand(record)}
             >
               {open ? "Hide" : "Manage"}
@@ -689,7 +689,7 @@ export default function AccountsPage() {
           Bursary
         </h1>
         <p className="mt-2 max-w-2xl text-[var(--ink-soft)]">
-          Edit section fees for new and returning students, generate term bills,
+          Set section fees for new and returning students, generate term bills,
           then update each class&apos;s student financial records.
         </p>
       </header>
@@ -705,7 +705,7 @@ export default function AccountsPage() {
           <button
             key={id}
             type="button"
-            className={tab === id ? "btn-primary" : "btn-secondary"}
+            className={tab === id ? "btn-primary" : "btn-outline"}
             onClick={() => setTab(id)}
           >
             {label}
