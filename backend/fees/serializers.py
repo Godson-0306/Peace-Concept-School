@@ -128,4 +128,8 @@ class FeeRecordSerializer(serializers.ModelSerializer):
             instance.amount_paid = (instance.amount_paid or 0) + entry.amount
         instance.updated_by = self.context["request"].user
         instance.save()
+        # Drop stale prefetch so nested payments include the new entry.
+        cache = getattr(instance, "_prefetched_objects_cache", None)
+        if cache is not None:
+            cache.pop("payments", None)
         return instance
