@@ -42,6 +42,7 @@ from inventory.views import (
     StockMovementViewSet,
 )
 from website.views import ApplicationViewSet, EnquiryViewSet, GalleryImageViewSet, NewsPostViewSet
+from cbt.views import CbtPaperViewSet, jamb_progress
 
 router = DefaultRouter()
 router.register(r"staff", StaffViewSet, basename="staff")
@@ -59,6 +60,7 @@ router.register(r"scores", AssessmentScoreViewSet, basename="scores")
 router.register(r"form-class", FormClassRecordViewSet, basename="form-class")
 router.register(r"student-form", StudentFormRecordViewSet, basename="student-form")
 router.register(r"attendance", AttendanceRecordViewSet, basename="attendance")
+router.register(r"cbt/papers", CbtPaperViewSet, basename="cbt-papers")
 router.register(r"fee-structures", FeeStructureViewSet, basename="fee-structures")
 router.register(r"fee-records", FeeRecordViewSet, basename="fee-records")
 router.register(r"fee-payments", FeePaymentEntryViewSet, basename="fee-payments")
@@ -86,6 +88,7 @@ urlpatterns = [
     path("api/auth/csrf/", csrf_view),
     path("api/results/me/", my_results),
     path("api/dashboard/", dashboard_summary),
+    path("api/cbt/jamb/progress/", jamb_progress),
     path("api/identity/report-card/<int:student_id>/", report_card_pdf),
     path("api/identity/id-card/<int:student_id>/", student_id_card),
     path("api/", include(router.urls)),

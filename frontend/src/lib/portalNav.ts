@@ -57,7 +57,12 @@ export const STAFF_PORTAL_NAV: PortalNavItem[] = [
   { href: "/app/reports", label: "Reports" },
 ];
 
-const STUDENT_HREFS = new Set(["/app", "/app/results", "/app/attendance"]);
+const STUDENT_HREFS = new Set([
+  "/app",
+  "/app/results",
+  "/app/attendance",
+  "/app/assessments",
+]);
 
 const SETTINGS_ROLES = new Set<AccountType>(["admin", "principal"]);
 const ADMIN_ONLY_HREFS = new Set(["/app/gallery", "/app/news"]);
