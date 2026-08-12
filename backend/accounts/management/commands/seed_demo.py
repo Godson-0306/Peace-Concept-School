@@ -150,13 +150,27 @@ class Command(BaseCommand):
         )
 
         # Students are imported from real User List rosters
-        # (manage.py import_student_roster). Keep fee structure for portal demos.
-        FeeStructure.objects.get_or_create(
-            name="Tuition",
-            term=terms[0],
-            class_level=jss1,
-            defaults={"session": session, "amount": 150000},
-        )
+        # (manage.py import_student_roster). Seed section fee grid for demos.
+        from fees.sections import FEE_SECTIONS
+
+        demo_amounts = {
+            "day_care": {"new": 80000, "returning": 70000},
+            "nursery": {"new": 90000, "returning": 80000},
+            "primary": {"new": 110000, "returning": 100000},
+            "jss": {"new": 150000, "returning": 140000},
+            "ss": {"new": 160000, "returning": 150000},
+        }
+        for section_key, _label in FEE_SECTIONS:
+            for student_type in ("new", "returning"):
+                FeeStructure.objects.update_or_create(
+                    session=session,
+                    section=section_key,
+                    student_type=student_type,
+                    defaults={
+                        "amount": demo_amounts[section_key][student_type],
+                        "is_active": True,
+                    },
+                )
 
         NewsPost.objects.get_or_create(
             slug="session-2025-2026-resumption",

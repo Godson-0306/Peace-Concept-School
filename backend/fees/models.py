@@ -1,26 +1,33 @@
 from django.conf import settings
 from django.db import models
 
+from .sections import FEE_SECTIONS
+
 
 class FeeStructure(models.Model):
-    name = models.CharField(max_length=120)
+    """Per-session tuition rate for a school section and student type."""
+
+    class StudentType(models.TextChoices):
+        NEW = "new", "New Students"
+        RETURNING = "returning", "Returning Students"
+
     session = models.ForeignKey(
         "academics.AcademicSession", on_delete=models.CASCADE, related_name="fee_structures"
     )
-    term = models.ForeignKey("academics.Term", on_delete=models.CASCADE, related_name="fee_structures")
-    class_level = models.ForeignKey(
-        "academics.ClassLevel", on_delete=models.CASCADE, related_name="fee_structures"
-    )
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    section = models.CharField(max_length=16, choices=FEE_SECTIONS)
+    student_type = models.CharField(max_length=16, choices=StudentType.choices)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("name", "term", "class_level")
+        unique_together = ("session", "section", "student_type")
+        ordering = ["session", "section", "student_type"]
 
     def __str__(self):
-        return f"{self.name} — {self.class_level} — {self.term}"
+        return f"{self.session} — {self.get_section_display()} — {self.get_student_type_display()}"
 
 
 class FeeRecord(models.Model):

@@ -1,39 +1,121 @@
+from decimal import Decimal
+
 from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from academics.models import Term
 from accounts.models import AccountType, StudentProfile
 from accounts.permissions import IsAccountantOrAdmin, can_manage_fees
 
 from .models import FeePaymentEntry, FeeRecord, FeeStructure
+from .sections import FEE_SECTIONS, section_for_class_level_name, student_fee_type
 from .serializers import FeePaymentEntrySerializer, FeeRecordSerializer, FeeStructureSerializer
 
 
+def ensure_session_fee_structures(session) -> list[FeeStructure]:
+    """Create the 5×2 fee grid for a session if missing (amounts default to 0)."""
+    created = []
+    for section_key, _label in FEE_SECTIONS:
+        for student_type, _ in FeeStructure.StudentType.choices:
+            obj, was_created = FeeStructure.objects.get_or_create(
+                session=session,
+                section=section_key,
+                student_type=student_type,
+                defaults={"amount": Decimal("0"), "is_active": True},
+            )
+            if was_created:
+                created.append(obj)
+    return list(
+        FeeStructure.objects.filter(session=session).order_by("section", "student_type")
+    )
+
+
 class FeeStructureViewSet(viewsets.ModelViewSet):
-    queryset = FeeStructure.objects.select_related("session", "term", "class_level").all()
+    queryset = FeeStructure.objects.select_related("session").all()
     serializer_class = FeeStructureSerializer
     permission_classes = [IsAccountantOrAdmin]
-    filterset_fields = ["session", "term", "class_level", "is_active"]
+    filterset_fields = ["session", "section", "student_type", "is_active"]
 
-    @action(detail=True, methods=["post"], url_path="generate-bills")
-    def generate_bills(self, request, pk=None):
-        structure = self.get_object()
-        students = StudentProfile.objects.filter(
-            is_active=True,
-            class_arm__class_level_id=structure.class_level_id,
-        ).select_related("class_arm")
+    @action(detail=False, methods=["post"], url_path="ensure")
+    def ensure(self, request):
+        """Ensure the full section × student-type grid exists for a session."""
+        session_id = request.data.get("session")
+        if not session_id:
+            return Response({"detail": "session is required."}, status=status.HTTP_400_BAD_REQUEST)
+        from academics.models import AcademicSession
+
+        session = AcademicSession.objects.filter(id=session_id).first()
+        if not session:
+            return Response({"detail": "Session not found."}, status=status.HTTP_404_NOT_FOUND)
+        rows = ensure_session_fee_structures(session)
+        return Response(FeeStructureSerializer(rows, many=True).data)
+
+    @action(detail=False, methods=["post"], url_path="generate-bills")
+    def generate_bills(self, request):
+        """
+        Generate FeeRecords for a term using the session's section fee grid.
+        Optional: section filter (day_care|nursery|primary|jss|ss).
+        """
+        term_id = request.data.get("term")
+        section_filter = request.data.get("section") or None
+        if not term_id:
+            return Response({"detail": "term is required."}, status=status.HTTP_400_BAD_REQUEST)
+        term = Term.objects.select_related("session").filter(id=term_id).first()
+        if not term:
+            return Response({"detail": "Term not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        ensure_session_fee_structures(term.session)
+        structures = {
+            (s.section, s.student_type): s
+            for s in FeeStructure.objects.filter(session=term.session, is_active=True)
+        }
+
+        students = StudentProfile.objects.filter(is_active=True).select_related(
+            "class_arm", "class_arm__class_level"
+        )
+        if section_filter:
+            students = [
+                st
+                for st in students
+                if section_for_class_level_name(
+                    st.class_arm.class_level.name if st.class_arm_id and st.class_arm.class_level_id else None
+                )
+                == section_filter
+            ]
+        else:
+            students = list(students)
 
         created = 0
         updated = 0
         skipped = 0
+        missing = 0
 
         with transaction.atomic():
             for student in students:
+                level_name = (
+                    student.class_arm.class_level.name
+                    if student.class_arm_id and student.class_arm.class_level_id
+                    else None
+                )
+                section = section_for_class_level_name(level_name)
+                if not section:
+                    missing += 1
+                    continue
+                stype = student_fee_type(
+                    admission_year=student.admission_year,
+                    session_start_year=term.session.start_year,
+                )
+                structure = structures.get((section, stype))
+                if not structure:
+                    missing += 1
+                    continue
+
                 record, was_created = FeeRecord.objects.get_or_create(
                     student=student,
-                    term=structure.term,
+                    term=term,
                     defaults={
                         "fee_structure": structure,
                         "amount_due": structure.amount,
@@ -45,7 +127,6 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
                     created += 1
                     continue
 
-                # Refresh dues only for untouched unpaid bills (no payments, no notes).
                 if (record.amount_paid or 0) == 0 and not (record.notes or "").strip():
                     changed = False
                     if record.amount_due != structure.amount:
@@ -68,7 +149,8 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
                 "created": created,
                 "updated": updated,
                 "skipped": skipped,
-                "total_students": students.count(),
+                "missing_structure": missing,
+                "total_students": len(students),
             }
         )
 
@@ -115,7 +197,6 @@ class FeeRecordViewSet(viewsets.ModelViewSet):
             return Response(FeeRecordSerializer(record, context={"request": request}).data)
         record.results_unlocked = True
         record.updated_by = request.user
-        # refresh_status never clears results_unlocked once set (sticky unlock).
         record.save()
         return Response(FeeRecordSerializer(record, context={"request": request}).data)
 

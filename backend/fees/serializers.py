@@ -4,30 +4,36 @@ from django.db import transaction
 from rest_framework import serializers
 
 from .models import FeePaymentEntry, FeeRecord, FeeStructure
+from .sections import FEE_SECTION_LABELS
 
 
 class FeeStructureSerializer(serializers.ModelSerializer):
     session_name = serializers.CharField(source="session.name", read_only=True)
-    term_name = serializers.CharField(source="term.name", read_only=True)
-    class_level_name = serializers.CharField(source="class_level.name", read_only=True)
+    section_label = serializers.SerializerMethodField()
+    student_type_label = serializers.CharField(
+        source="get_student_type_display", read_only=True
+    )
 
     class Meta:
         model = FeeStructure
         fields = [
             "id",
-            "name",
             "session",
             "session_name",
-            "term",
-            "term_name",
-            "class_level",
-            "class_level_name",
+            "section",
+            "section_label",
+            "student_type",
+            "student_type_label",
             "amount",
             "description",
             "is_active",
             "created_at",
+            "updated_at",
         ]
-        read_only_fields = ["created_at"]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def get_section_label(self, obj) -> str:
+        return FEE_SECTION_LABELS.get(obj.section, obj.section)
 
 
 class FeePaymentEntrySerializer(serializers.ModelSerializer):
@@ -43,6 +49,8 @@ class FeeRecordSerializer(serializers.ModelSerializer):
     term_name = serializers.CharField(source="term.name", read_only=True)
     class_level_name = serializers.SerializerMethodField()
     class_arm_name = serializers.SerializerMethodField()
+    fee_section = serializers.SerializerMethodField()
+    fee_student_type = serializers.SerializerMethodField()
     balance = serializers.SerializerMethodField()
     payments = FeePaymentEntrySerializer(many=True, read_only=True)
     payment = FeePaymentEntrySerializer(write_only=True, required=False)
@@ -59,6 +67,8 @@ class FeeRecordSerializer(serializers.ModelSerializer):
             "class_level_name",
             "class_arm_name",
             "fee_structure",
+            "fee_section",
+            "fee_student_type",
             "amount_due",
             "amount_paid",
             "balance",
@@ -93,6 +103,16 @@ class FeeRecordSerializer(serializers.ModelSerializer):
     def get_class_arm_name(self, obj) -> str:
         arm = getattr(obj.student, "class_arm", None)
         return arm.name if arm else ""
+
+    def get_fee_section(self, obj) -> str:
+        if obj.fee_structure_id:
+            return obj.fee_structure.get_section_display()
+        return ""
+
+    def get_fee_student_type(self, obj) -> str:
+        if obj.fee_structure_id:
+            return obj.fee_structure.get_student_type_display()
+        return ""
 
     @transaction.atomic
     def update(self, instance, validated_data):
