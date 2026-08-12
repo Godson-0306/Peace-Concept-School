@@ -334,7 +334,7 @@ export default function AttendancePage() {
           </p>
         </div>
         <Link href="/app/attendance/gate" className="btn-primary">
-          Open gate scanner
+          Automatic clock-in
         </Link>
       </div>
 
