@@ -15,6 +15,18 @@ type ResultPayload = {
   position?: number | null;
   subjects?: { subject_name: string; total: number }[];
 };
+type FeeRecord = {
+  id: number;
+  student: number;
+  student_name: string;
+  student_code: string;
+  amount_due: string;
+  amount_paid: string;
+  balance?: string;
+  status: string;
+  results_unlocked: boolean;
+  term_name?: string;
+};
 
 export default function ParentPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -22,6 +34,7 @@ export default function ParentPage() {
   const [terms, setTerms] = useState<Term[]>([]);
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
+  const [fees, setFees] = useState<FeeRecord[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -38,6 +51,9 @@ export default function ParentPage() {
       const active = list.find((t) => t.is_active) ?? list[0];
       if (active) setTermId(active.id);
     });
+    apiJson<{ results?: FeeRecord[] } | FeeRecord[]>("/api/fee-records/")
+      .then((data) => setFees(Array.isArray(data) ? data : data.results ?? []))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -48,6 +64,7 @@ export default function ParentPage() {
   }, [childId, termId]);
 
   const user = getStoredUser();
+  const childFees = fees.filter((f) => !childId || f.student === childId);
 
   return (
     <div className="space-y-6">
@@ -109,7 +126,10 @@ export default function ParentPage() {
           </p>
           <ul className="mt-4 space-y-1 text-sm">
             {(result.subjects ?? []).map((s) => (
-              <li key={s.subject_name} className="flex justify-between border-b border-[var(--line)] py-1">
+              <li
+                key={s.subject_name}
+                className="flex justify-between border-b border-[var(--line)] py-1"
+              >
                 <span>{s.subject_name}</span>
                 <span>{s.total}</span>
               </li>
@@ -119,6 +139,40 @@ export default function ParentPage() {
       ) : (
         <p className="text-sm text-[var(--muted)]">No linked children yet.</p>
       )}
+
+      <section className="border border-[var(--line)] bg-white/80 p-5">
+        <h2 className="font-display text-2xl text-[var(--brand-green)]">
+          Fee status
+        </h2>
+        <ul className="mt-3 space-y-2 text-sm">
+          {childFees.map((f) => {
+            const balance =
+              f.balance != null
+                ? Number(f.balance)
+                : Number(f.amount_due) - Number(f.amount_paid);
+            return (
+              <li
+                key={f.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] py-2"
+              >
+                <span>
+                  {f.term_name ? `${f.term_name} · ` : ""}
+                  Due ₦{Number(f.amount_due).toLocaleString()} · Paid ₦
+                  {Number(f.amount_paid).toLocaleString()} · Balance ₦
+                  {balance.toLocaleString()}
+                </span>
+                <span className="uppercase text-[var(--muted)]">
+                  {f.status}
+                  {f.results_unlocked ? " · unlocked" : " · locked"}
+                </span>
+              </li>
+            );
+          })}
+          {childFees.length === 0 ? (
+            <li className="text-[var(--muted)]">No fee records for this child.</li>
+          ) : null}
+        </ul>
+      </section>
 
       <style jsx global>{`
         .field-input {

@@ -30,6 +30,7 @@ def _get_student_for_user(request, student_id):
 @permission_classes([IsAuthenticated])
 def report_card_pdf(request, student_id):
     from academics.models import Term
+    from assessments.views import results_visible_for_student
 
     student, err = _get_student_for_user(request, student_id)
     if err:
@@ -38,6 +39,19 @@ def report_card_pdf(request, student_id):
     term = Term.objects.filter(id=term_id).first() if term_id else Term.objects.filter(is_active=True).first()
     if not term:
         return Response({"detail": "Term required."}, status=400)
+
+    user = request.user
+    # Students and parents must clear fees (Paid or manual unlock) before PDF access.
+    if user.account_type in (AccountType.STUDENT, AccountType.PARENT):
+        if not results_visible_for_student(student, term):
+            return Response(
+                {
+                    "locked": True,
+                    "detail": "Results for this term are locked until fees are marked Paid.",
+                },
+                status=403,
+            )
+
     pdf = build_report_card_pdf(student, term)
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="report-{student.student_id}.pdf"'
