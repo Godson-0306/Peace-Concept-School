@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { apiJson } from "@/lib/api";
+import { apiJson, errorFromUnknown } from "@/lib/api";
 import { getStoredUser, type AuthUser } from "@/lib/auth";
 
 type Choice = { id?: number; label: string; text: string; is_correct: boolean };
@@ -139,12 +139,35 @@ export default function NormalCbtPaperPage() {
     );
   }
 
-  async function saveQuestions(e?: FormEvent) {
+  async function saveQuestions(e?: FormEvent): Promise<boolean> {
     e?.preventDefault();
-    if (!paper) return;
+    if (!paper) return false;
     setPending(true);
     setError("");
     setMessage("");
+
+    const localErrors: string[] = [];
+    questions.forEach((q, i) => {
+      if (!q.prompt.trim()) {
+        localErrors.push(`Question ${i + 1} → Question text: This field may not be blank.`);
+      }
+      q.choices.forEach((c) => {
+        if (!c.text.trim()) {
+          localErrors.push(
+            `Question ${i + 1} → Option ${c.label} → Option text: This field may not be blank.`,
+          );
+        }
+      });
+      if (!q.choices.some((c) => c.is_correct)) {
+        localErrors.push(`Question ${i + 1}: Mark one option as the correct answer.`);
+      }
+    });
+    if (localErrors.length) {
+      setError(localErrors.join("\n"));
+      setPending(false);
+      return false;
+    }
+
     try {
       await apiJson(`/api/cbt/papers/${paper.id}/`, {
         method: "PATCH",
@@ -165,10 +188,24 @@ export default function NormalCbtPaperPage() {
       });
       const refreshed = await apiJson<Paper>(`/api/cbt/papers/${paper.id}/`);
       setPaper(refreshed);
-      setQuestions(refreshed.questions || []);
+      setQuestions(
+        refreshed.questions?.length
+          ? refreshed.questions.map((q, i) => ({
+              ...q,
+              order: q.order || i + 1,
+              choices:
+                q.choices?.length === 4
+                  ? q.choices
+                  : emptyQuestion(i + 1).choices,
+            }))
+          : [emptyQuestion(1)],
+      );
       setMessage("Paper saved.");
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save paper");
+      setMessage("");
+      setError(errorFromUnknown(err, "Could not save paper"));
+      return false;
     } finally {
       setPending(false);
     }
@@ -178,8 +215,11 @@ export default function NormalCbtPaperPage() {
     if (!paper) return;
     setPending(true);
     setError("");
+    setMessage("");
     try {
-      await saveQuestions();
+      const saved = await saveQuestions();
+      if (!saved) return;
+      setPending(true);
       const data = await apiJson<Paper>(`/api/cbt/papers/${paper.id}/publish/`, {
         method: "POST",
         body: "{}",
@@ -187,7 +227,8 @@ export default function NormalCbtPaperPage() {
       setPaper(data);
       setMessage("Paper published. Students in this class can take it.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not publish");
+      setMessage("");
+      setError(errorFromUnknown(err, "Could not publish"));
     } finally {
       setPending(false);
     }
@@ -196,6 +237,8 @@ export default function NormalCbtPaperPage() {
   async function closePaper() {
     if (!paper) return;
     setPending(true);
+    setError("");
+    setMessage("");
     try {
       const data = await apiJson<Paper>(`/api/cbt/papers/${paper.id}/close/`, {
         method: "POST",
@@ -204,7 +247,8 @@ export default function NormalCbtPaperPage() {
       setPaper(data);
       setMessage("Paper closed.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not close");
+      setMessage("");
+      setError(errorFromUnknown(err, "Could not close"));
     } finally {
       setPending(false);
     }
@@ -239,10 +283,17 @@ export default function NormalCbtPaperPage() {
       </p>
 
       {error ? (
-        <p className="mt-4 rounded bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>
+        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+          <p className="font-semibold">Could not save</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {error.split("\n").filter(Boolean).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       {message ? (
-        <p className="mt-4 rounded bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           {message}
         </p>
       ) : null}
