@@ -33,7 +33,7 @@ from assessments.views import (
     my_results,
 )
 from fees.views import FeePaymentEntryViewSet, FeeRecordViewSet, FeeStructureViewSet
-from identity.views import report_card_pdf, student_id_card
+from identity.views import id_cards_batch, report_card_pdf, report_cards_batch, student_id_card
 from inventory.views import (
     InventoryAssignmentViewSet,
     InventoryViewSet,
@@ -92,6 +92,8 @@ urlpatterns = [
     path("api/cbt/options/", cbt_options),
     path("api/identity/report-card/<int:student_id>/", report_card_pdf),
     path("api/identity/id-card/<int:student_id>/", student_id_card),
+    path("api/identity/report-cards/batch/", report_cards_batch),
+    path("api/identity/id-cards/batch/", id_cards_batch),
     path("api/", include(router.urls)),
 ]
 

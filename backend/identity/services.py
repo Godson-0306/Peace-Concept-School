@@ -1,9 +1,11 @@
 import io
+import zipfile
 
 import barcode
 import qrcode
 from barcode.writer import ImageWriter
 from django.core.files.base import ContentFile
+from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -13,6 +15,27 @@ from reportlab.pdfgen import canvas
 from assessments.models import StudentFormRecord
 from assessments.services import compute_student_result, rank_class_arm
 from identity.models import StudentIdCard
+
+
+def merge_pdfs(pdf_bytes_list: list[bytes]) -> bytes:
+    """Combine multiple PDF byte streams into one multi-page PDF."""
+    writer = PdfWriter()
+    for pdf_bytes in pdf_bytes_list:
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        for page in reader.pages:
+            writer.add_page(page)
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def zip_pdfs(entries: list[tuple[str, bytes]]) -> bytes:
+    """Build a ZIP archive from (filename, pdf_bytes) pairs."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for filename, pdf_bytes in entries:
+            zf.writestr(filename, pdf_bytes)
+    return buffer.getvalue()
 
 
 def generate_barcode_for_student(student) -> StudentIdCard:

@@ -4,8 +4,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.models import AccountType, StudentProfile
-from accounts.permissions import can_manage_accounts, can_view_all_results
-from identity.services import build_id_card_pdf, build_report_card_pdf, generate_barcode_for_student
+from accounts.permissions import IsAdminOrPrincipal, can_manage_accounts, can_view_all_results
+from identity.services import (
+    build_id_card_pdf,
+    build_report_card_pdf,
+    generate_barcode_for_student,
+    merge_pdfs,
+    zip_pdfs,
+)
 
 
 def _get_student_for_user(request, student_id):
@@ -24,6 +30,31 @@ def _get_student_for_user(request, student_id):
             return None, Response({"detail": "Not allowed."}, status=403)
         return student, None
     return None, Response({"detail": "Not allowed."}, status=403)
+
+
+def _batch_format(request):
+    fmt = (request.query_params.get("format") or "pdf").lower().strip()
+    if fmt not in ("pdf", "zip"):
+        return None, Response(
+            {"detail": "format must be pdf or zip."},
+            status=400,
+        )
+    return fmt, None
+
+
+def _students_for_arm(class_arm_id):
+    return (
+        StudentProfile.objects.filter(class_arm_id=class_arm_id, is_active=True)
+        .select_related("class_arm", "class_arm__class_level")
+        .order_by("full_name", "student_id")
+    )
+
+
+def _file_response(payload: bytes, *, content_type: str, filename: str, inline: bool = False):
+    disposition = "inline" if inline else "attachment"
+    response = HttpResponse(payload, content_type=content_type)
+    response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+    return response
 
 
 @api_view(["GET"])
@@ -79,4 +110,97 @@ def student_id_card(request, student_id):
             "barcode_image": card.barcode_image.url if card.barcode_image else None,
             "qr_image": card.qr_image.url if card.qr_image else None,
         }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdminOrPrincipal])
+def report_cards_batch(request):
+    from academics.models import ClassArm, Term
+
+    fmt, err = _batch_format(request)
+    if err:
+        return err
+
+    class_arm_id = request.query_params.get("class_arm")
+    term_id = request.query_params.get("term")
+    if not class_arm_id or not term_id:
+        return Response({"detail": "class_arm and term are required."}, status=400)
+
+    arm = ClassArm.objects.filter(id=class_arm_id).select_related("class_level").first()
+    if not arm:
+        return Response({"detail": "Class arm not found."}, status=404)
+    term = Term.objects.filter(id=term_id).select_related("session").first()
+    if not term:
+        return Response({"detail": "Term not found."}, status=404)
+
+    students = list(_students_for_arm(arm.id))
+    if not students:
+        return Response({"detail": "No active students in this class arm."}, status=400)
+
+    entries: list[tuple[str, bytes]] = []
+    for student in students:
+        pdf = build_report_card_pdf(student, term)
+        entries.append((f"report-{student.student_id}.pdf", pdf))
+
+    arm_slug = str(arm).replace(" ", "-")
+    term_slug = str(term).replace(" ", "-")
+    if fmt == "zip":
+        payload = zip_pdfs(entries)
+        return _file_response(
+            payload,
+            content_type="application/zip",
+            filename=f"report-cards-{arm_slug}-{term_slug}.zip",
+        )
+
+    payload = merge_pdfs([pdf for _, pdf in entries])
+    return _file_response(
+        payload,
+        content_type="application/pdf",
+        filename=f"report-cards-{arm_slug}-{term_slug}.pdf",
+        inline=True,
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsAdminOrPrincipal])
+def id_cards_batch(request):
+    from academics.models import ClassArm
+
+    fmt, err = _batch_format(request)
+    if err:
+        return err
+
+    class_arm_id = request.query_params.get("class_arm")
+    if not class_arm_id:
+        return Response({"detail": "class_arm is required."}, status=400)
+
+    arm = ClassArm.objects.filter(id=class_arm_id).select_related("class_level").first()
+    if not arm:
+        return Response({"detail": "Class arm not found."}, status=404)
+
+    students = list(_students_for_arm(arm.id))
+    if not students:
+        return Response({"detail": "No active students in this class arm."}, status=400)
+
+    entries: list[tuple[str, bytes]] = []
+    for student in students:
+        pdf = build_id_card_pdf(student)
+        entries.append((f"id-{student.student_id}.pdf", pdf))
+
+    arm_slug = str(arm).replace(" ", "-")
+    if fmt == "zip":
+        payload = zip_pdfs(entries)
+        return _file_response(
+            payload,
+            content_type="application/zip",
+            filename=f"id-cards-{arm_slug}.zip",
+        )
+
+    payload = merge_pdfs([pdf for _, pdf in entries])
+    return _file_response(
+        payload,
+        content_type="application/pdf",
+        filename=f"id-cards-{arm_slug}.pdf",
+        inline=True,
     )
