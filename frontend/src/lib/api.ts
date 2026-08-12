@@ -47,11 +47,17 @@ export async function apiJson<T = unknown>(
   const response = await apiFetch(path, options);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+    const detail = (data as { detail?: unknown }).detail;
     const message =
-      (data as { detail?: string }).detail ||
-      JSON.stringify(data) ||
-      response.statusText;
-    throw new Error(typeof message === "string" ? message : "Request failed");
+      (typeof detail === "string" && detail) ||
+      (detail != null && String(detail)) ||
+      (typeof data === "string" && data) ||
+      (data && Object.keys(data as object).length
+        ? JSON.stringify(data)
+        : "") ||
+      response.statusText ||
+      `Request failed (${response.status})`;
+    throw new Error(message);
   }
   return data as T;
 }

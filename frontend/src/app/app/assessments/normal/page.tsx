@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { apiJson } from "@/lib/api";
 import { getStoredUser, type AuthUser } from "@/lib/auth";
+import { loadClassLevels } from "@/lib/classLevels";
 
 type ClassLevel = { id: number; name: string; order: number };
 type ClassArm = {
@@ -19,6 +20,8 @@ type Subject = {
   class_level: number;
   class_level_name?: string;
   order?: number;
+  subject_type?: string;
+  is_active?: boolean;
 };
 type Term = {
   id: number;
@@ -30,23 +33,27 @@ type Term = {
 type Session = { id: number; name: string; is_active: boolean; start_year?: number };
 type Assignment = {
   id: number;
-  class_arm_id: number;
-  subject_id: number;
-  session_id: number;
+  class_arm_id?: number;
+  class_arm?: number;
+  subject_id?: number;
+  subject?: number;
+  session_id?: number;
 };
-type CbtOptions = {
+type ScoreComponent = { value: "ca1" | "ca2" | "exam"; label: string; max: number };
+type Catalog = {
   levels: ClassLevel[];
   arms: ClassArm[];
   subjects: Subject[];
   sessions: Session[];
   terms: Term[];
   assignments: Assignment[];
+  score_components: ScoreComponent[];
   defaults: {
     session_id: number | null;
     term_id: number | null;
     level_id: number | null;
   };
-  score_components: Array<{ value: "ca1" | "ca2" | "exam"; label: string; max: number }>;
+  source: "options" | "fallback";
 };
 type Paper = {
   id: number;
@@ -61,8 +68,129 @@ type Paper = {
   question_count: number;
 };
 
+const SCORE_COMPONENTS: ScoreComponent[] = [
+  { value: "ca1", label: "CA1", max: 20 },
+  { value: "ca2", label: "CA2", max: 20 },
+  { value: "exam", label: "Exam", max: 60 },
+];
+
 function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
   return Array.isArray(data) ? data : data.results ?? [];
+}
+
+function errMessage(e: unknown, fallback: string) {
+  if (e instanceof Error && e.message && e.message !== "0" && e.message !== "{}") {
+    return e.message;
+  }
+  return fallback;
+}
+
+async function loadCatalogFallback(isTeacher: boolean): Promise<Catalog> {
+  const [levelList, armData, subjectData, termData, sessionData, assignmentData] =
+    await Promise.all([
+      loadClassLevels(true),
+      apiJson<{ results?: ClassArm[] } | ClassArm[]>(
+        "/api/class-arms/?page_size=500",
+      ),
+      apiJson<{ results?: Subject[] } | Subject[]>(
+        "/api/subjects/?page_size=500&is_active=true",
+      ),
+      apiJson<{ results?: Term[] } | Term[]>("/api/terms/?page_size=100"),
+      apiJson<{ results?: Session[] } | Session[]>(
+        "/api/sessions/?page_size=100",
+      ),
+      isTeacher
+        ? apiJson<{ results?: Assignment[] } | Assignment[]>(
+            "/api/teacher-assignments/?is_active=true&page_size=500",
+          )
+        : Promise.resolve([] as Assignment[]),
+    ]);
+
+  let arms = unwrapList(armData);
+  let subjects = unwrapList(subjectData).filter(
+    (s) => s.subject_type !== "additional_assessment" && s.is_active !== false,
+  );
+  let levels = levelList;
+  const assignments = unwrapList(assignmentData).map((a) => ({
+    ...a,
+    class_arm_id: a.class_arm_id ?? a.class_arm,
+    subject_id: a.subject_id ?? a.subject,
+  }));
+
+  if (isTeacher) {
+    const allowedArms = new Set(
+      assignments.map((a) => a.class_arm_id).filter(Boolean) as number[],
+    );
+    const allowedSubjects = new Set(
+      assignments.map((a) => a.subject_id).filter(Boolean) as number[],
+    );
+    arms = arms.filter((a) => allowedArms.has(a.id));
+    subjects = subjects.filter((s) => allowedSubjects.has(s.id));
+    const levelIds = new Set(arms.map((a) => a.class_level));
+    levels = levels.filter((l) => levelIds.has(l.id));
+  }
+
+  const sessions = unwrapList(sessionData);
+  const terms = unwrapList(termData);
+  const activeSession = sessions.find((s) => s.is_active) || sessions[0] || null;
+  const activeTerm =
+    terms.find((t) => t.is_active && (!activeSession || t.session === activeSession.id)) ||
+    terms.find((t) => activeSession && t.session === activeSession.id) ||
+    terms[0] ||
+    null;
+
+  return {
+    levels,
+    arms,
+    subjects,
+    sessions,
+    terms,
+    assignments,
+    score_components: SCORE_COMPONENTS,
+    defaults: {
+      session_id: activeSession?.id ?? null,
+      term_id: activeTerm?.id ?? null,
+      level_id: levels[0]?.id ?? null,
+    },
+    source: "fallback",
+  };
+}
+
+async function loadCatalog(isTeacher: boolean): Promise<Catalog> {
+  try {
+    const data = await apiJson<{
+      levels: ClassLevel[];
+      arms: ClassArm[];
+      subjects: Subject[];
+      sessions: Session[];
+      terms: Term[];
+      assignments: Assignment[];
+      score_components?: ScoreComponent[];
+      defaults: Catalog["defaults"];
+    }>("/api/cbt/options/");
+    return {
+      levels: data.levels || [],
+      arms: data.arms || [],
+      subjects: data.subjects || [],
+      sessions: data.sessions || [],
+      terms: data.terms || [],
+      assignments: (data.assignments || []).map((a) => ({
+        ...a,
+        class_arm_id: a.class_arm_id ?? a.class_arm,
+        subject_id: a.subject_id ?? a.subject,
+      })),
+      score_components:
+        data.score_components?.length ? data.score_components : SCORE_COMPONENTS,
+      defaults: data.defaults || {
+        session_id: null,
+        term_id: null,
+        level_id: null,
+      },
+      source: "options",
+    };
+  } catch {
+    return loadCatalogFallback(isTeacher);
+  }
 }
 
 export default function NormalCbtListPage() {
@@ -75,7 +203,7 @@ export default function NormalCbtListPage() {
     user?.account_type === "teacher";
 
   const [papers, setPapers] = useState<Paper[]>([]);
-  const [options, setOptions] = useState<CbtOptions | null>(null);
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -107,22 +235,28 @@ export default function NormalCbtListPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError("");
       try {
         await loadPapers();
-        if (!cancelled && user.account_type !== "student") {
-          const catalog = await apiJson<CbtOptions>("/api/cbt/options/");
+        if (cancelled) return;
+        if (user.account_type !== "student") {
+          const next = await loadCatalog(user.account_type === "teacher");
           if (cancelled) return;
-          setOptions(catalog);
-          const defaultLevel =
-            catalog.defaults.level_id ?? catalog.levels[0]?.id ?? "";
-          setLevelId(defaultLevel || "");
-          setSessionId(catalog.defaults.session_id ?? catalog.sessions[0]?.id ?? "");
-          setTermId(catalog.defaults.term_id ?? "");
+          setCatalog(next);
+          setLevelId(next.defaults.level_id ?? next.levels[0]?.id ?? "");
+          setSessionId(next.defaults.session_id ?? next.sessions[0]?.id ?? "");
+          setTermId(next.defaults.term_id ?? "");
+          if (next.levels.length === 0) {
+            setError(
+              user.account_type === "teacher"
+                ? "No teaching assignments found. Ask an admin to assign your class, arm, and subjects."
+                : "No classes found. Set up class levels under Settings first.",
+            );
+          }
         }
-        if (!cancelled) setError("");
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load CBT papers");
+          setError(errMessage(e, "Failed to load CBT data"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -133,12 +267,13 @@ export default function NormalCbtListPage() {
     };
   }, [user]);
 
-  const levels = options?.levels ?? [];
-  const arms = options?.arms ?? [];
-  const subjects = options?.subjects ?? [];
-  const sessions = options?.sessions ?? [];
-  const terms = options?.terms ?? [];
-  const assignments = options?.assignments ?? [];
+  const levels = catalog?.levels ?? [];
+  const arms = catalog?.arms ?? [];
+  const subjects = catalog?.subjects ?? [];
+  const sessions = catalog?.sessions ?? [];
+  const terms = catalog?.terms ?? [];
+  const assignments = catalog?.assignments ?? [];
+  const scoreComponents = catalog?.score_components ?? SCORE_COMPONENTS;
 
   const armsForClass = useMemo(() => {
     if (!levelId) return [];
@@ -151,12 +286,15 @@ export default function NormalCbtListPage() {
     if (!levelId) return [];
     let list = subjects.filter((s) => s.class_level === levelId);
     if (isTeacher && armId) {
-      const allowed = new Set(
+      const subjectIds = new Set(
         assignments
-          .filter((a) => a.class_arm_id === armId)
-          .map((a) => a.subject_id),
+          .filter((a) => (a.class_arm_id ?? a.class_arm) === armId)
+          .map((a) => a.subject_id ?? a.subject)
+          .filter(Boolean) as number[],
       );
-      list = list.filter((s) => allowed.has(s.id));
+      if (subjectIds.size > 0) {
+        list = list.filter((s) => subjectIds.has(s.id));
+      }
     }
     return list.sort(
       (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name),
@@ -229,7 +367,7 @@ export default function NormalCbtListPage() {
       await loadPapers();
       window.location.href = `/app/assessments/normal/${paper.id}`;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create paper");
+      setError(errMessage(err, "Could not create paper"));
     } finally {
       setPending(false);
     }
@@ -238,11 +376,9 @@ export default function NormalCbtListPage() {
   const fieldClass =
     "mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--brand-blue)]";
 
+  const catalogReady = Boolean(catalog && catalog.levels.length > 0);
   const noCatalog =
-    canCreate &&
-    !isStudent &&
-    options &&
-    (levels.length === 0 || arms.length === 0 || subjects.length === 0);
+    canCreate && !isStudent && catalog && catalog.levels.length === 0;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -263,7 +399,7 @@ export default function NormalCbtListPage() {
               : "Create MCQ papers using existing classes, arms, subjects, and terms."}
           </p>
         </div>
-        {canCreate && !noCatalog ? (
+        {canCreate && catalogReady ? (
           <button
             type="button"
             className="btn-primary"
@@ -287,11 +423,11 @@ export default function NormalCbtListPage() {
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           {isTeacher
             ? "No teaching assignments found. Ask an admin to assign your class, arm, and subjects before creating CBT papers."
-            : "No classes, arms, or subjects are set up yet. Configure them under Settings / Subjects first."}
+            : "No classes, arms, or subjects are set up yet. Configure them under Settings first."}
         </p>
       ) : null}
 
-      {showCreate && canCreate && !noCatalog ? (
+      {showCreate && canCreate && catalogReady ? (
         <form
           onSubmit={onCreate}
           className="mt-6 grid gap-3 rounded-xl border border-[var(--line)] bg-white p-4 sm:grid-cols-2"
@@ -315,15 +451,11 @@ export default function NormalCbtListPage() {
               }
               required
             >
-              {levels.length === 0 ? (
-                <option value="">No classes</option>
-              ) : (
-                levels.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))
-              )}
+              {levels.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
             </select>
           </label>
           <label className="text-sm font-medium">
@@ -341,7 +473,7 @@ export default function NormalCbtListPage() {
               ) : (
                 armsForClass.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.label || a.name}
+                    {a.label || `${a.class_level_name || ""}${a.name}` || a.name}
                   </option>
                 ))
               )}
@@ -377,7 +509,7 @@ export default function NormalCbtListPage() {
                 setComponent(e.target.value as "ca1" | "ca2" | "exam")
               }
             >
-              {(options?.score_components ?? []).map((c) => (
+              {scoreComponents.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label} (max {c.max})
                 </option>
@@ -435,9 +567,10 @@ export default function NormalCbtListPage() {
             />
           </label>
           <div className="sm:col-span-2 text-xs text-[var(--muted)]">
-            Subject list is filtered to the selected class
-            {isTeacher ? " and your teaching assignments" : ""}. Scores write to
-            the chosen CA1 / CA2 / Exam field for that class subject and term.
+            Showing {levels.length} classes, {arms.length} arms,{" "}
+            {subjects.length} subjects from the school catalog
+            {catalog?.source === "fallback" ? " (fallback load)" : ""}.
+            {isTeacher ? " Filtered to your teaching assignments." : ""}
           </div>
           <div className="sm:col-span-2">
             <button

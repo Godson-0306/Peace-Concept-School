@@ -54,7 +54,7 @@ class CbtPaperViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = CbtPaper.objects.select_related(
         "subject", "class_arm", "term", "created_by"
-    ).annotate(_question_count=Count("questions"))
+    ).annotate(_question_count=Count("questions")).order_by("-created_at")
 
     def get_serializer_class(self):
         if self.action == "list":
