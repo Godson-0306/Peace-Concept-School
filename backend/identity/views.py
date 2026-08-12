@@ -16,7 +16,11 @@ from identity.services import (
 
 def _get_student_for_user(request, student_id):
     user = request.user
-    student = StudentProfile.objects.filter(id=student_id).first()
+    student = (
+        StudentProfile.objects.select_related("class_arm", "class_arm__class_level")
+        .filter(id=student_id)
+        .first()
+    )
     if not student:
         return None, Response({"detail": "Not found."}, status=404)
     if can_manage_accounts(user) or can_view_all_results(user):
