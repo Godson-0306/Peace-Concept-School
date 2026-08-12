@@ -311,7 +311,7 @@ export default function ReportsPage() {
             onClick={() =>
               runBatch(
                 "rc-pdf",
-                `/api/identity/report-cards/batch/?class_arm=${armId}&term=${termId}&format=pdf`,
+                `/api/identity/report-cards/batch/?class_arm=${armId}&term=${termId}&pack=pdf`,
                 "report-cards.pdf",
               )
             }
@@ -325,7 +325,7 @@ export default function ReportsPage() {
             onClick={() =>
               runBatch(
                 "rc-zip",
-                `/api/identity/report-cards/batch/?class_arm=${armId}&term=${termId}&format=zip`,
+                `/api/identity/report-cards/batch/?class_arm=${armId}&term=${termId}&pack=zip`,
                 "report-cards.zip",
               )
             }
@@ -339,7 +339,7 @@ export default function ReportsPage() {
             onClick={() =>
               runBatch(
                 "id-pdf",
-                `/api/identity/id-cards/batch/?class_arm=${armId}&format=pdf`,
+                `/api/identity/id-cards/batch/?class_arm=${armId}&pack=pdf`,
                 "id-cards.pdf",
               )
             }
@@ -353,7 +353,7 @@ export default function ReportsPage() {
             onClick={() =>
               runBatch(
                 "id-zip",
-                `/api/identity/id-cards/batch/?class_arm=${armId}&format=zip`,
+                `/api/identity/id-cards/batch/?class_arm=${armId}&pack=zip`,
                 "id-cards.zip",
               )
             }

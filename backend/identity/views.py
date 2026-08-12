@@ -32,14 +32,16 @@ def _get_student_for_user(request, student_id):
     return None, Response({"detail": "Not allowed."}, status=403)
 
 
-def _batch_format(request):
-    fmt = (request.query_params.get("format") or "pdf").lower().strip()
-    if fmt not in ("pdf", "zip"):
+def _batch_pack(request):
+    # Use `pack` (not `format`) — DRF reserves `format` for content negotiation
+    # and returns 404 when it cannot find a matching renderer (e.g. format=pdf).
+    pack = (request.query_params.get("pack") or "pdf").lower().strip()
+    if pack not in ("pdf", "zip"):
         return None, Response(
-            {"detail": "format must be pdf or zip."},
+            {"detail": "pack must be pdf or zip."},
             status=400,
         )
-    return fmt, None
+    return pack, None
 
 
 def _students_for_arm(class_arm_id):
@@ -55,6 +57,16 @@ def _file_response(payload: bytes, *, content_type: str, filename: str, inline: 
     response = HttpResponse(payload, content_type=content_type)
     response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
     return response
+
+
+def _slug_label(value) -> str:
+    text = str(value)
+    for ch in ('/', '\\', '—', '–', ':', '"', "'"):
+        text = text.replace(ch, "-")
+    text = "-".join(text.split())
+    while "--" in text:
+        text = text.replace("--", "-")
+    return text.strip("-") or "file"
 
 
 @api_view(["GET"])
@@ -118,7 +130,7 @@ def student_id_card(request, student_id):
 def report_cards_batch(request):
     from academics.models import ClassArm, Term
 
-    fmt, err = _batch_format(request)
+    pack, err = _batch_pack(request)
     if err:
         return err
 
@@ -143,9 +155,9 @@ def report_cards_batch(request):
         pdf = build_report_card_pdf(student, term)
         entries.append((f"report-{student.student_id}.pdf", pdf))
 
-    arm_slug = str(arm).replace(" ", "-")
-    term_slug = str(term).replace(" ", "-")
-    if fmt == "zip":
+    arm_slug = _slug_label(arm)
+    term_slug = _slug_label(term)
+    if pack == "zip":
         payload = zip_pdfs(entries)
         return _file_response(
             payload,
@@ -167,7 +179,7 @@ def report_cards_batch(request):
 def id_cards_batch(request):
     from academics.models import ClassArm
 
-    fmt, err = _batch_format(request)
+    pack, err = _batch_pack(request)
     if err:
         return err
 
@@ -188,8 +200,8 @@ def id_cards_batch(request):
         pdf = build_id_card_pdf(student)
         entries.append((f"id-{student.student_id}.pdf", pdf))
 
-    arm_slug = str(arm).replace(" ", "-")
-    if fmt == "zip":
+    arm_slug = _slug_label(arm)
+    if pack == "zip":
         payload = zip_pdfs(entries)
         return _file_response(
             payload,
