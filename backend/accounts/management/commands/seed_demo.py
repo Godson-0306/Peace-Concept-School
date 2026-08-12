@@ -12,7 +12,7 @@ from academics.models import (
     Subject,
 )
 from fees.models import FeeStructure
-from inventory.models import Inventory, StockItem
+from inventory.models import Inventory, InventoryAssignment, StockItem
 from website.models import NewsPost
 
 
@@ -138,15 +138,62 @@ class Command(BaseCommand):
 
         sync_nursery_daycare_subjects(replace_others=True)
 
-        # Real staff are loaded via `manage.py import_staff_roster`.
-        # Keep inventory catalog without placeholder store-staff accounts.
+        # Inventory catalog + demo store staff assignment.
         uniforms, _ = Inventory.objects.get_or_create(
-            name="Uniforms", defaults={"category": "Apparel", "description": "School uniforms"}
+            name="Uniforms",
+            defaults={"category": "Apparel", "description": "School uniforms"},
         )
-        StockItem.objects.get_or_create(
+        books, _ = Inventory.objects.get_or_create(
+            name="Books & Stationery",
+            defaults={"category": "Academics", "description": "Exercise books and pens"},
+        )
+        for inv, name, qty, price, sku in [
+            (uniforms, "JSS Shirt", 50, 4500, "UNI-JSS-SHIRT"),
+            (uniforms, "JSS Trouser", 40, 5500, "UNI-JSS-TROU"),
+            (uniforms, "SS Blouse", 35, 5000, "UNI-SS-BLOUSE"),
+            (books, "Exercise Book 60 leaves", 200, 400, "BK-EX-60"),
+            (books, "Biro (blue)", 500, 100, "BK-BIRO-BLU"),
+        ]:
+            StockItem.objects.get_or_create(
+                inventory=inv,
+                name=name,
+                defaults={"quantity": qty, "unit_price": price, "sku": sku},
+            )
+
+        store_user, _ = ensure_user(
+            "store1@peaceconceptschool.ng",
+            "Store123!",
+            AccountType.STORE_STAFF,
+            "Store",
+            "Keeper",
+            username="store1",
+        )
+        store_staff, _ = StaffProfile.objects.get_or_create(
+            user=store_user,
+            defaults={"full_name": "Store Keeper", "phone_number": "08011112222"},
+        )
+        InventoryAssignment.objects.get_or_create(
             inventory=uniforms,
-            name="JSS Shirt",
-            defaults={"quantity": 50, "unit_price": 4500},
+            staff=store_staff,
+            defaults={"is_active": True},
+        )
+        InventoryAssignment.objects.get_or_create(
+            inventory=books,
+            staff=store_staff,
+            defaults={"is_active": True},
+        )
+
+        accountant_user, _ = ensure_user(
+            "accountant@peaceconceptschool.ng",
+            "Accountant123!",
+            AccountType.ACCOUNTANT,
+            "School",
+            "Accountant",
+            username="accountant",
+        )
+        StaffProfile.objects.get_or_create(
+            user=accountant_user,
+            defaults={"full_name": "School Accountant", "phone_number": "08033334444"},
         )
 
         # Students are imported from real User List rosters
@@ -185,6 +232,8 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Demo data seeded."))
         self.stdout.write("Staff login uses Username + password:")
         self.stdout.write("  Admin: admin / AdminPass123!")
+        self.stdout.write("  Accountant: accountant / Accountant123!")
+        self.stdout.write("  Store: store1 / Store123!")
         self.stdout.write(
             "Staff roster: run `python manage.py import_staff_roster` "
             "(username from roster + password `school`)."

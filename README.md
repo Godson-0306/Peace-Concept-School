@@ -47,12 +47,10 @@ Staff use the **Staff** tab (Username + password). Students use the **Student** 
 | Role | Portal | Username / Student ID | Password |
 |------|--------|-----------------------|----------|
 | Admin | Staff | `admin` | AdminPass123! |
-| Principal | Staff | `principal` | Principal123! |
-| Teacher | Staff | `teacher1` | Teacher123! |
 | Accountant | Staff | `accountant` | Accountant123! |
 | Store | Staff | `store1` | Store123! |
-| Parent | Staff | `parent1` | Parent123! |
-| Student | Student | `PCS025001` (first seeded student) | Student123! |
+
+Additional staff/students come from roster imports (`import_staff_roster`, `import_student_roster`) with password usually `school`.
 
 ## Product notes
 
@@ -60,4 +58,5 @@ Staff use the **Staff** tab (Username + password). Students use the **Student** 
 - Student IDs: `PCS0YYNNN` (e.g. PCS025001)
 - Grading: CA1/20 + CA2/20 + Exam/60; additional assessments count in total but not average divisor
 - Fee-gated results: Accountant marks Paid manually (no payment gateway); unlocked terms stay visible
+- Inventory: `/app/inventory` for admin/accountant/store staff — catalogs, stock movements, sales (separate from tuition)
 - Result publish notifies guardians via email + WhatsApp stub
