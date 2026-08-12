@@ -64,3 +64,4 @@ Fee-gated results: unpaid bills lock student/parent result views. Students with 
 - Fee-gated results: Accountant marks Paid manually (no payment gateway); unlocked terms stay visible
 - Inventory: `/app/inventory` for admin/accountant/store staff — catalogs, stock movements, sales (separate from tuition)
 - Result publish notifies guardians via email + WhatsApp stub
+- JAMB CBT practice: `/app/assessments/jamb` embeds the static engine under `frontend/public/jamb-cbt/` (progress only — never school report scores)
