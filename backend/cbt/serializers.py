@@ -242,4 +242,12 @@ class JambAttemptSerializer(serializers.ModelSerializer):
             "source",
             "meta",
         ]
-        read_only_fields = fields
+        read_only_fields = ["id", "student", "student_name", "student_code", "taken_at"]
+
+
+class JambAttemptWriteSerializer(serializers.Serializer):
+    title = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    score_percent = serializers.DecimalField(max_digits=5, decimal_places=2, min_value=0, max_value=100)
+    subjects_json = serializers.JSONField(required=False)
+    source = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    meta = serializers.JSONField(required=False)

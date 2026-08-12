@@ -15,6 +15,7 @@ from cbt.serializers import (
     CbtPaperSerializer,
     CbtQuestionSerializer,
     JambAttemptSerializer,
+    JambAttemptWriteSerializer,
 )
 from cbt.services import is_attempt_expired, score_attempt, submit_attempt
 
@@ -371,17 +372,45 @@ def cbt_options(request):
     )
 
 
-@api_view(["GET"])
+@api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def jamb_progress(request):
     """
-    Progress-only JAMB attempts for the logged-in student (or admin filter).
-    Empty until the external JAMB CBT module writes rows.
+    JAMB practice progress for students (GET list / POST save).
+    Scores never write into AssessmentScore.
     """
     user = request.user
+
+    if request.method == "POST":
+        if user.account_type != AccountType.STUDENT or not hasattr(user, "student_profile"):
+            return Response(
+                {"detail": "Only students can save JAMB practice attempts."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        writer = JambAttemptWriteSerializer(data=request.data)
+        writer.is_valid(raise_exception=True)
+        data = writer.validated_data
+        attempt = JambAttempt.objects.create(
+            student=user.student_profile,
+            title=(data.get("title") or "JAMB Practice").strip() or "JAMB Practice",
+            score_percent=data["score_percent"],
+            subjects_json=data.get("subjects_json") or [],
+            source=(data.get("source") or "jamb-cbt-website").strip() or "jamb-cbt-website",
+            meta=data.get("meta") or {},
+        )
+        return Response(
+            JambAttemptSerializer(attempt).data,
+            status=status.HTTP_201_CREATED,
+        )
+
     qs = JambAttempt.objects.select_related("student").all()
     if user.account_type == AccountType.STUDENT and hasattr(user, "student_profile"):
         qs = qs.filter(student=user.student_profile)
+    elif user.account_type == AccountType.PARENT and hasattr(user, "parent_profile"):
+        qs = qs.filter(student__in=user.parent_profile.children.all())
+        student_id = request.query_params.get("student")
+        if student_id:
+            qs = qs.filter(student_id=student_id)
     elif can_view_all_results(user) or user.account_type == AccountType.ADMIN:
         student_id = request.query_params.get("student")
         if student_id:
@@ -391,8 +420,9 @@ def jamb_progress(request):
 
     return Response(
         {
-            "integration": "pending",
-            "message": "JAMB CBT engine will be wired from the external repository.",
+            "integration": "ready",
+            "engine": "/jamb-cbt/index.html",
+            "message": "JAMB CBT practice engine is available in the portal.",
             "results": JambAttemptSerializer(qs[:50], many=True).data,
         }
     )

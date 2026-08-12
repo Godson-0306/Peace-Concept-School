@@ -302,3 +302,36 @@ class EnquiryStatusSmokeTests(SchoolFixtureMixin, TestCase):
         self.assertEqual(res.status_code, 200)
         enquiry.refresh_from_db()
         self.assertEqual(enquiry.status, Enquiry.Status.CONTACTED)
+
+
+class JambProgressSmokeTests(SchoolFixtureMixin, TestCase):
+    def test_student_can_save_jamb_progress(self):
+        self.client.force_authenticate(user=self.student_user)
+        res = self.client.post(
+            "/api/cbt/jamb/progress/",
+            {
+                "title": "JAMB Practice — Use of English, Mathematics, Biology, Chemistry",
+                "score_percent": 72.5,
+                "subjects_json": [
+                    {"subject": "Mathematics", "percent": 70, "correct": 35, "total": 50}
+                ],
+                "source": "jamb-cbt-website",
+                "meta": {"total_correct": 145, "total_questions": 200},
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(float(res.data["score_percent"]), 72.5)
+        listing = self.client.get("/api/cbt/jamb/progress/")
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(listing.data["integration"], "ready")
+        self.assertEqual(len(listing.data["results"]), 1)
+
+    def test_staff_cannot_post_jamb_progress(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post(
+            "/api/cbt/jamb/progress/",
+            {"score_percent": 50},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 403)

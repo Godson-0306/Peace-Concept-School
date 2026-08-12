@@ -1,27 +1,32 @@
-# JAMB CBT integration notes
-#
-# This school portal only provides a progress shell for JAMB CBT.
-# Drop your existing JAMB CBT repository in later and wire it here.
-#
-# Suggested integration points
-# ----------------------------
-# 1. Student UI mount
-#    Frontend route: /app/assessments/jamb
-#    Replace the placeholder page with your JAMB CBT SPA embed or Next.js routes.
-#
-# 2. Progress storage (already modeled)
-#    Model: cbt.models.JambAttempt
-#    Fields: student, title, score_percent, subjects_json, taken_at, source, meta
-#    Do NOT write JAMB scores into assessments.AssessmentScore.
-#
-# 3. Progress API
-#    GET /api/cbt/jamb/progress/  — returns attempts for the logged-in student
-#    After integration, POST from your JAMB engine to create JambAttempt rows
-#    (add a write endpoint when the external app is connected).
-#
-# 4. Auth
-#    Reuse portal session cookies (credentials: include) or issue a short-lived
-#    token from /api/auth/me/ for the embedded JAMB app.
-#
-# 5. Branding
-#    Apply PCIMS blue/pink brand and logo when redesigning the external UI.
+# JAMB CBT integration
+
+The portal embeds the static JAMB CBT engine from
+[`Godson-0306/Jamb-CBT-Website`](https://github.com/Godson-0306/Jamb-CBT-Website).
+
+## Where it lives
+
+| Piece | Path |
+|-------|------|
+| Student UI | `/app/assessments/jamb` |
+| Static engine | `frontend/public/jamb-cbt/` (`index.html`, `app.js`, `styles.css`) |
+| Progress model | `cbt.models.JambAttempt` |
+| Progress API | `GET/POST /api/cbt/jamb/progress/` |
+
+## Behaviour
+
+1. Students open **Assessments → JAMB CBT** and start the embedded engine.
+2. The engine generates a fresh 200-question paper (4 subjects × 50).
+3. On submit, it:
+   - stores the session in `localStorage`
+   - `postMessage`s the report to the portal frame
+   - `POST`s a `JambAttempt` row to `/api/cbt/jamb/progress/`
+4. JAMB scores **never** write into `assessments.AssessmentScore`.
+
+## Auth
+
+The static page runs same-origin under the Next.js app, so
+`credentials: "include"` reuses the portal session cookie when saving progress.
+
+## Branding
+
+CSS variables in `styles.css` use PCIMS blue / pink.

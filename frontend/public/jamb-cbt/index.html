@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PCIMS JAMB CBT Practice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="hero-panel">
+      <p class="eyebrow">Peace Concept · JAMB CBT</p>
+      <h1>Train like exam day is already here.</h1>
+      <p class="hero-copy">
+        Simulate a full JAMB session with 200 objective questions, timed practice,
+        keyboard shortcuts, subject-by-subject analytics, and topic-level feedback.
+        Practice scores stay in your portal progress — they do not change school results.
+      </p>
+      <div class="hero-points">
+        <div>
+          <span>200</span>
+          <p>Total questions</p>
+        </div>
+        <div>
+          <span>4</span>
+          <p>Subjects per session</p>
+        </div>
+        <div>
+          <span>New</span>
+          <p>Fresh question mix every visit</p>
+        </div>
+      </div>
+    </aside>
+
+    <main class="app-panel">
+      <section id="setup-screen" class="screen active">
+        <div class="card">
+          <p class="section-tag">Step 1</p>
+          <h2>Enter candidate details</h2>
+          <p class="muted">Your name will be used across the exam dashboard and result slip.</p>
+          <form id="setup-form" class="setup-form">
+            <label for="candidate-name">Candidate name</label>
+            <input id="candidate-name" name="candidateName" type="text" placeholder="e.g. Adaobi Okafor" required />
+
+            <fieldset class="subject-selector">
+              <legend>Choose 4 JAMB subjects</legend>
+              <p class="muted">Use of English is compulsory. Pick 3 additional subjects for this simulation.</p>
+              <div id="subject-options" class="subject-grid"></div>
+            </fieldset>
+
+            <button type="submit" class="primary-btn">Continue to instructions</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="instruction-screen" class="screen">
+        <div class="card">
+          <p class="section-tag">Step 2</p>
+          <h2>Exam instructions</h2>
+          <div class="instruction-grid">
+            <div>
+              <h3>Before you start</h3>
+              <ul>
+                <li>You will answer 200 objective questions in total.</li>
+                <li>Each selected subject contains 50 questions.</li>
+                <li>The timer starts immediately after you begin the test.</li>
+                <li>Use the question palette to jump quickly between questions.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Mouse controls</h3>
+              <ul>
+                <li>Click any option A to D to select an answer.</li>
+                <li>Click a numbered question in the palette to jump to it.</li>
+                <li>Use the Previous and Next buttons to move around.</li>
+                <li>Use Submit Exam only when you are ready to finish.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Keyboard controls</h3>
+              <ul>
+                <li>Press <strong>A</strong>, <strong>B</strong>, <strong>C</strong>, or <strong>D</strong> to answer.</li>
+                <li>Press <strong>Left Arrow</strong> for previous question.</li>
+                <li>Press <strong>Right Arrow</strong> for next question.</li>
+                <li>Press <strong>1-9</strong> to jump within the visible palette groups.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Scoring and feedback</h3>
+              <ul>
+                <li>You will see total score and subject-by-subject performance.</li>
+                <li>Weak topics are highlighted so you know what to revise.</li>
+                <li>Each exam session creates a fresh randomized paper.</li>
+                <li>Your latest session is stored only in this browser.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="instruction-actions">
+            <button id="back-to-setup" class="secondary-btn" type="button">Back</button>
+            <button id="start-exam" class="primary-btn" type="button">Start exam</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="exam-screen" class="screen">
+        <div class="exam-layout">
+          <div class="exam-main">
+            <div class="exam-header">
+              <div>
+                <p class="section-tag">Live exam</p>
+                <h2 id="exam-title">Question 1</h2>
+                <p id="exam-meta" class="muted"></p>
+              </div>
+              <div class="timer-box">
+                <span>Time left</span>
+                <strong id="timer-display">03:00:00</strong>
+              </div>
+            </div>
+
+            <div class="question-card">
+              <div class="question-toolbar">
+                <span id="question-topic" class="topic-pill"></span>
+                <span id="question-progress" class="muted"></span>
+              </div>
+              <div id="subject-stage-banner" class="subject-stage-banner"></div>
+              <p id="question-text" class="question-text"></p>
+              <div id="options-list" class="options-list"></div>
+            </div>
+
+            <div class="navigation-row">
+              <button id="prev-btn" class="secondary-btn" type="button">Previous</button>
+              <button id="next-btn" class="primary-btn" type="button">Next</button>
+            </div>
+          </div>
+
+          <aside class="palette-panel">
+            <div class="palette-card">
+              <h3>Candidate</h3>
+              <p id="candidate-summary" class="muted"></p>
+            </div>
+            <div class="palette-card">
+              <div class="palette-heading">
+                <h3>Subjects</h3>
+                <p id="subject-stage" class="muted"></p>
+              </div>
+              <div id="subject-summary" class="subject-summary"></div>
+            </div>
+            <div class="palette-card">
+              <div class="palette-heading">
+                <h3 id="palette-title">Question palette</h3>
+                <p id="answered-count" class="muted"></p>
+              </div>
+              <div id="palette-grid" class="palette-grid"></div>
+            </div>
+            <button id="submit-exam" class="danger-btn" type="button">Submit exam</button>
+          </aside>
+        </div>
+      </section>
+
+      <section id="result-screen" class="screen">
+        <div class="card result-card">
+          <p class="section-tag">Result summary</p>
+          <h2 id="result-title">Performance overview</h2>
+          <div class="score-banner">
+            <div>
+              <span>Total score</span>
+              <strong id="total-score">0%</strong>
+            </div>
+            <div>
+              <span>Questions answered</span>
+              <strong id="answered-total">0 / 200</strong>
+            </div>
+            <div>
+              <span>Strongest subject</span>
+              <strong id="best-subject">-</strong>
+            </div>
+            <div>
+              <span>Weakest subject</span>
+              <strong id="weakest-subject">-</strong>
+            </div>
+          </div>
+
+          <div id="subject-results" class="subject-results"></div>
+
+          <div class="result-actions">
+            <button id="restart-exam" class="primary-btn" type="button">Generate new exam</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
