@@ -86,6 +86,240 @@ def score_total(score: AssessmentScore) -> Decimal:
     return (score.ca1 or Decimal("0")) + (score.ca2 or Decimal("0")) + (score.exam or Decimal("0"))
 
 
+def grade_for_score(score) -> tuple[str, str]:
+    """Return (letter, word) using PCIMS key to gradings."""
+    try:
+        value = float(score)
+    except (TypeError, ValueError):
+        return ("—", "—")
+    if value >= 70:
+        return ("A", "EXCELLENT")
+    if value >= 60:
+        return ("B", "VERY GOOD")
+    if value >= 50:
+        return ("C", "GOOD")
+    if value >= 45:
+        return ("D", "FAIR")
+    if value >= 40:
+        return ("E", "PASS")
+    if value > 0:
+        return ("F", "FAIL")
+    return ("—", "—")
+
+
+def ordinal(n: int) -> str:
+    if n <= 0:
+        return "—"
+    if 10 <= (n % 100) <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def report_band_title(class_level_name: str) -> str:
+    name = (class_level_name or "").strip().lower()
+    if "day care" in name or "nursery" in name:
+        return "Pupil's Progressive Report (Nursery)"
+    if name.startswith("basic") or "primary" in name:
+        return "Pupil's Progressive Report (Primary)"
+    if name.startswith("jss") or name.startswith("ss"):
+        return "Student's Progressive Report (Secondary)"
+    return "Progressive Report Card"
+
+
+def auto_remark_for_average(average) -> tuple[str, str]:
+    """Teacher / principal style remarks from average."""
+    letter, word = grade_for_score(average)
+    if letter == "A":
+        return ("An excellent result — keep it up.", "Excellent result, keep it up.")
+    if letter == "B":
+        return ("A very good result — keep working hard.", "Very good performance. Keep it up.")
+    if letter == "C":
+        return ("A good result — you can still do better.", "Good effort. Aim higher next term.")
+    if letter == "D":
+        return ("A fair result — more effort is needed.", "Fair performance. Improve next term.")
+    if letter in ("E", "F"):
+        return ("Needs serious improvement next term.", "Weak result. Extra support recommended.")
+    return ("", "")
+
+
+def subject_positions_for_arm(class_arm_id: int, term_id: int, published_only: bool = True) -> dict[int, dict[int, int]]:
+    """Map subject_id -> {student_id: position} for the class arm/term."""
+    qs = AssessmentScore.objects.filter(class_arm_id=class_arm_id, term_id=term_id)
+    if published_only:
+        qs = qs.filter(status=AssessmentScore.Status.PUBLISHED)
+    by_subject: dict[int, list[tuple[int, Decimal]]] = defaultdict(list)
+    for row in qs.only("student_id", "subject_id", "ca1", "ca2", "exam"):
+        by_subject[row.subject_id].append((row.student_id, score_total(row)))
+
+    result: dict[int, dict[int, int]] = {}
+    for subject_id, rows in by_subject.items():
+        rows.sort(key=lambda item: item[1], reverse=True)
+        positions: dict[int, int] = {}
+        position = 0
+        last_total = None
+        for index, (student_id, total) in enumerate(rows, start=1):
+            if last_total is None or total != last_total:
+                position = index
+                last_total = total
+            positions[student_id] = position
+        result[subject_id] = positions
+    return result
+
+
+def compute_progressive_report(student, term, published_only: bool = False):
+    """
+    Rich progressive report payload used by the branded report-card PDF.
+    Includes prior-term totals in the same session, subject positions, and grades.
+    """
+    from academics.models import Term
+
+    session_terms = list(
+        Term.objects.filter(session_id=term.session_id).order_by("number")
+    )
+    term_by_number = {t.number: t for t in session_terms}
+
+    score_qs = AssessmentScore.objects.filter(
+        student_id=student.id,
+        term__session_id=term.session_id,
+    ).select_related("subject", "term")
+    if published_only:
+        score_qs = score_qs.filter(status=AssessmentScore.Status.PUBLISHED)
+
+    # subject_id -> term_number -> score components
+    by_subject: dict[int, dict] = {}
+    for score in score_qs:
+        entry = by_subject.setdefault(
+            score.subject_id,
+            {
+                "subject_id": score.subject_id,
+                "subject_name": score.subject.name,
+                "subject_type": score.subject.subject_type,
+                "order": score.subject.order,
+                "terms": {},
+            },
+        )
+        entry["terms"][score.term.number] = {
+            "ca1": score.ca1,
+            "ca2": score.ca2,
+            "exam": score.exam,
+            "total": score_total(score),
+            "status": score.status,
+        }
+
+    # Prefer class subject order; fall back to scored subjects.
+    class_subjects = []
+    if student.class_arm_id:
+        class_subjects = class_subjects_for_arm(student.class_arm)
+    if class_subjects:
+        ordered_ids = [s.id for s in class_subjects]
+        for subject in class_subjects:
+            by_subject.setdefault(
+                subject.id,
+                {
+                    "subject_id": subject.id,
+                    "subject_name": subject.name,
+                    "subject_type": subject.subject_type,
+                    "order": subject.order,
+                    "terms": {},
+                },
+            )
+        subject_rows_raw = [by_subject[sid] for sid in ordered_ids if sid in by_subject]
+    else:
+        subject_rows_raw = sorted(
+            by_subject.values(),
+            key=lambda r: (r.get("order") or 0, r["subject_name"]),
+        )
+
+    positions = {}
+    if student.class_arm_id:
+        positions = subject_positions_for_arm(
+            student.class_arm_id,
+            term.id,
+            published_only=published_only,
+        )
+
+    current_n = term.number
+    rows = []
+    current_total = Decimal("0")
+    scored_count = 0
+    for entry in subject_rows_raw:
+        terms = entry["terms"]
+        t1 = terms.get(1, {}).get("total")
+        t2 = terms.get(2, {}).get("total")
+        current = terms.get(current_n, {})
+        ca1 = current.get("ca1")
+        ca2 = current.get("ca2")
+        exam = current.get("exam")
+        t_cur = current.get("total")
+
+        prior_vals = [v for v in (t1, t2) if v is not None]
+        # Cumulative across terms that have scores (plus current if present)
+        cum_parts = []
+        for n in (1, 2, 3):
+            if n in terms:
+                cum_parts.append(terms[n]["total"])
+        cumulative = sum(cum_parts, Decimal("0")) if cum_parts else None
+        terms_with_scores = len(cum_parts)
+        average_total = (
+            (cumulative / terms_with_scores) if terms_with_scores else None
+        )
+
+        # Grade/remark from current term total (fallback to session average)
+        grade_source = t_cur if t_cur is not None else average_total
+        letter, word = grade_for_score(grade_source if grade_source is not None else 0)
+
+        if t_cur is not None and entry.get("subject_type") == Subject.SubjectType.SUBJECT:
+            current_total += t_cur
+            scored_count += 1
+
+        pos = positions.get(entry["subject_id"], {}).get(student.id)
+        rows.append(
+            {
+                "subject_id": entry["subject_id"],
+                "subject_name": entry["subject_name"],
+                "term1_total": t1,
+                "term2_total": t2,
+                "ca1": ca1,
+                "ca2": ca2,
+                "exam": exam,
+                "term_total": t_cur,
+                "cumulative": cumulative,
+                "average_total": average_total,
+                "grade_word": word,
+                "grade_letter": letter,
+                "position": ordinal(pos) if pos else "—",
+            }
+        )
+
+    average = (current_total / scored_count) if scored_count else Decimal("0")
+    class_rankings = (
+        rank_class_arm(student.class_arm_id, term.id, published_only=True)
+        if student.class_arm_id
+        else []
+    )
+    position = next(
+        (r["position"] for r in class_rankings if r["student_id"] == student.id),
+        None,
+    )
+
+    return {
+        "student_id": student.id,
+        "term_id": term.id,
+        "session_terms": session_terms,
+        "term_by_number": term_by_number,
+        "total": current_total,
+        "average": average,
+        "subject_count": scored_count,
+        "class_position": ordinal(position) if position else "—",
+        "subjects": rows,
+        "band_title": report_band_title(
+            getattr(getattr(student.class_arm, "class_level", None), "name", "") or ""
+        ),
+    }
+
+
 def compute_student_result(student_id: int, term_id: int, scores=None):
     if scores is None:
         scores = list(
