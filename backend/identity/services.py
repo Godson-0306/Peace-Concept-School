@@ -47,11 +47,13 @@ SCHOOL_MOTTO = "Obey & Be Wise"
 
 
 def _logo_path() -> Path | None:
-    base = Path(settings.BASE_DIR).resolve().parent
+    base = Path(settings.BASE_DIR).resolve()
+    parent = base.parent
     candidates = [
-        base / "frontend" / "public" / "pcims-logo.jpeg",
-        base / "pcims logo.jpeg",
-        Path(settings.BASE_DIR) / "pcims-logo.jpeg",
+        base / "pcims-logo.jpeg",
+        parent / "frontend" / "public" / "pcims-logo.jpeg",
+        parent / "pcims logo.jpeg",
+        parent / "pcims-logo.jpeg",
     ]
     for path in candidates:
         if path.is_file():

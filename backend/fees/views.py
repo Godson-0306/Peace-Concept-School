@@ -33,6 +33,58 @@ def ensure_session_fee_structures(session) -> list[FeeStructure]:
     )
 
 
+def ensure_bill_for_student(student, *, term=None, updated_by=None) -> FeeRecord | None:
+    """Create a FeeRecord for the active (or given) term if a structure matches.
+
+    Returns the record when created or already present; None when no term/structure.
+    """
+    if term is None:
+        term = (
+            Term.objects.filter(is_active=True)
+            .select_related("session")
+            .order_by("-id")
+            .first()
+        )
+    if term is None:
+        return None
+
+    ensure_session_fee_structures(term.session)
+    level_name = (
+        student.class_arm.class_level.name
+        if getattr(student, "class_arm_id", None)
+        and student.class_arm
+        and student.class_arm.class_level_id
+        else None
+    )
+    section = section_for_class_level_name(level_name)
+    if not section:
+        return None
+    stype = student_fee_type(
+        admission_year=student.admission_year,
+        session_start_year=term.session.start_year,
+    )
+    structure = FeeStructure.objects.filter(
+        session=term.session,
+        section=section,
+        student_type=stype,
+        is_active=True,
+    ).first()
+    if not structure:
+        return None
+
+    record, _created = FeeRecord.objects.get_or_create(
+        student=student,
+        term=term,
+        defaults={
+            "fee_structure": structure,
+            "amount_due": structure.amount,
+            "amount_paid": 0,
+            "updated_by": updated_by,
+        },
+    )
+    return record
+
+
 class FeeStructureViewSet(viewsets.ModelViewSet):
     queryset = FeeStructure.objects.select_related("session").all()
     serializer_class = FeeStructureSerializer

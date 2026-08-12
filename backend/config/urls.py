@@ -10,6 +10,7 @@ from accounts.views import (
     PositionAssignmentViewSet,
     StaffViewSet,
     StudentViewSet,
+    change_password_view,
     csrf_view,
     login_view,
     logout_view,
@@ -85,6 +86,7 @@ urlpatterns = [
     path("api/auth/login/", login_view),
     path("api/auth/logout/", logout_view),
     path("api/auth/me/", me_view),
+    path("api/auth/change-password/", change_password_view),
     path("api/auth/csrf/", csrf_view),
     path("api/results/me/", my_results),
     path("api/dashboard/", dashboard_summary),
@@ -97,5 +99,5 @@ urlpatterns = [
     path("api/", include(router.urls)),
 ]
 
-if settings.DEBUG:
+if settings.DEBUG or not getattr(settings, "USE_S3_MEDIA", False):
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

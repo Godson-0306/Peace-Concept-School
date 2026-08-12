@@ -76,7 +76,24 @@ class EnquirySerializer(serializers.ModelSerializer):
             "status",
             "created_at",
         ]
-        read_only_fields = ["status", "created_at"]
+        read_only_fields = ["created_at"]
+
+    def create(self, validated_data):
+        # Public submissions always start as new.
+        validated_data["status"] = Enquiry.Status.NEW
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        # Only staff admins may change status; public cannot via create path.
+        if not (
+            user
+            and user.is_authenticated
+            and getattr(user, "account_type", None) == "admin"
+        ):
+            validated_data.pop("status", None)
+        return super().update(instance, validated_data)
 
 
 class ApplicationSerializer(serializers.ModelSerializer):

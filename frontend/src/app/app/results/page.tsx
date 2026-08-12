@@ -13,6 +13,10 @@ export default function ResultsIndexPage() {
       router.replace("/app/student");
       return;
     }
+    if (user?.account_type === "parent") {
+      router.replace("/app/parent");
+      return;
+    }
     router.replace("/app/results/subject-results");
   }, [router]);
 

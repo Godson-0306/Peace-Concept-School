@@ -29,7 +29,8 @@ export function normalizeAccountType(value: unknown): AccountType {
   if (typeof value === "string" && allowed.includes(value as AccountType)) {
     return value as AccountType;
   }
-  return "admin";
+  // Least privilege — never elevate unknown types to admin.
+  return "teacher";
 }
 
 const USER_KEY = "pcs_user";

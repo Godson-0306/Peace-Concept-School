@@ -6,10 +6,12 @@ School website and management system for Peace Concept International Mission Sch
 ## Stack
 
 - **Frontend:** Next.js (App Router) + TypeScript + Tailwind — public website + login-gated `/app` portals
-- **Backend:** Django 5 + Django REST Framework
+- **Backend:** Django 6 + Django REST Framework
 - **Database:** PostgreSQL in production (SQLite locally by default)
 - **Async:** Celery + Redis (email/WhatsApp notifications on result publish)
-- **Hosting blueprint:** [`render.yaml`](render.yaml) for API, worker, Postgres, Redis; frontend on Vercel
+- **Hosting blueprint:** [`render.yaml`](render.yaml) for API, worker, Postgres, Redis, persistent media disk; frontend on Vercel
+- **Media:** Local disk (`MEDIA_ROOT`, Render disk at `/var/data/media`) or S3 when `AWS_STORAGE_BUCKET_NAME` is set
+- **Email:** Console locally; set `EMAIL_HOST` (+ user/password) for SMTP in production
 
 ## Public website pages
 
@@ -42,7 +44,7 @@ Open http://localhost:3000 — Next.js proxies `/api/*` to Django on port 8000.
 
 ### Demo logins (from `seed_demo`)
 
-Staff use the **Staff** tab (Username + password). Students use the **Student** tab (Student ID + password).
+Staff use the **Staff** tab (Username + password). Students use the **Student** tab (Student ID + password). Parents use the **Parent** tab (parent username + password).
 
 | Role | Portal | Username / Student ID | Password |
 |------|--------|-----------------------|----------|
@@ -51,6 +53,8 @@ Staff use the **Staff** tab (Username + password). Students use the **Student** 
 | Store | Staff | `store1` | Store123! |
 
 Additional staff/students come from roster imports (`import_staff_roster`, `import_student_roster`) with password usually `school`.
+
+Fee-gated results: unpaid bills lock student/parent result views. Students with **no bill yet** stay unlocked until Accounts generates bills. Enrolling a student auto-creates a bill for the active term when a matching fee structure exists.
 
 ## Product notes
 

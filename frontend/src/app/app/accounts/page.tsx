@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { apiJson, errorFromUnknown } from "@/lib/api";
+import { getStoredUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
 import type { ClassLevelNav } from "@/lib/portalNav";
 import { termsForOneSession } from "@/lib/terms";
@@ -97,6 +98,10 @@ function naira(value: string | number) {
 }
 
 export default function AccountsPage() {
+  const user = getStoredUser();
+  const canAccess =
+    user?.account_type === "admin" || user?.account_type === "accountant";
+
   const [tab, setTab] = useState<Tab>("structures");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
@@ -696,6 +701,19 @@ export default function AccountsPage() {
           </div>
         ) : null}
       </article>
+    );
+  }
+
+  if (!canAccess) {
+    return (
+      <div className="rounded-xl border border-[var(--line)] bg-white p-6">
+        <h1 className="font-display text-2xl text-[var(--brand-blue-deep)]">
+          Accounts
+        </h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Fee management is available to admin and accountant accounts only.
+        </p>
+      </div>
     );
   }
 

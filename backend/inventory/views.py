@@ -76,15 +76,21 @@ class StockItemViewSet(viewsets.ModelViewSet):
         return qs.filter(inventory_id__in=assigned_inventory_ids(user))
 
     def perform_create(self, serializer):
+        if not can_supervise_inventory(self.request.user):
+            raise PermissionDenied("Only admin or accountant can edit the catalog.")
         inventory = serializer.validated_data["inventory"]
         require_inventory_access(self.request.user, inventory.id)
         serializer.save()
 
     def perform_update(self, serializer):
+        if not can_supervise_inventory(self.request.user):
+            raise PermissionDenied("Only admin or accountant can edit the catalog.")
         require_inventory_access(self.request.user, serializer.instance.inventory_id)
         serializer.save()
 
     def perform_destroy(self, instance):
+        if not can_supervise_inventory(self.request.user):
+            raise PermissionDenied("Only admin or accountant can edit the catalog.")
         require_inventory_access(self.request.user, instance.inventory_id)
         instance.delete()
 

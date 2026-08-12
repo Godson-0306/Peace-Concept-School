@@ -11,7 +11,12 @@ export default function LoginForm({
   error,
   next,
 }: LoginFormProps) {
-  const initialPortal = portalParam === "staff" ? "staff" : "student";
+  const initialPortal =
+    portalParam === "staff"
+      ? "staff"
+      : portalParam === "parent"
+        ? "parent"
+        : "student";
 
   return (
     <form action={loginAction} className="login-portal space-y-5">
@@ -20,7 +25,7 @@ export default function LoginForm({
       ) : null}
 
       <div
-        className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--mist)] p-1"
+        className="grid grid-cols-3 gap-1 rounded-xl bg-[var(--mist)] p-1"
         role="radiogroup"
         aria-label="Sign-in type"
       >
@@ -33,6 +38,16 @@ export default function LoginForm({
             className="sr-only"
           />
           Student
+        </label>
+        <label className="login-tab login-tab-parent">
+          <input
+            type="radio"
+            name="portal"
+            value="parent"
+            defaultChecked={initialPortal === "parent"}
+            className="sr-only"
+          />
+          Parent
         </label>
         <label className="login-tab login-tab-staff">
           <input
@@ -49,6 +64,9 @@ export default function LoginForm({
       <p className="text-sm leading-relaxed text-[var(--muted)] when-student">
         Sign in with your Student ID and password issued by the school.
       </p>
+      <p className="text-sm leading-relaxed text-[var(--muted)] when-parent">
+        Sign in with the parent username and password issued by the school.
+      </p>
       <p className="text-sm leading-relaxed text-[var(--muted)] when-staff">
         Sign in with the username and password created when your staff account
         was registered.
@@ -57,6 +75,7 @@ export default function LoginForm({
       <div className="field">
         <label htmlFor="login-identifier">
           <span className="when-student">Student ID</span>
+          <span className="when-parent">Username</span>
           <span className="when-staff">Username</span>
         </label>
         <input
@@ -69,9 +88,14 @@ export default function LoginForm({
           spellCheck={false}
           className="login-identifier"
           data-student-placeholder="e.g. PCS025001"
+          data-parent-placeholder="e.g. parent.odu"
           data-staff-placeholder="e.g. admin"
           placeholder={
-            initialPortal === "student" ? "e.g. PCS025001" : "e.g. admin"
+            initialPortal === "student"
+              ? "e.g. PCS025001"
+              : initialPortal === "parent"
+                ? "e.g. parent.odu"
+                : "e.g. admin"
           }
         />
       </div>

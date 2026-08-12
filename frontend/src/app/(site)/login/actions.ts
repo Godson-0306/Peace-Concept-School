@@ -73,10 +73,9 @@ async function forwardSetCookies(upstream: Response) {
 }
 
 export async function loginAction(formData: FormData) {
+  const rawPortal = String(formData.get("portal") ?? "student");
   const portal =
-    String(formData.get("portal") ?? "student") === "staff"
-      ? "staff"
-      : "student";
+    rawPortal === "staff" ? "staff" : rawPortal === "parent" ? "parent" : "student";
   const identifier = String(formData.get("identifier") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "");
@@ -91,7 +90,9 @@ export async function loginAction(formData: FormData) {
     fail(
       portal === "student"
         ? "Enter your Student ID and password."
-        : "Enter your username and password.",
+        : portal === "parent"
+          ? "Enter your parent username and password."
+          : "Enter your username and password.",
     );
   }
 
@@ -118,7 +119,9 @@ export async function loginAction(formData: FormData) {
         payload,
         portal === "student"
           ? "Invalid Student ID or password. Please try again."
-          : "Invalid username or password. Please try again.",
+          : portal === "parent"
+            ? "Invalid parent username or password. Please try again."
+            : "Invalid username or password. Please try again.",
       ),
     );
   }
@@ -152,5 +155,7 @@ export async function loginAction(formData: FormData) {
     },
   );
 
-  redirect(next.startsWith("/app") ? next : "/app");
+  const defaultNext =
+    accountType === "parent" ? "/app/parent" : "/app";
+  redirect(next.startsWith("/app") ? next : defaultNext);
 }

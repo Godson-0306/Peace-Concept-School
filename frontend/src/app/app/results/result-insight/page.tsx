@@ -1,10 +1,6 @@
-import ModuleShell from "@/components/ModuleShell";
+import { redirect } from "next/navigation";
 
+/** Result Insight is not ready — keep the route but hide from nav. */
 export default function ResultInsightPage() {
-  return (
-    <ModuleShell
-      title="Result Insight"
-      description="Analyse class and subject performance trends across the current session and term."
-    />
-  );
+  redirect("/app/results/subject-results");
 }

@@ -49,7 +49,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    portal = serializers.ChoiceField(choices=["student", "staff"])
+    portal = serializers.ChoiceField(choices=["student", "staff", "parent"])
     identifier = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True)
 
@@ -77,6 +77,20 @@ class LoginSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     "Invalid Student ID or password."
                 )
+        elif portal == "parent":
+            user = User.objects.filter(username__iexact=identifier).first()
+            if not user:
+                raise serializers.ValidationError(
+                    "Invalid parent username or password."
+                )
+            if user.account_type != AccountType.PARENT:
+                raise serializers.ValidationError(
+                    "Use the Parent tab only with a parent account."
+                )
+            if not user.check_password(password):
+                raise serializers.ValidationError(
+                    "Invalid parent username or password."
+                )
         else:
             user = User.objects.filter(username__iexact=identifier).first()
             if not user:
@@ -84,6 +98,10 @@ class LoginSerializer(serializers.Serializer):
             if user.account_type == AccountType.STUDENT:
                 raise serializers.ValidationError(
                     "Use the Student tab with your Student ID."
+                )
+            if user.account_type == AccountType.PARENT:
+                raise serializers.ValidationError(
+                    "Use the Parent tab with your parent username."
                 )
             if not user.check_password(password):
                 raise serializers.ValidationError("Invalid username or password.")

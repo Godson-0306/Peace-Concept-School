@@ -112,10 +112,11 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# Prefer a persistent disk mount in production (Render disk → /var/data/media).
+_media_root = (os.environ.get("MEDIA_ROOT") or "").strip()
+MEDIA_ROOT = Path(_media_root) if _media_root else (BASE_DIR / "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
@@ -133,14 +134,62 @@ CORS_ALLOW_CREDENTIALS = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
-SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() in (
+# Secure cookies default on when not DEBUG (override with SESSION_COOKIE_SECURE=false).
+_secure_default = "false" if DEBUG else "true"
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", _secure_default).lower() in (
     "1",
     "true",
+    "yes",
 )
-CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "false").lower() in (
+CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", _secure_default).lower() in (
     "1",
     "true",
+    "yes",
 )
+
+# Behind Render / other TLS terminators
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = os.environ.get(
+    "SECURE_SSL_REDIRECT",
+    "false" if DEBUG else "true",
+).lower() in ("1", "true", "yes")
+SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Object storage (optional). When AWS_STORAGE_BUCKET_NAME is set, media goes to S3.
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "")
+AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
+AWS_S3_CUSTOM_DOMAIN = os.environ.get("AWS_S3_CUSTOM_DOMAIN", "")
+AWS_DEFAULT_ACL = os.environ.get("AWS_DEFAULT_ACL", "public-read")
+AWS_QUERYSTRING_AUTH = False
+AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+USE_S3_MEDIA = bool(AWS_STORAGE_BUCKET_NAME)
+
+if USE_S3_MEDIA:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+    else:
+        MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/"
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -170,6 +219,15 @@ EMAIL_BACKEND = os.environ.get(
     "django.core.mail.backends.console.EmailBackend",
 )
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@peaceconceptschool.ng")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587") or "587")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() in ("1", "true", "yes")
+# Prefer real SMTP when host credentials are provided.
+if EMAIL_HOST and EMAIL_BACKEND.endswith("console.EmailBackend"):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 

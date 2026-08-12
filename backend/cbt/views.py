@@ -103,9 +103,17 @@ class CbtPaperViewSet(viewsets.ModelViewSet):
         paper = self.get_object()
         if not user_can_manage_paper(request.user, paper):
             return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
-        if paper.status == CbtPaper.Status.PUBLISHED and request.data.get("questions"):
-            # Allow metadata edits; full rewrite of questions only in draft.
-            pass
+        if paper.status == CbtPaper.Status.PUBLISHED and (
+            "questions" in request.data
+            and request.data.get("questions") is not None
+        ):
+            return Response(
+                {
+                    "detail": "Published papers cannot rewrite questions. "
+                    "Revert to draft first, or edit metadata only."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):

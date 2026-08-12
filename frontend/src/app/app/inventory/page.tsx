@@ -118,6 +118,9 @@ export default function InventoryPage() {
 
   const isAdmin = user?.account_type === "admin";
   const isAccountant = user?.account_type === "accountant";
+  const isStore =
+    user?.account_type === "store" || user?.account_type === "store_staff";
+  const canAccessInventory = isAdmin || isAccountant || isStore;
   const canEditCatalog = isAdmin || isAccountant;
   const canManageAssignments = isAdmin;
 
@@ -425,6 +428,20 @@ export default function InventoryPage() {
     { id: "sales", label: "Sales" },
     { id: "assignments", label: "Assignments", adminOnly: true },
   ];
+
+  if (user && !canAccessInventory) {
+    return (
+      <div className="rounded-xl border border-[var(--line)] bg-white p-6">
+        <h1 className="font-display text-2xl text-[var(--brand-blue-deep)]">
+          Inventory
+        </h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Inventory is available to admin, accountant, and assigned store staff
+          only.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

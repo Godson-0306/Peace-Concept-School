@@ -229,12 +229,19 @@ a {
   color: var(--ink);
 }
 
-.login-portal .when-staff {
+.login-portal .when-staff,
+.login-portal .when-parent {
   display: none;
 }
 
 .login-portal:has(input[name="portal"][value="student"]:checked) .login-tab-student {
   background: var(--brand-pink);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(12, 47, 109, 0.12);
+}
+
+.login-portal:has(input[name="portal"][value="parent"]:checked) .login-tab-parent {
+  background: var(--brand-blue-soft);
   color: #fff;
   box-shadow: 0 1px 2px rgba(12, 47, 109, 0.12);
 }
@@ -245,12 +252,22 @@ a {
   box-shadow: 0 1px 2px rgba(12, 47, 109, 0.12);
 }
 
-.login-portal:has(input[name="portal"][value="staff"]:checked) .when-student {
+.login-portal:has(input[name="portal"][value="staff"]:checked) .when-student,
+.login-portal:has(input[name="portal"][value="parent"]:checked) .when-student {
   display: none;
 }
 
 .login-portal:has(input[name="portal"][value="staff"]:checked) .when-staff {
   display: initial;
+}
+
+.login-portal:has(input[name="portal"][value="parent"]:checked) .when-parent {
+  display: initial;
+}
+
+.login-portal:has(input[name="portal"][value="student"]:checked) .when-parent,
+.login-portal:has(input[name="portal"][value="staff"]:checked) .when-parent {
+  display: none;
 }
 
 .login-portal .login-submit {

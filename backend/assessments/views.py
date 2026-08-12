@@ -56,11 +56,17 @@ def user_can_edit_score(user, score: AssessmentScore) -> bool:
 
 
 def results_visible_for_student(student, term) -> bool:
+    """Fee-gated results: unlocked/paid bills allow access.
+
+    Students with no FeeRecord yet (not billed) remain visible so new enrolls
+    are not locked out before Accounts generates bills.
+    """
     record = FeeRecord.objects.filter(student=student, term=term).first()
-    if record and record.results_unlocked:
+    if record is None:
         return True
-    # Also allow if current term is paid
-    if record and record.status == FeeRecord.Status.PAID:
+    if record.results_unlocked:
+        return True
+    if record.status == FeeRecord.Status.PAID:
         return True
     return False
 
@@ -519,14 +525,35 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="my_summary")
     def my_summary(self, request):
-        """Read-only summary for the logged-in student (active term)."""
+        """Read-only attendance summary for a student (self or parent child)."""
         from academics.models import Term
 
         user = request.user
-        if user.account_type != AccountType.STUDENT or not hasattr(user, "student_profile"):
-            return Response({"detail": "Students only."}, status=status.HTTP_403_FORBIDDEN)
-        student = user.student_profile
-        term = Term.objects.filter(is_active=True).first()
+        student = None
+        if user.account_type == AccountType.STUDENT and hasattr(user, "student_profile"):
+            student = user.student_profile
+        elif user.account_type == AccountType.PARENT and hasattr(user, "parent_profile"):
+            student_id = request.query_params.get("student")
+            if not student_id:
+                return Response(
+                    {"detail": "student query param is required."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            student = user.parent_profile.children.filter(id=student_id).first()
+            if not student:
+                return Response({"detail": "Child not found."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response(
+                {"detail": "Students and parents only."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        term_id = request.query_params.get("term")
+        term = None
+        if term_id:
+            term = Term.objects.filter(id=term_id).first()
+        if not term:
+            term = Term.objects.filter(is_active=True).first()
         if not term:
             return Response({"detail": "No active term."}, status=status.HTTP_404_NOT_FOUND)
         form = StudentFormRecord.objects.filter(student=student, term=term).first()
@@ -537,6 +564,11 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
         )
         return Response(
             {
+                "student": {
+                    "id": student.id,
+                    "student_id": student.student_id,
+                    "full_name": student.full_name,
+                },
                 "term": {"id": term.id, "name": term.name},
                 "days_present": form.days_present if form else 0,
                 "days_absent": form.days_absent if form else 0,

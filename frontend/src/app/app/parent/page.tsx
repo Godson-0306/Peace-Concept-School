@@ -27,6 +27,12 @@ type FeeRecord = {
   results_unlocked: boolean;
   term_name?: string;
 };
+type AttendanceSummary = {
+  days_present: number;
+  days_absent: number;
+  term?: { id: number; name: string };
+  recent?: { date: string; status: string }[];
+};
 
 export default function ParentPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -35,6 +41,7 @@ export default function ParentPage() {
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [fees, setFees] = useState<FeeRecord[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceSummary | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -60,6 +67,11 @@ export default function ParentPage() {
     apiJson<ResultPayload>(`/api/results/me/?term=${termId}&student=${childId}`)
       .then(setResult)
       .catch((e) => setError(e.message));
+    apiJson<AttendanceSummary>(
+      `/api/attendance/my_summary/?student=${childId}&term=${termId}`,
+    )
+      .then(setAttendance)
+      .catch(() => setAttendance(null));
   }, [childId, termId]);
 
   const user = getStoredUser();
@@ -75,8 +87,8 @@ export default function ParentPage() {
           {user?.full_name || "Guardian"} — children
         </h1>
         <p className="mt-2 text-[var(--ink-soft)]">
-          View results (fee-gated), attendance summaries, and fee status for each
-          linked child.
+          View results (fee-gated), attendance, and fee status for each linked
+          child.
         </p>
       </header>
 
@@ -138,6 +150,38 @@ export default function ParentPage() {
       ) : (
         <p className="text-sm text-[var(--muted)]">No linked children yet.</p>
       )}
+
+      <section className="border border-[var(--line)] bg-white/80 p-5">
+        <h2 className="font-display text-2xl text-[var(--brand-green)]">
+          Attendance
+        </h2>
+        {attendance ? (
+          <>
+            <p className="mt-2 text-sm text-[var(--ink-soft)]">
+              {attendance.term?.name ?? "Current term"}: present{" "}
+              {attendance.days_present}, absent {attendance.days_absent}
+            </p>
+            <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm">
+              {(attendance.recent ?? []).map((row) => (
+                <li
+                  key={`${row.date}-${row.status}`}
+                  className="flex justify-between border-b border-[var(--line)] py-1"
+                >
+                  <span>{row.date}</span>
+                  <span className="uppercase text-[var(--muted)]">{row.status}</span>
+                </li>
+              ))}
+              {(attendance.recent ?? []).length === 0 ? (
+                <li className="text-[var(--muted)]">No daily records yet.</li>
+              ) : null}
+            </ul>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Attendance summary unavailable for this child.
+          </p>
+        )}
+      </section>
 
       <section className="border border-[var(--line)] bg-white/80 p-5">
         <h2 className="font-display text-2xl text-[var(--brand-green)]">

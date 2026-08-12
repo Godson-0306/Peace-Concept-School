@@ -48,7 +48,6 @@ export const STAFF_PORTAL_NAV: PortalNavItem[] = [
       { href: "/app/results/subject-results", label: "Subject Results" },
       { href: "/app/results/form-class", label: "Form Class" },
       { href: "/app/results/general-report-sheet", label: "General Report Sheet" },
-      { href: "/app/results/result-insight", label: "Result Insight" },
     ],
   },
   { href: "/app/accounts", label: "Accounts" },
@@ -64,6 +63,12 @@ const STUDENT_HREFS = new Set([
   "/app/assessments",
 ]);
 
+const PARENT_NAV: PortalNavItem[] = [
+  { href: "/app", label: "Dashboard" },
+  { href: "/app/parent", label: "My Children" },
+  { href: "/app/assessments", label: "Assessments" },
+];
+
 const SETTINGS_ROLES = new Set<AccountType>(["admin", "principal"]);
 const ADMIN_ONLY_HREFS = new Set(["/app/gallery", "/app/news"]);
 const USERS_ROLES = new Set<AccountType>(["admin", "principal"]);
@@ -71,6 +76,15 @@ const ADMISSION_ROLES = new Set<AccountType>(["admin", "principal"]);
 const ACCOUNTS_ROLES = new Set<AccountType>(["admin", "accountant"]);
 const INVENTORY_ROLES = new Set<AccountType>(["admin", "accountant", "store", "store_staff"]);
 const REPORTS_ROLES = new Set<AccountType>(["admin", "principal"]);
+const RESULTS_STAFF_ROLES = new Set<AccountType>(["admin", "principal", "teacher"]);
+const ATTENDANCE_ROLES = new Set<AccountType>(["admin", "principal", "teacher", "student"]);
+const ASSESSMENTS_ROLES = new Set<AccountType>([
+  "admin",
+  "principal",
+  "teacher",
+  "student",
+  "parent",
+]);
 
 export type ClassLevelNav = { id: number; name: string; order: number };
 
@@ -180,6 +194,10 @@ export function portalNavFor(accountType: AccountType | null | undefined): Porta
     );
   }
 
+  if (accountType === "parent") {
+    return PARENT_NAV;
+  }
+
   let links = STAFF_PORTAL_NAV;
   if (!accountType || !SETTINGS_ROLES.has(accountType)) {
     links = links.filter((item) => item.href !== "/app/settings");
@@ -201,6 +219,15 @@ export function portalNavFor(accountType: AccountType | null | undefined): Porta
   }
   if (!accountType || !REPORTS_ROLES.has(accountType)) {
     links = links.filter((item) => item.href !== "/app/reports");
+  }
+  if (!accountType || !RESULTS_STAFF_ROLES.has(accountType)) {
+    links = links.filter((item) => item.href !== "/app/results");
+  }
+  if (!accountType || !ATTENDANCE_ROLES.has(accountType)) {
+    links = links.filter((item) => item.href !== "/app/attendance");
+  }
+  if (!accountType || !ASSESSMENTS_ROLES.has(accountType)) {
+    links = links.filter((item) => item.href !== "/app/assessments");
   }
   return links;
 }
@@ -242,6 +269,9 @@ export function isPortalNavActive(pathname: string, href: string): boolean {
   }
   if (href === "/app/results") {
     return pathname === "/app/results" || pathname.startsWith("/app/results/");
+  }
+  if (href === "/app/parent") {
+    return pathname === "/app/parent" || pathname.startsWith("/app/parent/");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

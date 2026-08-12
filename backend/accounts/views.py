@@ -36,6 +36,34 @@ def logout_view(request):
     return Response({"detail": "Logged out."})
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_password_view(request):
+    current = request.data.get("current_password") or request.data.get("old_password")
+    new_password = request.data.get("new_password") or request.data.get("password")
+    if not current or not new_password:
+        return Response(
+            {"detail": "current_password and new_password are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if len(str(new_password)) < 8:
+        return Response(
+            {"detail": "new_password must be at least 8 characters."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    user = request.user
+    if not user.check_password(current):
+        return Response(
+            {"detail": "Current password is incorrect."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    user.set_password(new_password)
+    user.must_change_password = False
+    user.save(update_fields=["password", "must_change_password"])
+    login(request, user)
+    return Response({"detail": "Password updated.", "must_change_password": False})
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me_view(request):
@@ -168,6 +196,13 @@ class StudentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         student = serializer.save()
+        try:
+            from fees.views import ensure_bill_for_student
+
+            ensure_bill_for_student(student, updated_by=request.user)
+        except Exception:
+            # Enrollment must succeed even if fee structures are incomplete.
+            pass
         payload = serializer.data
         payload["temporary_password"] = getattr(student, "_temp_password", None)
         return Response(payload, status=status.HTTP_201_CREATED)
