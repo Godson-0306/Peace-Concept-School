@@ -411,12 +411,18 @@ def jamb_progress(request):
         student_id = request.query_params.get("student")
         if student_id:
             qs = qs.filter(student_id=student_id)
-    elif can_view_all_results(user) or user.account_type == AccountType.ADMIN:
+    elif can_view_all_results(user) or user.account_type in (
+        AccountType.ADMIN,
+        AccountType.PRINCIPAL,
+        AccountType.TEACHER,
+        AccountType.ACCOUNTANT,
+    ):
         student_id = request.query_params.get("student")
         if student_id:
             qs = qs.filter(student_id=student_id)
     else:
-        return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+        # Other authenticated roles can open the engine; history stays empty.
+        qs = qs.none()
 
     return Response(
         {
