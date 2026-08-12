@@ -855,19 +855,22 @@ def _draw_circular_photo(c, source, cx, cy, radius, ring_color, ring_width=2):
 
 
 def build_id_card_pdf(student) -> bytes:
-    """Landscape CR80 ID card — diagonal modern layout, same PCIMS details."""
+    """Landscape CR80 ID card — modern blue & pink diagonal layout."""
     card = generate_barcode_for_student(student)
     buffer = io.BytesIO()
     page = (85.6 * mm, 53.98 * mm)
     c = canvas.Canvas(buffer, pagesize=page)
     w, h = page
 
-    # Sample-inspired palette (navy / charcoal / gold) on landscape CR80
-    NAVY = colors.HexColor("#0B2E6B")
-    NAVY_DEEP = colors.HexColor("#071E4A")
-    CHARCOAL = colors.HexColor("#3D4654")
-    GOLD = colors.HexColor("#D4A017")
-    GOLD_SOFT = colors.HexColor("#F0D78C")
+    # Brand palette — mostly blue with pink accents
+    BLUE = BRAND_BLUE
+    BLUE_DEEP = BRAND_BLUE_DEEP
+    BLUE_MID = colors.HexColor("#1A63C4")
+    BLUE_MIST = colors.HexColor("#F3F7FC")
+    PINK = BRAND_PINK
+    PINK_DEEP = colors.HexColor("#D4477A")
+    PINK_SOFT = BRAND_PINK_SOFT
+    PINK_MIST = colors.HexColor("#FFF5F9")
 
     class_label = ""
     if student.class_arm:
@@ -875,7 +878,7 @@ def build_id_card_pdf(student) -> bytes:
     gender = (student.gender or "—").title()
     name = (student.full_name or "").strip() or "—"
     student_code = student.student_id or card.barcode_value
-    display_name = name if len(name) <= 24 else name[:23] + "…"
+    display_name = name if len(name) <= 26 else name[:25] + "…"
 
     photo_bytes = None
     if getattr(student, "passport_photo", None):
@@ -886,36 +889,55 @@ def build_id_card_pdf(student) -> bytes:
             photo_bytes = None
 
     # ---------- FRONT ----------
-    # White base
-    c.setFillColor(colors.white)
+    c.setFillColor(BLUE_MIST)
     c.rect(0, 0, w, h, fill=1, stroke=0)
 
-    # Left navy panel with diagonal cut (landscape adaptation of sample)
-    c.setFillColor(NAVY)
+    # Soft pink wash on the right panel
+    c.setFillColor(PINK_MIST)
+    wash = c.beginPath()
+    wash.moveTo(w * 0.40, 0)
+    wash.lineTo(w, 0)
+    wash.lineTo(w, h)
+    wash.lineTo(w * 0.54, h)
+    wash.close()
+    c.drawPath(wash, fill=1, stroke=0)
+
+    # Deep blue left panel with elegant diagonal cut
+    c.setFillColor(BLUE_DEEP)
     path = c.beginPath()
     path.moveTo(0, 0)
     path.lineTo(0, h)
-    path.lineTo(w * 0.42, h)
-    path.lineTo(w * 0.28, 0)
+    path.lineTo(w * 0.40, h)
+    path.lineTo(w * 0.26, 0)
     path.close()
     c.drawPath(path, fill=1, stroke=0)
 
-    # Charcoal diagonal band
-    c.setFillColor(CHARCOAL)
+    # Mid-blue inner diagonal for depth
+    c.setFillColor(BLUE_MID)
+    inner = c.beginPath()
+    inner.moveTo(w * 0.18, 0)
+    inner.lineTo(w * 0.32, h)
+    inner.lineTo(w * 0.40, h)
+    inner.lineTo(w * 0.26, 0)
+    inner.close()
+    c.drawPath(inner, fill=1, stroke=0)
+
+    # Soft pink accent band along the diagonal
+    c.setFillColor(PINK)
     band = c.beginPath()
-    band.moveTo(w * 0.28, 0)
-    band.lineTo(w * 0.42, h)
-    band.lineTo(w * 0.52, h)
-    band.lineTo(w * 0.38, 0)
+    band.moveTo(w * 0.26, 0)
+    band.lineTo(w * 0.40, h)
+    band.lineTo(w * 0.455, h)
+    band.lineTo(w * 0.315, 0)
     band.close()
     c.drawPath(band, fill=1, stroke=0)
 
-    # Thin gold edge along the diagonal
-    c.setStrokeColor(GOLD)
-    c.setLineWidth(1.4)
-    c.line(w * 0.28, 0, w * 0.42, h)
+    # Fine white highlight along the pink edge
+    c.setStrokeColor(colors.white)
+    c.setLineWidth(0.9)
+    c.line(w * 0.26, 0, w * 0.40, h)
 
-    # Logo + school name in navy zone
+    # Logo + school name in blue zone
     logo = _logo_path()
     if logo:
         _draw_image_safe(c, logo, 3 * mm, h - 14 * mm, 10 * mm, 10 * mm)
@@ -923,49 +945,57 @@ def build_id_card_pdf(student) -> bytes:
     c.setFont("Helvetica-Bold", 6.2)
     c.drawString(14.5 * mm, h - 7.5 * mm, "PEACE CONCEPT")
     c.drawString(14.5 * mm, h - 10.5 * mm, "INT'L MISSION SCHOOLS")
-    c.setFillColor(GOLD_SOFT)
+    c.setFillColor(PINK_SOFT)
     c.setFont("Helvetica", 5)
     c.drawString(14.5 * mm, h - 13.5 * mm, "Student Identity Card")
 
-    # Circular photo sitting on the diagonal
-    photo_cx, photo_cy, photo_r = 30 * mm, h * 0.48, 11.5 * mm
-    _draw_circular_photo(c, photo_bytes, photo_cx, photo_cy, photo_r, GOLD, ring_width=2.2)
+    # Circular photo on the diagonal seam
+    photo_cx, photo_cy, photo_r = 29.5 * mm, h * 0.46, 11.8 * mm
+    _draw_circular_photo(c, photo_bytes, photo_cx, photo_cy, photo_r, PINK, ring_width=2.4)
+    # Soft outer blue halo
+    c.setStrokeColor(BLUE)
+    c.setLineWidth(0.8)
+    c.circle(photo_cx, photo_cy, photo_r + 2.4, fill=0, stroke=1)
 
-    # Details on white panel (right)
+    # Details on the light panel
     text_x = 46 * mm
-    c.setFillColor(GOLD)
+    c.setFillColor(BLUE_DEEP)
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(text_x, h - 16 * mm, display_name)
+    c.drawString(text_x, h - 15 * mm, display_name)
+    # Pink accent underline under name
+    c.setStrokeColor(PINK)
+    c.setLineWidth(1.3)
+    name_w = c.stringWidth(display_name, "Helvetica-Bold", 11)
+    c.line(text_x, h - 16.2 * mm, text_x + min(name_w, 28 * mm), h - 16.2 * mm)
 
-    c.setFillColor(CHARCOAL)
-    c.setFont("Helvetica", 6)
-    c.drawString(text_x, h - 21 * mm, "STUDENT ID")
-    c.setFillColor(NAVY_DEEP)
-    c.setFont("Helvetica-Bold", 8.5)
-    c.drawString(text_x, h - 25 * mm, student_code)
+    def _field(label_y, value_y, label, value, value_color=INK):
+        c.setFillColor(PINK_DEEP)
+        c.setFont("Helvetica", 5.5)
+        c.drawString(text_x, label_y, label)
+        c.setFillColor(value_color)
+        c.setFont("Helvetica-Bold", 8.2)
+        c.drawString(text_x, value_y, value)
 
-    c.setFillColor(CHARCOAL)
-    c.setFont("Helvetica", 6)
-    c.drawString(text_x, h - 30 * mm, "CLASS")
-    c.setFillColor(INK)
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(text_x, h - 34 * mm, (class_label or "—")[:20])
+    _field(h - 21.5 * mm, h - 25.5 * mm, "STUDENT ID", student_code, BLUE_DEEP)
+    _field(h - 30.5 * mm, h - 34.5 * mm, "CLASS", (class_label or "—")[:20], INK)
+    _field(h - 39.5 * mm, h - 43.5 * mm, "GENDER", gender, INK)
 
-    c.setFillColor(CHARCOAL)
-    c.setFont("Helvetica", 6)
-    c.drawString(text_x, h - 39 * mm, "GENDER")
-    c.setFillColor(INK)
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(text_x, h - 43 * mm, gender)
-
-    # Front QR bottom-right
+    # Front QR — soft pink frame
     qr_size = 14 * mm
     qr_x = w - qr_size - 3 * mm
     qr_y = 4.5 * mm
     c.setFillColor(colors.white)
-    c.setStrokeColor(LINE)
-    c.setLineWidth(0.7)
-    c.roundRect(qr_x - 1.2 * mm, qr_y - 0.5 * mm, qr_size + 2.4 * mm, qr_size + 4.2 * mm, 1.2 * mm, fill=1, stroke=1)
+    c.setStrokeColor(PINK)
+    c.setLineWidth(1.0)
+    c.roundRect(
+        qr_x - 1.2 * mm,
+        qr_y - 0.5 * mm,
+        qr_size + 2.4 * mm,
+        qr_size + 4.2 * mm,
+        1.4 * mm,
+        fill=1,
+        stroke=1,
+    )
     if card.qr_image:
         try:
             with card.qr_image.open("rb") as fh:
@@ -973,47 +1003,56 @@ def build_id_card_pdf(student) -> bytes:
             _draw_image_safe(c, qr_bytes, qr_x, qr_y + 2 * mm, qr_size, qr_size)
         except Exception:
             pass
-    c.setFillColor(GOLD)
+    c.setFillColor(PINK_DEEP)
     c.setFont("Helvetica-Bold", 4.5)
     c.drawCentredString(qr_x + qr_size / 2, qr_y - 0.1 * mm, "GATE SCAN")
 
-    # Motto under navy zone
-    c.setFillColor(GOLD_SOFT)
+    # Motto in blue zone
+    c.setFillColor(PINK_SOFT)
     c.setFont("Helvetica-Oblique", 5)
     c.drawString(3 * mm, 3 * mm, f"“{SCHOOL_MOTTO}”")
 
     c.showPage()
 
     # ---------- BACK ----------
-    c.setFillColor(NAVY_DEEP)
+    c.setFillColor(BLUE_DEEP)
     c.rect(0, 0, w, h, fill=1, stroke=0)
 
-    # White diagonal corner (mirrored sample style)
-    c.setFillColor(colors.white)
+    # Soft blue mid wash for depth
+    c.setFillColor(BLUE)
+    mid_wash = c.beginPath()
+    mid_wash.moveTo(w * 0.35, 0)
+    mid_wash.lineTo(w, 0)
+    mid_wash.lineTo(w, h * 0.55)
+    mid_wash.close()
+    c.drawPath(mid_wash, fill=1, stroke=0)
+
+    # Soft pink / white diagonal corner
+    c.setFillColor(PINK_MIST)
     corner = c.beginPath()
     corner.moveTo(0, h)
     corner.lineTo(w * 0.38, h)
-    corner.lineTo(0, h * 0.35)
+    corner.lineTo(0, h * 0.34)
     corner.close()
     c.drawPath(corner, fill=1, stroke=0)
 
-    c.setFillColor(CHARCOAL)
+    c.setFillColor(PINK)
     stripe = c.beginPath()
-    stripe.moveTo(0, h * 0.35)
+    stripe.moveTo(0, h * 0.34)
     stripe.lineTo(w * 0.38, h)
     stripe.lineTo(w * 0.46, h)
-    stripe.lineTo(0, h * 0.22)
+    stripe.lineTo(0, h * 0.21)
     stripe.close()
     c.drawPath(stripe, fill=1, stroke=0)
 
-    c.setStrokeColor(GOLD)
-    c.setLineWidth(1.2)
-    c.line(0, h * 0.35, w * 0.38, h)
+    c.setStrokeColor(colors.white)
+    c.setLineWidth(1.0)
+    c.line(0, h * 0.34, w * 0.38, h)
 
-    # Small logo on white corner
+    # Small logo on soft corner
     if logo:
         _draw_image_safe(c, logo, 2.5 * mm, h - 12 * mm, 8.5 * mm, 8.5 * mm)
-    c.setFillColor(NAVY_DEEP)
+    c.setFillColor(BLUE_DEEP)
     c.setFont("Helvetica-Bold", 5)
     c.drawString(12 * mm, h - 6.5 * mm, "PEACE CONCEPT")
     c.setFont("Helvetica", 4.5)
@@ -1022,15 +1061,25 @@ def build_id_card_pdf(student) -> bytes:
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 8)
     c.drawString(40 * mm, h - 8 * mm, "Scan at the gate")
-    c.setFillColor(GOLD)
+    c.setFillColor(PINK_SOFT)
     c.setFont("Helvetica-Bold", 7)
     c.drawString(40 * mm, h - 12 * mm, student_code)
 
-    back_qr = 20 * mm
+    back_qr = 18.5 * mm
     back_x = (w - back_qr) / 2 + 4 * mm
-    back_y = 17 * mm
+    back_y = 18.5 * mm
     c.setFillColor(colors.white)
-    c.roundRect(back_x - 2 * mm, back_y - 2 * mm, back_qr + 4 * mm, back_qr + 4 * mm, 2 * mm, fill=1, stroke=0)
+    c.setStrokeColor(PINK)
+    c.setLineWidth(1.1)
+    c.roundRect(
+        back_x - 2 * mm,
+        back_y - 2 * mm,
+        back_qr + 4 * mm,
+        back_qr + 4 * mm,
+        2 * mm,
+        fill=1,
+        stroke=1,
+    )
     if card.qr_image:
         try:
             with card.qr_image.open("rb") as fh:
@@ -1043,14 +1092,23 @@ def build_id_card_pdf(student) -> bytes:
         try:
             with card.barcode_image.open("rb") as fh:
                 bar_bytes = fh.read()
-            bar_w, bar_h = 42 * mm, 5.5 * mm
+            bar_w, bar_h = 40 * mm, 5 * mm
+            bar_y = 8.6 * mm
             c.setFillColor(colors.white)
-            c.roundRect((w - bar_w) / 2 + 2 * mm - 1 * mm, 9.2 * mm, bar_w + 2 * mm, bar_h + 1.5 * mm, 1 * mm, fill=1, stroke=0)
+            c.roundRect(
+                (w - bar_w) / 2 + 2 * mm - 1 * mm,
+                bar_y - 0.6 * mm,
+                bar_w + 2 * mm,
+                bar_h + 1.4 * mm,
+                1 * mm,
+                fill=1,
+                stroke=0,
+            )
             _draw_image_safe(
                 c,
                 bar_bytes,
                 (w - bar_w) / 2 + 2 * mm,
-                9.8 * mm,
+                bar_y,
                 bar_w,
                 bar_h,
             )
@@ -1058,13 +1116,13 @@ def build_id_card_pdf(student) -> bytes:
             pass
 
     c.setFillColor(colors.white)
-    c.setFont("Helvetica", 5.2)
-    c.drawCentredString(w / 2, 6.5 * mm, "If found, please return to the school office.")
-    c.setFont("Helvetica", 4.8)
-    c.drawCentredString(w / 2, 3.8 * mm, SCHOOL_ADDRESS[:72])
-    c.setFillColor(GOLD_SOFT)
-    c.setFont("Helvetica-Oblique", 4.8)
-    c.drawCentredString(w / 2, 1.4 * mm, f"Property of {SCHOOL_NAME}")
+    c.setFont("Helvetica", 5)
+    c.drawCentredString(w / 2, 5.8 * mm, "If found, please return to the school office.")
+    c.setFont("Helvetica", 4.6)
+    c.drawCentredString(w / 2, 3.4 * mm, SCHOOL_ADDRESS[:72])
+    c.setFillColor(PINK_SOFT)
+    c.setFont("Helvetica-Oblique", 4.6)
+    c.drawCentredString(w / 2, 1.2 * mm, f"Property of {SCHOOL_NAME}")
 
     c.showPage()
     c.save()
