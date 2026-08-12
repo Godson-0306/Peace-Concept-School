@@ -803,70 +803,200 @@ def build_report_card_pdf(student, term) -> bytes:
     return buffer.getvalue()
 
 
+def _draw_image_safe(c, source, x, y, width, height):
+    """Draw an image from path, bytes, or file-like; return True on success."""
+    try:
+        if isinstance(source, (bytes, bytearray)):
+            reader = ImageReader(io.BytesIO(source))
+        elif hasattr(source, "read"):
+            reader = ImageReader(source)
+        else:
+            reader = ImageReader(str(source))
+        c.drawImage(
+            reader,
+            x,
+            y,
+            width=width,
+            height=height,
+            preserveAspectRatio=True,
+            mask="auto",
+            anchor="c",
+        )
+        return True
+    except Exception:
+        return False
+
+
 def build_id_card_pdf(student) -> bytes:
+    """Branded CR80 student ID card (front + back) for gate scanning."""
     card = generate_barcode_for_student(student)
     buffer = io.BytesIO()
     page = (85.6 * mm, 53.98 * mm)
     c = canvas.Canvas(buffer, pagesize=page)
     w, h = page
-    c.setFillColor(colors.HexColor("#1450A3"))
-    c.rect(0, h - 14 * mm, w, 14 * mm, fill=1, stroke=0)
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 8)
-    c.drawCentredString(w / 2, h - 8 * mm, "PEACE CONCEPT INT'L MISSION SCHOOLS")
-    c.setFillColor(colors.black)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(28 * mm, h - 22 * mm, student.full_name[:28])
-    c.setFont("Helvetica", 8)
-    c.drawString(28 * mm, h - 28 * mm, f"ID: {student.student_id}")
-    c.drawString(28 * mm, h - 33 * mm, f"Gender: {student.gender or '—'}")
-    c.drawString(28 * mm, h - 38 * mm, f"Class: {student.class_arm or '—'}")
-    c.setStrokeColor(colors.HexColor("#E85A8C"))
-    c.rect(4 * mm, h - 42 * mm, 20 * mm, 24 * mm)
-    c.setFont("Helvetica", 6)
-    c.drawCentredString(14 * mm, h - 30 * mm, "PHOTO")
 
+    class_label = ""
+    if student.class_arm:
+        class_label = student.class_arm.label or str(student.class_arm)
+    gender = (student.gender or "—").title()
+    name = (student.full_name or "").strip() or "—"
+    student_code = student.student_id or card.barcode_value
+
+    # ---------- FRONT ----------
+    c.setFillColor(colors.white)
+    c.rect(0, 0, w, h, fill=1, stroke=0)
+
+    # Header bar + pink accent
+    c.setFillColor(BRAND_BLUE)
+    c.rect(0, h - 12 * mm, w, 12 * mm, fill=1, stroke=0)
+    c.setFillColor(BRAND_PINK)
+    c.rect(0, h - 13.6 * mm, w, 1.6 * mm, fill=1, stroke=0)
+
+    logo = _logo_path()
+    if logo:
+        _draw_image_safe(c, logo, 2.5 * mm, h - 11.2 * mm, 9 * mm, 9 * mm)
+
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 7)
+    c.drawCentredString(w / 2 + 2 * mm, h - 6.2 * mm, "PEACE CONCEPT INT'L MISSION SCHOOLS")
+    c.setFont("Helvetica", 5.5)
+    c.drawCentredString(w / 2 + 2 * mm, h - 9.5 * mm, "Student Identity Card")
+
+    # Photo
+    photo_x, photo_y = 3.5 * mm, 14 * mm
+    photo_w, photo_h = 22 * mm, 26 * mm
+    c.setStrokeColor(BRAND_PINK)
+    c.setLineWidth(1.2)
+    c.setFillColor(BRAND_BLUE_SOFT)
+    c.roundRect(photo_x, photo_y, photo_w, photo_h, 1.5 * mm, fill=1, stroke=1)
+
+    photo_drawn = False
+    if getattr(student, "passport_photo", None):
+        try:
+            with student.passport_photo.open("rb") as fh:
+                photo_bytes = fh.read()
+            photo_drawn = _draw_image_safe(
+                c,
+                photo_bytes,
+                photo_x + 0.8 * mm,
+                photo_y + 0.8 * mm,
+                photo_w - 1.6 * mm,
+                photo_h - 1.6 * mm,
+            )
+        except Exception:
+            photo_drawn = False
+    if not photo_drawn:
+        c.setFillColor(MUTED)
+        c.setFont("Helvetica", 6)
+        c.drawCentredString(photo_x + photo_w / 2, photo_y + photo_h / 2 - 2, "PHOTO")
+
+    # Student details
+    text_x = 28 * mm
+    c.setFillColor(INK)
+    c.setFont("Helvetica-Bold", 9)
+    # Wrap long names lightly
+    display_name = name if len(name) <= 26 else name[:25] + "…"
+    c.drawString(text_x, h - 20 * mm, display_name)
+
+    c.setFillColor(MUTED)
+    c.setFont("Helvetica", 6)
+    c.drawString(text_x, h - 24.5 * mm, "STUDENT ID")
+    c.setFillColor(BRAND_BLUE_DEEP)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(text_x, h - 28 * mm, student_code)
+
+    c.setFillColor(MUTED)
+    c.setFont("Helvetica", 6)
+    c.drawString(text_x, h - 32.5 * mm, "CLASS")
+    c.setFillColor(INK)
+    c.setFont("Helvetica-Bold", 7.5)
+    c.drawString(text_x, h - 36 * mm, (class_label or "—")[:22])
+
+    c.setFillColor(MUTED)
+    c.setFont("Helvetica", 6)
+    c.drawString(text_x, h - 40.5 * mm, "GENDER")
+    c.setFillColor(INK)
+    c.setFont("Helvetica-Bold", 7.5)
+    c.drawString(text_x, h - 44 * mm, gender)
+
+    # Front QR (gate)
+    qr_size = 16 * mm
+    qr_x = w - qr_size - 3.5 * mm
+    qr_y = 5.5 * mm
+    c.setFillColor(colors.white)
+    c.setStrokeColor(LINE)
+    c.setLineWidth(0.6)
+    c.roundRect(qr_x - 1 * mm, qr_y - 1 * mm, qr_size + 2 * mm, qr_size + 5 * mm, 1 * mm, fill=1, stroke=1)
     if card.qr_image:
         try:
             with card.qr_image.open("rb") as fh:
                 qr_bytes = fh.read()
-            qr_reader = ImageReader(io.BytesIO(qr_bytes))
-            c.drawImage(
-                qr_reader,
-                w - 24 * mm,
-                4 * mm,
-                width=18 * mm,
-                height=18 * mm,
-                preserveAspectRatio=True,
-                mask="auto",
-            )
+            _draw_image_safe(c, qr_bytes, qr_x, qr_y + 2.2 * mm, qr_size, qr_size)
         except Exception:
             pass
+    c.setFillColor(BRAND_PINK)
+    c.setFont("Helvetica-Bold", 5)
+    c.drawCentredString(qr_x + qr_size / 2, qr_y - 0.2 * mm, "GATE SCAN")
+
+    # Motto footer
+    c.setFillColor(BRAND_BLUE)
+    c.rect(0, 0, w, 4 * mm, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica", 5)
+    c.drawCentredString(w / 2, 1.3 * mm, f"Motto: {SCHOOL_MOTTO}")
 
     c.showPage()
-    c.setFillColor(colors.HexColor("#0B3575"))
+
+    # ---------- BACK ----------
+    c.setFillColor(BRAND_BLUE_DEEP)
     c.rect(0, 0, w, h, fill=1, stroke=0)
+    c.setFillColor(BRAND_PINK)
+    c.rect(0, h - 3 * mm, w, 3 * mm, fill=1, stroke=0)
+
     c.setFillColor(colors.white)
-    c.setFont("Helvetica", 7)
-    c.drawCentredString(w / 2, h - 12 * mm, "Property of Peace Concept Int'l Mission Schools")
-    c.drawCentredString(w / 2, h - 18 * mm, "If found, please return to the school office.")
-    c.drawCentredString(w / 2, h - 28 * mm, f"Scan QR at the gate · {card.barcode_value}")
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(w / 2, h - 8 * mm, "Scan at the gate")
+    c.setFont("Helvetica", 6.5)
+    c.drawCentredString(w / 2, h - 11.5 * mm, student_code)
+
+    back_qr = 22 * mm
+    back_x = (w - back_qr) / 2
+    back_y = 16.5 * mm
+    c.setFillColor(colors.white)
+    c.roundRect(back_x - 2 * mm, back_y - 2 * mm, back_qr + 4 * mm, back_qr + 4 * mm, 2 * mm, fill=1, stroke=0)
     if card.qr_image:
         try:
             with card.qr_image.open("rb") as fh:
                 qr_bytes = fh.read()
-            qr_reader = ImageReader(io.BytesIO(qr_bytes))
-            c.drawImage(
-                qr_reader,
-                w / 2 - 12 * mm,
-                8 * mm,
-                width=24 * mm,
-                height=24 * mm,
-                preserveAspectRatio=True,
-                mask="auto",
+            _draw_image_safe(c, qr_bytes, back_x, back_y, back_qr, back_qr)
+        except Exception:
+            pass
+
+    # Code128 backup under QR if available
+    if card.barcode_image:
+        try:
+            with card.barcode_image.open("rb") as fh:
+                bar_bytes = fh.read()
+            bar_w, bar_h = 48 * mm, 6 * mm
+            _draw_image_safe(
+                c,
+                bar_bytes,
+                (w - bar_w) / 2,
+                9 * mm,
+                bar_w,
+                bar_h,
             )
         except Exception:
             pass
+
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica", 5.5)
+    c.drawCentredString(w / 2, 6.2 * mm, "If found, please return to the school office.")
+    c.setFont("Helvetica", 5)
+    c.drawCentredString(w / 2, 3.4 * mm, SCHOOL_ADDRESS[:70])
+    c.setFont("Helvetica-Oblique", 5)
+    c.drawCentredString(w / 2, 1.1 * mm, f"Property of {SCHOOL_NAME}")
+
     c.showPage()
     c.save()
     return buffer.getvalue()
