@@ -6,7 +6,7 @@ import { apiFetch, apiJson, errorFromUnknown, formatApiError } from "@/lib/api";
 import { getStoredUser, type AuthUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
 import type { ClassLevelNav } from "@/lib/portalNav";
-import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
+import { loadActiveSessionTerms, preferredReportTerm, type PortalTerm } from "@/lib/terms";
 
 type ClassArm = {
   id: number;
@@ -105,8 +105,8 @@ export default function ReportsPage() {
         setArms(unwrapList(armData));
         setTerms(termList);
         if (levelList[0]) setLevelId(levelList[0].id);
-        const activeTerm = termList.find((t) => t.is_active) ?? termList[0];
-        if (activeTerm) setTermId(activeTerm.id);
+        const preferred = preferredReportTerm(termList);
+        if (preferred) setTermId(preferred.id);
       } catch (e) {
         if (!cancelled) setError(errorFromUnknown(e, "Failed to load filters"));
       } finally {
@@ -156,6 +156,38 @@ export default function ReportsPage() {
       setRosterLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!armId || !allowed || terms.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Discover which session terms actually have scores for this class.
+        const checks = await Promise.all(
+          terms.map(async (t) => {
+            const data = await apiJson<
+              { results?: { id: number }[] } | { id: number }[]
+            >(`/api/scores/?class_arm=${armId}&term=${t.id}&page_size=1`);
+            return unwrapList(data).length > 0 ? t.id : null;
+          }),
+        );
+        if (cancelled) return;
+        const scored = checks.filter((id): id is number => id != null);
+        const preferred = preferredReportTerm(terms, scored);
+        if (preferred) {
+          setTermId((prev) => {
+            if (prev && scored.includes(prev)) return prev;
+            return preferred.id;
+          });
+        }
+      } catch {
+        /* keep current term selection */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [armId, allowed, terms]);
 
   useEffect(() => {
     if (!armId || !allowed) {

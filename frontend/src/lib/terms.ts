@@ -69,3 +69,19 @@ export async function loadActiveSessionTerms(): Promise<PortalTerm[]> {
   if (!active) return [];
   return loadTerms(active.id);
 }
+
+/** Prefer the latest term that has scores; else last term in the session. */
+export function preferredReportTerm<T extends { id: number; number: number; is_active?: boolean }>(
+  terms: T[],
+  scoredTermIds?: Iterable<number> | null,
+): T | null {
+  if (!terms.length) return null;
+  const scored = scoredTermIds ? new Set(scoredTermIds) : null;
+  const ordered = [...terms].sort((a, b) => a.number - b.number);
+  if (scored && scored.size) {
+    for (let i = ordered.length - 1; i >= 0; i -= 1) {
+      if (scored.has(ordered[i].id)) return ordered[i];
+    }
+  }
+  return ordered[ordered.length - 1] ?? null;
+}

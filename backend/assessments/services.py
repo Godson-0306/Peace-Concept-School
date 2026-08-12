@@ -86,6 +86,53 @@ def score_total(score: AssessmentScore) -> Decimal:
     return (score.ca1 or Decimal("0")) + (score.ca2 or Decimal("0")) + (score.exam or Decimal("0"))
 
 
+def resolve_term_for_report(student=None, term_id=None, class_arm_id=None):
+    """
+    Pick the term a report card should use.
+
+    Prefer an explicit term_id. Otherwise prefer the latest term in the active
+    (or student's) session that actually has scores for this student/class,
+    then the session's active term, then the latest session term.
+    """
+    from academics.models import AcademicSession, Term
+
+    if term_id:
+        term = Term.objects.select_related("session").filter(id=term_id).first()
+        if term:
+            return term
+
+    session = AcademicSession.objects.filter(is_active=True).first()
+    if session is None:
+        session = AcademicSession.objects.order_by("-start_year", "-id").first()
+    if session is None:
+        return Term.objects.filter(is_active=True).select_related("session").first()
+
+    session_terms = list(
+        Term.objects.filter(session=session).select_related("session").order_by("number")
+    )
+    if not session_terms:
+        return None
+
+    score_filter = {"term_id__in": [t.id for t in session_terms]}
+    if student is not None:
+        score_filter["student_id"] = student.id
+    elif class_arm_id:
+        score_filter["class_arm_id"] = class_arm_id
+
+    scored_term_ids = set(
+        AssessmentScore.objects.filter(**score_filter)
+        .values_list("term_id", flat=True)
+        .distinct()
+    )
+    if scored_term_ids:
+        for term in reversed(session_terms):
+            if term.id in scored_term_ids:
+                return term
+
+    active = next((t for t in session_terms if t.is_active), None)
+    return active or session_terms[-1]
+
+
 def grade_for_score(score) -> tuple[str, str]:
     """Return (letter, word) using PCIMS key to gradings."""
     try:

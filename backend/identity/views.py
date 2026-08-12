@@ -72,14 +72,16 @@ def _slug_label(value) -> str:
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def report_card_pdf(request, student_id):
-    from academics.models import Term
+    from assessments.services import resolve_term_for_report
     from assessments.views import results_visible_for_student
 
     student, err = _get_student_for_user(request, student_id)
     if err:
         return err
-    term_id = request.query_params.get("term")
-    term = Term.objects.filter(id=term_id).first() if term_id else Term.objects.filter(is_active=True).first()
+    term = resolve_term_for_report(
+        student=student,
+        term_id=request.query_params.get("term"),
+    )
     if not term:
         return Response({"detail": "Term required."}, status=400)
 
@@ -128,23 +130,27 @@ def student_id_card(request, student_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsAdminOrPrincipal])
 def report_cards_batch(request):
-    from academics.models import ClassArm, Term
+    from academics.models import ClassArm
+    from assessments.services import resolve_term_for_report
 
     pack, err = _batch_pack(request)
     if err:
         return err
 
     class_arm_id = request.query_params.get("class_arm")
-    term_id = request.query_params.get("term")
-    if not class_arm_id or not term_id:
-        return Response({"detail": "class_arm and term are required."}, status=400)
+    if not class_arm_id:
+        return Response({"detail": "class_arm is required."}, status=400)
 
     arm = ClassArm.objects.filter(id=class_arm_id).select_related("class_level").first()
     if not arm:
         return Response({"detail": "Class arm not found."}, status=404)
-    term = Term.objects.filter(id=term_id).select_related("session").first()
+
+    term = resolve_term_for_report(
+        term_id=request.query_params.get("term"),
+        class_arm_id=arm.id,
+    )
     if not term:
-        return Response({"detail": "Term not found."}, status=404)
+        return Response({"detail": "Term required."}, status=400)
 
     students = list(_students_for_arm(arm.id))
     if not students:

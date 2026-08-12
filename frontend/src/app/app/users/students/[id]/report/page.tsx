@@ -10,7 +10,7 @@ import {
   SCORE_LIMITS,
 } from "@/lib/assessments";
 import { AuthUser, getStoredUser } from "@/lib/auth";
-import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
+import { loadActiveSessionTerms, preferredReportTerm, type PortalTerm } from "@/lib/terms";
 
 type Student = {
   id: number;
@@ -75,8 +75,8 @@ export default function StudentReportEntryPage() {
   const loadTerms = useCallback(async () => {
     const list = await loadActiveSessionTerms();
     setTerms(list);
-    const active = list.find((t) => t.is_active);
-    setTermId((prev) => prev || active?.id || list[0]?.id || "");
+    const preferred = preferredReportTerm(list);
+    setTermId((prev) => prev || preferred?.id || list[0]?.id || "");
     return list;
   }, []);
 
