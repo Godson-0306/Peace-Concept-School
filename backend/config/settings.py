@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,8 +16,19 @@ SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "dev-insecure-peace-concept-school-change-me-in-production",
 )
+INSECURE_SECRET_KEY = "dev-insecure-peace-concept-school-change-me-in-production"
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() in ("1", "true", "yes")
+
+_on_render = bool(
+    os.environ.get("RENDER") or os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+)
+if _on_render and DEBUG:
+    raise ImproperlyConfigured("DJANGO_DEBUG must be false on Render.")
+if not DEBUG and SECRET_KEY == INSECURE_SECRET_KEY:
+    raise ImproperlyConfigured(
+        "Set DJANGO_SECRET_KEY before running with DJANGO_DEBUG=false."
+    )
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -132,6 +144,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
 # Secure cookies default on when not DEBUG (override with SESSION_COOKIE_SECURE=false).
@@ -163,8 +176,8 @@ AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "")
 AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
 AWS_S3_CUSTOM_DOMAIN = os.environ.get("AWS_S3_CUSTOM_DOMAIN", "")
-AWS_DEFAULT_ACL = os.environ.get("AWS_DEFAULT_ACL", "public-read")
-AWS_QUERYSTRING_AUTH = False
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = True
 AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
 USE_S3_MEDIA = bool(AWS_STORAGE_BUCKET_NAME)
 
@@ -193,11 +206,14 @@ else:
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "accounts.authentication.CsrfExemptSessionAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "20/min",
+    },
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.SearchFilter",

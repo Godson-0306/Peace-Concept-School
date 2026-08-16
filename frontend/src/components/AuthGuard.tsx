@@ -2,27 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getStoredUser } from "@/lib/auth";
+import { apiJson } from "@/lib/api";
+import { clearUser, storeUser, type AuthUser } from "@/lib/auth";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  // Always start false so server HTML and the client's first paint match.
-  // Session checks run only after mount (avoids hydration mismatches).
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const user = getStoredUser();
-    const hasCookie = document.cookie
-      .split(";")
-      .some((part) => part.trim().startsWith("pcs_session="));
-
-    if (!user && !hasCookie) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-      return;
-    }
-
-    setReady(true);
+    let cancelled = false;
+    apiJson<AuthUser>("/api/auth/me/")
+      .then((me) => {
+        if (cancelled) return;
+        storeUser(me);
+        setReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearUser();
+        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, router]);
 
   if (!ready) {

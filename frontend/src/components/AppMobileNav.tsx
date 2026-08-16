@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { AuthUser, getStoredUser } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
+import { AuthUser, clearUser, getStoredUser } from "@/lib/auth";
 import { SCHOOL_SHORT } from "@/lib/brand";
 import { loadClassLevels } from "@/lib/classLevels";
 import {
@@ -86,6 +87,7 @@ function MobileNavChildLinks({
 
 export default function AppMobileNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [levels, setLevels] = useState<ClassLevelNav[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -252,13 +254,28 @@ export default function AppMobileNav() {
                 );
               })}
             </div>
-            <div className="border-t border-[var(--line)] px-4 py-4">
+            <div className="border-t border-[var(--line)] px-4 py-4 space-y-3">
               <Link
                 href="/"
-                className="text-sm font-semibold text-[var(--brand-blue)]"
+                className="block text-sm font-semibold text-[var(--brand-blue)]"
               >
                 Public site
               </Link>
+              <button
+                type="button"
+                className="text-sm font-semibold text-[var(--brand-blue-soft)]"
+                onClick={async () => {
+                  try {
+                    await apiFetch("/api/auth/logout/", { method: "POST" });
+                  } catch {
+                    /* ignore */
+                  }
+                  clearUser();
+                  router.replace("/login");
+                }}
+              >
+                Sign out
+              </button>
             </div>
           </nav>
         </>

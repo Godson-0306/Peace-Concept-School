@@ -61,6 +61,7 @@ type CreatedStudent = {
   student_id: string;
   full_name: string;
   temporary_password?: string;
+  fee_warning?: string;
 };
 
 type FormState = {
@@ -545,6 +546,7 @@ export default function StudentEnrollForm({
         student_id: payload.student_id || lockedStudentId,
         full_name: payload.full_name,
         temporary_password: usedPassword,
+        fee_warning: payload.fee_warning,
       });
       setMessage(
         isEdit
@@ -602,6 +604,12 @@ export default function StudentEnrollForm({
               </div>
             ) : null}
           </dl>
+          {created.fee_warning ? (
+            <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Student was enrolled, but the fee bill could not be created:{" "}
+              {created.fee_warning}
+            </p>
+          ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href={successPrimaryHref}

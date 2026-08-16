@@ -95,6 +95,7 @@ export default function UsersStaffPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [resettingId, setResettingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const data = await apiJson<{ results?: Staff[] } | Staff[]>(
@@ -225,13 +226,39 @@ export default function UsersStaffPage() {
                       {positionsLabel(member)}
                     </td>
                     {isAdmin ? (
-                      <td className="px-5 py-3.5">
+                      <td className="px-5 py-3.5 space-x-3">
                         <Link
                           href={`/app/users/new/staff?id=${member.id}`}
                           className="text-sm font-semibold text-[var(--brand-blue)] hover:underline"
                         >
                           Edit
                         </Link>
+                        <button
+                          type="button"
+                          className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--brand-blue)]"
+                          disabled={resettingId === member.id}
+                          onClick={async () => {
+                            setError("");
+                            setResettingId(member.id);
+                            try {
+                              await apiJson(`/api/staff/${member.id}/reset-password/`, {
+                                method: "POST",
+                              });
+                            } catch (e) {
+                              setError(
+                                e instanceof Error
+                                  ? e.message
+                                  : "Could not reset password",
+                              );
+                            } finally {
+                              setResettingId(null);
+                            }
+                          }}
+                        >
+                          {resettingId === member.id
+                            ? "Resetting…"
+                            : "Reset to school"}
+                        </button>
                       </td>
                     ) : null}
                   </tr>

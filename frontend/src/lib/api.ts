@@ -139,6 +139,22 @@ export function errorFromUnknown(
   return formatApiError(e, fallback);
 }
 
+function readCsrfToken(): string {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("csrftoken="));
+  if (!match) return "";
+  return decodeURIComponent(match.slice("csrftoken=".length));
+}
+
+async function ensureCsrfToken(): Promise<string> {
+  let token = readCsrfToken();
+  if (token) return token;
+  await fetch("/api/auth/csrf", { credentials: "include" });
+  return readCsrfToken();
+}
+
 export async function apiFetch(
   path: string,
   options: RequestInit = {},
@@ -148,6 +164,7 @@ export async function apiFetch(
     ? normalized
     : `${API_URL}${normalized}`;
   const headers = new Headers(options.headers);
+  const method = (options.method || "GET").toUpperCase();
 
   if (
     options.body &&
@@ -155,6 +172,13 @@ export async function apiFetch(
     !headers.has("Content-Type")
   ) {
     headers.set("Content-Type", "application/json");
+  }
+
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const csrf = await ensureCsrfToken();
+    if (csrf && !headers.has("X-CSRFToken")) {
+      headers.set("X-CSRFToken", csrf);
+    }
   }
 
   return fetch(url, {

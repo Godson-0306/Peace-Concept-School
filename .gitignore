@@ -7,6 +7,8 @@ venv/
 backend/db.sqlite3
 backend/media/
 backend/staticfiles/
+backend/accounts/data/results/*.xlsx
+backend/accounts/data/rosters/*.xlsx
 .env
 *.log
 

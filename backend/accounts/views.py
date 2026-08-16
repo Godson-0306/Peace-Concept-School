@@ -1,6 +1,6 @@
 from django.contrib.auth import login, logout
 from rest_framework import generics, status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -8,7 +8,9 @@ from django.db.models import IntegerField, OuterRef, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 
 from .models import ParentProfile, PositionAssignment, StaffProfile, StudentProfile, User
+from .passwords import DEFAULT_PASSWORD
 from .permissions import IsAdminAccount, IsAdminOrPrincipal, can_manage_accounts, user_positions
+from .throttles import LoginRateThrottle
 from .serializers import (
     LoginSerializer,
     ParentProfileSerializer,
@@ -21,6 +23,7 @@ from .serializers import (
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
 def login_view(request):
     serializer = LoginSerializer(data=request.data, context={"request": request})
     serializer.is_valid(raise_exception=True)
@@ -127,6 +130,19 @@ class StaffViewSet(viewsets.ModelViewSet):
         kwargs["partial"] = True
         return self.update(request, *args, **kwargs)
 
+    @action(detail=True, methods=["post"], url_path="reset-password")
+    def reset_password(self, request, pk=None):
+        staff = self.get_object()
+        staff.user.set_password(DEFAULT_PASSWORD)
+        staff.user.must_change_password = False
+        staff.user.save(update_fields=["password", "must_change_password"])
+        return Response(
+            {
+                "detail": f"Password reset to {DEFAULT_PASSWORD}.",
+                "username": staff.user.username,
+            }
+        )
+
 
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = StudentProfile.objects.select_related(
@@ -196,15 +212,17 @@ class StudentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         student = serializer.save()
+        fee_warning = None
         try:
             from fees.views import ensure_bill_for_student
 
             ensure_bill_for_student(student, updated_by=request.user)
-        except Exception:
-            # Enrollment must succeed even if fee structures are incomplete.
-            pass
+        except Exception as exc:  # noqa: BLE001
+            fee_warning = str(exc) or "Fee bill could not be created."
         payload = serializer.data
         payload["temporary_password"] = getattr(student, "_temp_password", None)
+        if fee_warning:
+            payload["fee_warning"] = fee_warning
         return Response(payload, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):

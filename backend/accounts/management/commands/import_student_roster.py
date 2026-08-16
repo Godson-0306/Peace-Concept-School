@@ -8,7 +8,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from academics.models import ClassArm, ClassLevel, StudentIdSequence
-from accounts.models import AccountType, StudentProfile, User
+from accounts.models import AccountType, ParentProfile, StudentProfile, User
+from accounts.passwords import DEFAULT_PASSWORD
 
 try:
     import openpyxl
@@ -209,6 +210,7 @@ class Command(BaseCommand):
                 student, was_created, changed = self._upsert_student(
                     row, class_arm=class_arm, is_active=is_active
                 )
+                self._link_guardian_parent(student, row)
                 if was_created:
                     created += 1
                 elif changed:
@@ -423,6 +425,59 @@ class Command(BaseCommand):
                 changed = True
 
         return student, False, changed
+
+    def _parent_username(self, name: str, phone: str) -> str:
+        digits = re.sub(r"\D", "", phone or "")
+        if len(digits) >= 7:
+            return f"parent.{digits[-10:]}"
+        slug = re.sub(r"[^a-z0-9]+", ".", (name or "").lower()).strip(".")
+        if slug:
+            return f"parent.{slug}"[:40]
+        return ""
+
+    def _link_guardian_parent(self, student: StudentProfile, row: dict) -> None:
+        name = (row.get("guardian_name") or "").strip()
+        phone = (row.get("guardian_phone") or "").strip()
+        if not name and not phone:
+            return
+        username = self._parent_username(name, phone)
+        if not username:
+            return
+        email = f"{username}@parents.peaceconceptschool.ng"
+        user = User.objects.filter(username__iexact=username).first()
+        if user and user.account_type != AccountType.PARENT:
+            username = f"{username}.{student.student_id.lower()}"
+            email = f"{username}@parents.peaceconceptschool.ng"
+            user = User.objects.filter(username__iexact=username).first()
+        if user is None:
+            user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            display = name or f"Parent of {student.full_name}"
+            parts = display.split(" ", 1)
+            user = User.objects.create_user(
+                email=email,
+                password=DEFAULT_PASSWORD,
+                username=username,
+                account_type=AccountType.PARENT,
+                first_name=parts[0],
+                last_name=parts[1] if len(parts) > 1 else "",
+                phone=phone,
+                must_change_password=False,
+            )
+        parent, _ = ParentProfile.objects.get_or_create(
+            user=user,
+            defaults={
+                "full_name": name or user.get_full_name() or username,
+                "phone_number": phone,
+            },
+        )
+        if name and parent.full_name != name:
+            parent.full_name = name
+            parent.save(update_fields=["full_name"])
+        if phone and parent.phone_number != phone:
+            parent.phone_number = phone
+            parent.save(update_fields=["phone_number"])
+        parent.children.add(student)
 
     def _purge_placeholders_and_unknown(self, imported_ids: set[str]) -> int:
         removed = 0

@@ -38,8 +38,12 @@ export default function StudentPage() {
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [fees, setFees] = useState<FeeRecord[]>([]);
   const [error, setError] = useState("");
+  const [studentPk, setStudentPk] = useState<number | null>(null);
 
   useEffect(() => {
+    apiJson<{ student_profile_id?: number }>("/api/auth/me/")
+      .then((me) => setStudentPk(me.student_profile_id ?? null))
+      .catch(() => undefined);
     loadActiveSessionTerms()
       .then((list) => {
         setTerms(list);
@@ -134,13 +138,12 @@ export default function StudentPage() {
               ))}
             </tbody>
           </table>
-          {result.student_code ? (
+          {studentPk && termId && !result.locked ? (
             <a
               className="btn-primary mt-4 inline-block"
-              href={`/api/identity/report-card/${/* filled below */ ""}`}
-              hidden
+              href={`/api/identity/report-card/${studentPk}/?term=${termId}`}
             >
-              PDF
+              Download PDF
             </a>
           ) : null}
         </div>

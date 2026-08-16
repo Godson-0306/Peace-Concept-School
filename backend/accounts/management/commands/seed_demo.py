@@ -1,6 +1,8 @@
 from datetime import date
+import os
 
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from accounts.models import AccountType, StaffProfile, User
@@ -43,6 +45,10 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if not settings.DEBUG or os.environ.get("RENDER") or os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+            raise CommandError(
+                "seed_demo is for local development only and must not run on a live database."
+            )
         admin_user, _ = ensure_user(
             "admin@peaceconceptschool.ng",
             "AdminPass123!",

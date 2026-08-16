@@ -16,6 +16,12 @@ async function proxy(request: NextRequest, path: string[]) {
   if (contentType) headers.set("content-type", contentType);
   const accept = request.headers.get("accept");
   if (accept) headers.set("accept", accept);
+  const csrf = request.headers.get("x-csrftoken");
+  if (csrf) headers.set("x-csrftoken", csrf);
+  const referer = request.headers.get("referer");
+  if (referer) headers.set("referer", referer);
+  const origin = request.headers.get("origin");
+  if (origin) headers.set("origin", origin);
   headers.set("x-forwarded-host", request.headers.get("host") ?? "localhost:3000");
   headers.set("x-forwarded-proto", request.nextUrl.protocol.replace(":", ""));
 

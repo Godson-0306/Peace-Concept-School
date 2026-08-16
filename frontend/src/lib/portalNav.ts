@@ -17,6 +17,7 @@ const NEW_USER_NAV: PortalNavItem = {
 
 export const STAFF_PORTAL_NAV: PortalNavItem[] = [
   { href: "/app", label: "Dashboard" },
+  { href: "/app/password", label: "Password" },
   {
     href: "/app/settings",
     label: "Settings",
@@ -61,12 +62,14 @@ const STUDENT_HREFS = new Set([
   "/app/results",
   "/app/attendance",
   "/app/assessments",
+  "/app/password",
 ]);
 
 const PARENT_NAV: PortalNavItem[] = [
   { href: "/app", label: "Dashboard" },
   { href: "/app/parent", label: "My Children" },
   { href: "/app/assessments", label: "Assessments" },
+  { href: "/app/password", label: "Password" },
 ];
 
 const SETTINGS_ROLES = new Set<AccountType>(["admin", "principal"]);

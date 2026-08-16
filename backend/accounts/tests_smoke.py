@@ -335,3 +335,23 @@ class JambProgressSmokeTests(SchoolFixtureMixin, TestCase):
             format="json",
         )
         self.assertEqual(res.status_code, 403)
+
+
+class StaffResetSmokeTests(SchoolFixtureMixin, TestCase):
+    def test_admin_can_reset_staff_password_to_school(self):
+        from accounts.models import StaffProfile
+        from accounts.passwords import DEFAULT_PASSWORD
+
+        staff_user = User.objects.create_user(
+            email="teacher@test.local",
+            password="TempPass123!",
+            username="teacher1",
+            account_type=AccountType.TEACHER,
+            must_change_password=False,
+        )
+        staff = StaffProfile.objects.create(user=staff_user, full_name="Test Teacher")
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post(f"/api/staff/{staff.id}/reset-password/")
+        self.assertEqual(res.status_code, 200)
+        staff_user.refresh_from_db()
+        self.assertTrue(staff_user.check_password(DEFAULT_PASSWORD))
