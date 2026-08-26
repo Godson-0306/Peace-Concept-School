@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import { Html5Qrcode } from "html5-qrcode";
 import { apiJson } from "@/lib/api";
 import { getStoredUser, type AuthUser } from "@/lib/auth";
@@ -51,6 +52,7 @@ function playBeep(ok: boolean) {
 }
 
 export default function GateScannerPage() {
+  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [scanCode, setScanCode] = useState("");
   const [pending, setPending] = useState(false);
@@ -65,10 +67,7 @@ export default function GateScannerPage() {
   const lastScanRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
   const busyRef = useRef(false);
 
-  const isStaff =
-    user?.account_type === "admin" ||
-    user?.account_type === "principal" ||
-    user?.account_type === "teacher";
+  const isAdmin = user?.account_type === "admin";
 
   const focusScanner = useCallback(() => {
     if (useCamera) return;
@@ -83,7 +82,13 @@ export default function GateScannerPage() {
   }, []);
 
   useEffect(() => {
-    if (!isStaff || useCamera) return;
+    if (user && !isAdmin) {
+      router.replace("/app/attendance");
+    }
+  }, [user, isAdmin, router]);
+
+  useEffect(() => {
+    if (!isAdmin || useCamera) return;
     focusScanner();
     const onFocus = () => focusScanner();
     const onVisibility = () => {
@@ -97,7 +102,7 @@ export default function GateScannerPage() {
       document.removeEventListener("visibilitychange", onVisibility);
       window.clearInterval(tick);
     };
-  }, [isStaff, useCamera, focusScanner]);
+  }, [isAdmin, useCamera, focusScanner]);
 
   const submitCode = useCallback(async (code: string) => {
     const cleaned = code.trim().toUpperCase();
@@ -144,7 +149,7 @@ export default function GateScannerPage() {
   }, [flash]);
 
   useEffect(() => {
-    if (!isStaff || !useCamera) {
+    if (!isAdmin || !useCamera) {
       setScanning(false);
       setCameraError("");
       const scanner = scannerRef.current;
@@ -200,7 +205,7 @@ export default function GateScannerPage() {
           .catch(() => undefined);
       }
     };
-  }, [isStaff, useCamera, submitCode]);
+  }, [isAdmin, useCamera, submitCode]);
 
   function onScanSubmit(e: FormEvent) {
     e.preventDefault();
@@ -211,11 +216,11 @@ export default function GateScannerPage() {
     return <p className="text-sm text-[var(--muted)]">Loading…</p>;
   }
 
-  if (!isStaff) {
+  if (!isAdmin) {
     return (
       <div className="mx-auto max-w-lg">
         <p className="text-sm text-[var(--muted)]">
-          Gate scanner is for staff only.
+          Automatic clock-in is available to Admin only.
         </p>
         <Link
           href="/app/attendance"

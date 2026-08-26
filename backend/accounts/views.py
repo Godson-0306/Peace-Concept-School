@@ -7,7 +7,14 @@ from rest_framework.response import Response
 from django.db.models import IntegerField, OuterRef, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 
-from .models import ParentProfile, PositionAssignment, StaffProfile, StudentProfile, User
+from .models import (
+    AccountType,
+    ParentProfile,
+    PositionAssignment,
+    StaffProfile,
+    StudentProfile,
+    User,
+)
 from .passwords import DEFAULT_PASSWORD
 from .permissions import IsAdminAccount, IsAdminOrPrincipal, can_manage_accounts, user_positions
 from .throttles import LoginRateThrottle
@@ -42,6 +49,11 @@ def logout_view(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def change_password_view(request):
+    if request.user.account_type == AccountType.STUDENT:
+        return Response(
+            {"detail": "Students cannot change their password. Ask the school office."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
     current = request.data.get("current_password") or request.data.get("old_password")
     new_password = request.data.get("new_password") or request.data.get("password")
     if not current or not new_password:

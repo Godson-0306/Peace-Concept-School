@@ -1,15 +1,24 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiJson } from "@/lib/api";
+import { getStoredUser } from "@/lib/auth";
 
 export default function ChangePasswordPage() {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (getStoredUser()?.account_type === "student") {
+      router.replace("/app");
+    }
+  }, [router]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -37,6 +46,10 @@ export default function ChangePasswordPage() {
     } finally {
       setPending(false);
     }
+  }
+
+  if (getStoredUser()?.account_type === "student") {
+    return <p className="text-sm text-[var(--muted)]">Redirecting…</p>;
   }
 
   return (

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { apiJson } from "@/lib/api";
-import { getStoredUser, type AuthUser } from "@/lib/auth";
+import { formTeacherClassArmIds, getStoredUser, isFormTeacher, type AuthUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
 import type { ClassLevelNav } from "@/lib/portalNav";
 
@@ -54,10 +54,10 @@ function todayISO() {
 export default function AttendancePage() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const isStudent = user?.account_type === "student";
-  const isStaff =
-    user?.account_type === "admin" ||
-    user?.account_type === "principal" ||
-    user?.account_type === "teacher";
+  const isAdmin = user?.account_type === "admin";
+  const isPrincipal = user?.account_type === "principal";
+  const formTeacher = isFormTeacher(user);
+  const isStaff = isAdmin || isPrincipal || formTeacher;
 
   const [levels, setLevels] = useState<ClassLevelNav[]>([]);
   const [arms, setArms] = useState<ClassArm[]>([]);
@@ -92,6 +92,13 @@ export default function AttendancePage() {
           if (!cancelled) setSummary(data);
           return;
         }
+        if (
+          user.account_type !== "admin" &&
+          user.account_type !== "principal" &&
+          !isFormTeacher(user)
+        ) {
+          return;
+        }
         const [levelList, armData, sessionData, termData] = await Promise.all([
           loadClassLevels(),
           apiJson<{ results?: ClassArm[] } | ClassArm[]>(
@@ -106,8 +113,17 @@ export default function AttendancePage() {
         const armList = unwrapList(armData);
         const sessionList = unwrapList(sessionData);
         const termList = unwrapList(termData);
-        setLevels(levelList);
-        setArms(armList);
+        const adminish =
+          user.account_type === "admin" || user.account_type === "principal";
+        const allowedArmIds = new Set(formTeacherClassArmIds(user));
+        const visibleArms = adminish
+          ? armList
+          : armList.filter((arm) => allowedArmIds.has(arm.id));
+        const visibleLevels = levelList.filter((level) =>
+          visibleArms.some((arm) => arm.class_level === level.id),
+        );
+        setLevels(visibleLevels);
+        setArms(visibleArms);
         setSessions(sessionList);
         setTerms(termList);
         const activeSession =
@@ -123,7 +139,10 @@ export default function AttendancePage() {
           setTermId(activeTerm.id);
           setSessionId(activeTerm.session);
         }
-        if (levelList[0]) setLevelId(levelList[0].id);
+        if (visibleLevels[0]) setLevelId(visibleLevels[0].id);
+        if (!adminish && visibleArms.length === 0) {
+          setError("No form class is assigned to this account.");
+        }
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load attendance");
@@ -315,7 +334,7 @@ export default function AttendancePage() {
   if (!isStaff) {
     return (
       <p className="text-sm text-[var(--muted)]">
-        Attendance marking is available to staff only.
+        Attendance marking is available to Form Teachers, Admin, and Principal.
       </p>
     );
   }
@@ -333,9 +352,11 @@ export default function AttendancePage() {
             Mark the daily register. Totals sync to report cards automatically.
           </p>
         </div>
-        <Link href="/app/attendance/gate" className="btn-primary">
-          Automatic clock-in
-        </Link>
+        {isAdmin ? (
+          <Link href="/app/attendance/gate" className="btn-primary">
+            Automatic clock-in
+          </Link>
+        ) : null}
       </div>
 
       <div className="mt-6 grid gap-3 rounded-xl border border-[var(--line)] bg-white/90 p-4 sm:grid-cols-2 lg:grid-cols-5">

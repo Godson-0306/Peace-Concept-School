@@ -184,70 +184,89 @@ export default function TakeCbtPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-semibold text-[var(--brand-blue-deep)]">
+    <div className="mx-auto max-w-2xl">
+      <header className="flex items-start justify-between gap-4 rounded-2xl border border-[var(--line)] bg-white px-5 py-4">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold leading-tight text-[var(--brand-blue-deep)] sm:text-3xl">
             {attempt.paper_title}
           </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {attempt.score_component.toUpperCase()} · {attempt.duration_minutes}{" "}
-            minutes
+            minutes · {attempt.questions.length} question
+            {attempt.questions.length === 1 ? "" : "s"}
           </p>
         </div>
         <div
-          className={`rounded-xl px-4 py-2 text-lg font-semibold tabular-nums ${
+          className={`shrink-0 rounded-xl px-4 py-2 text-right ${
             remainingMs < 60_000
               ? "bg-rose-100 text-rose-800"
-              : "bg-[var(--mist)] text-[var(--ink)]"
+              : "bg-[var(--brand-blue-wash)] text-[var(--brand-blue-deep)]"
           }`}
         >
-          {formatTime(remainingMs)}
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-70">
+            Time left
+          </p>
+          <p className="mt-0.5 text-2xl font-semibold tabular-nums leading-none">
+            {formatTime(remainingMs)}
+          </p>
         </div>
-      </div>
+      </header>
 
       {error ? (
-        <p className="mt-4 rounded bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>
+        <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800">
+          {error}
+        </p>
       ) : null}
 
-      <form onSubmit={doSubmit} className="mt-6 space-y-4">
+      <form onSubmit={doSubmit} className="mt-5 space-y-3">
         {attempt.questions.map((q, idx) => (
-          <fieldset
+          <div
             key={q.id}
-            className="rounded-xl border border-[var(--line)] bg-white p-4"
+            className="rounded-2xl border border-[var(--line)] bg-white p-5"
           >
-            <legend className="px-1 text-sm font-semibold">
-              {idx + 1}. {q.prompt}
-              <span className="ml-2 font-normal text-[var(--muted)]">
+            <p className="text-base font-semibold leading-snug text-[var(--ink)]">
+              <span className="mr-1.5 text-[var(--brand-blue)]">{idx + 1}.</span>
+              {q.prompt}
+              <span className="ml-2 text-sm font-normal text-[var(--muted)]">
                 ({q.marks} mark{Number(q.marks) === 1 ? "" : "s"})
               </span>
-            </legend>
-            <div className="mt-3 space-y-2">
-              {q.choices.map((c) => (
-                <label
-                  key={c.id}
-                  className="flex cursor-pointer items-start gap-2 rounded-lg border border-transparent px-2 py-1.5 hover:bg-slate-50"
-                >
-                  <input
-                    type="radio"
-                    name={`q-${q.id}`}
-                    checked={answers[q.id] === c.id}
-                    onChange={() =>
-                      setAnswers((prev) => ({ ...prev, [q.id]: c.id }))
-                    }
-                  />
-                  <span>
-                    <strong className="mr-1">{c.label}.</strong>
-                    {c.text}
-                  </span>
-                </label>
-              ))}
+            </p>
+            <div className="mt-4 grid gap-2">
+              {q.choices.map((c) => {
+                const selected = answers[q.id] === c.id;
+                return (
+                  <label
+                    key={c.id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors ${
+                      selected
+                        ? "border-[var(--brand-blue)] bg-[var(--brand-blue-wash)]"
+                        : "border-[var(--line)] hover:bg-[var(--mist)]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`q-${q.id}`}
+                      className="mt-0.5"
+                      checked={selected}
+                      onChange={() =>
+                        setAnswers((prev) => ({ ...prev, [q.id]: c.id }))
+                      }
+                    />
+                    <span>
+                      <strong className="mr-1">{c.label}.</strong>
+                      {c.text}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
-          </fieldset>
+          </div>
         ))}
-        <button type="submit" className="btn-primary" disabled={pending}>
-          {pending ? "Submitting…" : "Submit answers"}
-        </button>
+        <div className="flex justify-end pt-1">
+          <button type="submit" className="btn-primary" disabled={pending}>
+            {pending ? "Submitting…" : "Submit answers"}
+          </button>
+        </div>
       </form>
     </div>
   );

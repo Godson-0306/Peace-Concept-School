@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from academics.models import AcademicSession, ClassArm, ClassLevel, Subject, Term
-from accounts.models import AccountType, StudentProfile, User
+from accounts.models import AccountType, PositionAssignment, PositionType, StaffProfile, StudentProfile, User
 from assessments.models import AssessmentScore, AttendanceRecord
 from assessments.views import results_visible_for_student
 from cbt.models import CbtChoice, CbtPaper, CbtQuestion
@@ -119,6 +119,20 @@ class AuthSmokeTests(SchoolFixtureMixin, TestCase):
         self.assertTrue(self.admin.check_password("NewPass12345"))
         self.assertFalse(self.admin.must_change_password)
 
+    def test_student_cannot_change_password(self):
+        self.client.force_authenticate(user=self.student_user)
+        res = self.client.post(
+            "/api/auth/change-password/",
+            {
+                "current_password": "StudentPass123!",
+                "new_password": "NewPass12345",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 403)
+        self.student_user.refresh_from_db()
+        self.assertTrue(self.student_user.check_password("StudentPass123!"))
+
 
 class FeeGateSmokeTests(SchoolFixtureMixin, TestCase):
     def test_no_bill_keeps_results_visible(self):
@@ -204,6 +218,71 @@ class AttendanceSmokeTests(SchoolFixtureMixin, TestCase):
         res = self.client.get("/api/attendance/my_summary/")
         self.assertEqual(res.status_code, 200)
         self.assertIn("recent", res.data)
+
+    def test_teacher_cannot_clock_in_or_read_register(self):
+        teacher = User.objects.create_user(
+            email="att-teacher@test.local",
+            password="TeacherPass123!",
+            username="att_teacher",
+            account_type=AccountType.TEACHER,
+            must_change_password=False,
+        )
+        self.client.force_authenticate(user=teacher)
+        clock = self.client.post(
+            "/api/attendance/clock_in/",
+            {"student_code": "PCS025999"},
+            format="json",
+        )
+        self.assertEqual(clock.status_code, 403)
+        register = self.client.get(
+            "/api/attendance/register/",
+            {
+                "class_arm": self.arm.id,
+                "term": self.term.id,
+                "date": timezone.localdate().isoformat(),
+            },
+        )
+        self.assertEqual(register.status_code, 403)
+
+    def test_form_teacher_can_mark_own_class_but_cannot_clock_in(self):
+        teacher = User.objects.create_user(
+            email="att-form@test.local",
+            password="TeacherPass123!",
+            username="att_form",
+            account_type=AccountType.TEACHER,
+            must_change_password=False,
+        )
+        staff = StaffProfile.objects.create(user=teacher, full_name="Form Teacher")
+        PositionAssignment.objects.create(
+            staff=staff,
+            position=PositionType.FORM_TEACHER,
+            class_arm=self.arm,
+            is_active=True,
+        )
+        self.client.force_authenticate(user=teacher)
+        today = timezone.localdate().isoformat()
+        register = self.client.get(
+            "/api/attendance/register/",
+            {"class_arm": self.arm.id, "term": self.term.id, "date": today},
+        )
+        self.assertEqual(register.status_code, 200)
+        bulk = self.client.post(
+            "/api/attendance/bulk/",
+            {
+                "class_arm": self.arm.id,
+                "term": self.term.id,
+                "date": today,
+                "marks": [{"student": self.student.id, "status": "present"}],
+            },
+            format="json",
+        )
+        self.assertEqual(bulk.status_code, 200)
+        clock = self.client.post(
+            "/api/attendance/clock_in/",
+            {"student_code": "PCS025999"},
+            format="json",
+        )
+        self.assertEqual(clock.status_code, 403)
 
 
 class CbtSmokeTests(SchoolFixtureMixin, TestCase):
@@ -355,3 +434,26 @@ class StaffResetSmokeTests(SchoolFixtureMixin, TestCase):
         self.assertEqual(res.status_code, 200)
         staff_user.refresh_from_db()
         self.assertTrue(staff_user.check_password(DEFAULT_PASSWORD))
+
+
+class GeneralReportAccessTests(SchoolFixtureMixin, TestCase):
+    def test_teacher_cannot_fetch_general_report(self):
+        teacher = User.objects.create_user(
+            email="grs-teacher@test.local",
+            password="TeacherPass123!",
+            username="grs_teacher",
+            account_type=AccountType.TEACHER,
+            must_change_password=False,
+        )
+        self.client.force_authenticate(user=teacher)
+        res = self.client.get(
+            f"/api/scores/general_report/?term={self.term.id}&class_arm={self.arm.id}"
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_admin_can_fetch_general_report(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get(
+            f"/api/scores/general_report/?term={self.term.id}&class_arm={self.arm.id}"
+        )
+        self.assertEqual(res.status_code, 200)

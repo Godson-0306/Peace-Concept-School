@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { AuthUser, clearUser, getStoredUser } from "@/lib/auth";
+import { AuthUser, clearUser, getStoredUser, isFormTeacher } from "@/lib/auth";
 import { SCHOOL_SHORT } from "@/lib/brand";
 import { loadClassLevels } from "@/lib/classLevels";
 import {
@@ -109,11 +109,11 @@ export default function AppSidebar() {
   const links = useMemo(
     () =>
       withUsersClassLevels(
-        portalNavFor(user?.account_type),
+        portalNavFor(user?.account_type, { isFormTeacher: isFormTeacher(user) }),
         levels,
         user?.account_type,
       ),
-    [user?.account_type, levels],
+    [user, levels],
   );
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export default function AppSidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4" aria-label="App">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-5" aria-label="App">
         {links.map((link) => {
           if (link.children?.length) {
             const parentActive = isPortalNavActive(pathname, link.href);

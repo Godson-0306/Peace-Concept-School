@@ -250,6 +250,11 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def general_report(self, request):
         """Class × subject matrix for the General Report Sheet."""
+        if not can_view_all_results(request.user):
+            return Response(
+                {"detail": "Not allowed."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         term_id = request.query_params.get("term")
         class_arm_id = request.query_params.get("class_arm")
         if not term_id or not class_arm_id:
@@ -423,11 +428,7 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
         return False
 
     def _user_can_use_gate(self, user) -> bool:
-        return user.account_type in (
-            AccountType.ADMIN,
-            AccountType.PRINCIPAL,
-            AccountType.TEACHER,
-        ) or can_edit_all_results(user)
+        return user.account_type == AccountType.ADMIN
 
     @action(detail=False, methods=["get"])
     def register(self, request):
@@ -507,7 +508,7 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
         from assessments.attendance_ops import clock_in as do_clock_in
 
         if not self._user_can_use_gate(request.user):
-            return Response({"detail": "Staff only."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
 
         code = (
             request.data.get("student_code")

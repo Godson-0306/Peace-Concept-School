@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiJson } from "@/lib/api";
+import { getStoredUser } from "@/lib/auth";
+import { GENERAL_REPORT_ROLES } from "@/lib/portalNav";
 
 type SubjectCol = { id: number; name: string };
 type ScoreCell = {
@@ -59,9 +61,12 @@ function ScoreCellView({ cell }: { cell: ScoreCell | undefined }) {
 }
 
 function GeneralReportViewInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const armId = Number(searchParams.get("arm"));
   const termId = Number(searchParams.get("term"));
+  const accountType = getStoredUser()?.account_type;
+  const allowed = Boolean(accountType && GENERAL_REPORT_ROLES.has(accountType));
 
   const [report, setReport] = useState<GeneralReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +77,13 @@ function GeneralReportViewInner() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
+    if (!allowed) {
+      router.replace("/app/results/subject-results");
+    }
+  }, [allowed, router]);
+
+  useEffect(() => {
+    if (!allowed) return;
     if (!armId || !termId) {
       setError("Choose ARM, Class, Term, and Session first.");
       setLoading(false);
@@ -99,7 +111,7 @@ function GeneralReportViewInner() {
     return () => {
       cancelled = true;
     };
-  }, [armId, termId]);
+  }, [allowed, armId, termId]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {

@@ -62,7 +62,6 @@ const STUDENT_HREFS = new Set([
   "/app/results",
   "/app/attendance",
   "/app/assessments",
-  "/app/password",
 ]);
 
 const PARENT_NAV: PortalNavItem[] = [
@@ -80,7 +79,7 @@ const ACCOUNTS_ROLES = new Set<AccountType>(["admin", "accountant"]);
 const INVENTORY_ROLES = new Set<AccountType>(["admin", "accountant", "store", "store_staff"]);
 const REPORTS_ROLES = new Set<AccountType>(["admin", "principal"]);
 const RESULTS_STAFF_ROLES = new Set<AccountType>(["admin", "principal", "teacher"]);
-const ATTENDANCE_ROLES = new Set<AccountType>(["admin", "principal", "teacher", "student"]);
+export const GENERAL_REPORT_ROLES = new Set<AccountType>(["admin", "principal"]);
 const ASSESSMENTS_ROLES = new Set<AccountType>([
   "admin",
   "principal",
@@ -186,7 +185,10 @@ export function withUsersClassLevels(
   });
 }
 
-export function portalNavFor(accountType: AccountType | null | undefined): PortalNavItem[] {
+export function portalNavFor(
+  accountType: AccountType | null | undefined,
+  options?: { isFormTeacher?: boolean },
+): PortalNavItem[] {
   if (accountType === "student") {
     // Students see a flat Results link (their fee-gated view), not staff tools.
     return STAFF_PORTAL_NAV.filter((item) => STUDENT_HREFS.has(item.href)).map(
@@ -225,8 +227,24 @@ export function portalNavFor(accountType: AccountType | null | undefined): Porta
   }
   if (!accountType || !RESULTS_STAFF_ROLES.has(accountType)) {
     links = links.filter((item) => item.href !== "/app/results");
+  } else if (!GENERAL_REPORT_ROLES.has(accountType)) {
+    links = links.map((item) =>
+      item.href === "/app/results" && item.children
+        ? {
+            ...item,
+            children: item.children.filter(
+              (child) => child.href !== "/app/results/general-report-sheet",
+            ),
+          }
+        : item,
+    );
   }
-  if (!accountType || !ATTENDANCE_ROLES.has(accountType)) {
+  const canSeeAttendance =
+    accountType === "admin" ||
+    accountType === "principal" ||
+    accountType === "student" ||
+    (accountType === "teacher" && Boolean(options?.isFormTeacher));
+  if (!canSeeAttendance) {
     links = links.filter((item) => item.href !== "/app/attendance");
   }
   if (!accountType || !ASSESSMENTS_ROLES.has(accountType)) {

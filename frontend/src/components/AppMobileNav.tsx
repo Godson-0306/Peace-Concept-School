@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { AuthUser, clearUser, getStoredUser } from "@/lib/auth";
+import { AuthUser, clearUser, getStoredUser, isFormTeacher } from "@/lib/auth";
 import { SCHOOL_SHORT } from "@/lib/brand";
 import { loadClassLevels } from "@/lib/classLevels";
 import {
@@ -126,11 +126,11 @@ export default function AppMobileNav() {
   const links = useMemo(
     () =>
       withUsersClassLevels(
-        portalNavFor(user?.account_type),
+        portalNavFor(user?.account_type, { isFormTeacher: isFormTeacher(user) }),
         levels,
         user?.account_type,
       ),
-    [user?.account_type, levels],
+    [user, levels],
   );
 
   useEffect(() => {

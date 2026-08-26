@@ -8,12 +8,34 @@ export type AccountType =
   | "store"
   | "store_staff";
 
+export type StaffPosition = {
+  position: string;
+  class_arm?: number | null;
+  is_active?: boolean;
+};
+
 export type AuthUser = {
   id?: number | string;
   email: string;
   full_name?: string;
   account_type: AccountType;
+  positions?: StaffPosition[];
 };
+
+export function isFormTeacher(user: AuthUser | null | undefined): boolean {
+  return formTeacherClassArmIds(user).length > 0;
+}
+
+export function formTeacherClassArmIds(user: AuthUser | null | undefined): number[] {
+  return (user?.positions ?? [])
+    .filter(
+      (row) =>
+        row.position === "form_teacher" &&
+        row.is_active !== false &&
+        row.class_arm != null,
+    )
+    .map((row) => Number(row.class_arm));
+}
 
 export function normalizeAccountType(value: unknown): AccountType {
   if (value === "store_staff") return "store";

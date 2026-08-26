@@ -3,8 +3,9 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiJson } from "@/lib/api";
+import { getStoredUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
-import type { ClassLevelNav } from "@/lib/portalNav";
+import { GENERAL_REPORT_ROLES, type ClassLevelNav } from "@/lib/portalNav";
 
 type ClassArm = { id: number; name: string; label: string; class_level: number };
 type Session = { id: number; name: string; is_active: boolean; start_year: number };
@@ -32,8 +33,17 @@ export default function GeneralReportSheetPage() {
   const [sessionId, setSessionId] = useState<number | "">("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const accountType = getStoredUser()?.account_type;
+  const allowed = Boolean(accountType && GENERAL_REPORT_ROLES.has(accountType));
 
   useEffect(() => {
+    if (!allowed) {
+      router.replace("/app/results/subject-results");
+    }
+  }, [allowed, router]);
+
+  useEffect(() => {
+    if (!allowed) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -85,7 +95,7 @@ export default function GeneralReportSheetPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [allowed]);
 
   const armsForClass = useMemo(() => {
     if (!levelId) return [];
