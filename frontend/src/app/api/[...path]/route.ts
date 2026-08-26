@@ -18,6 +18,8 @@ async function proxy(request: NextRequest, path: string[]) {
   if (accept) headers.set("accept", accept);
   const csrf = request.headers.get("x-csrftoken");
   if (csrf) headers.set("x-csrftoken", csrf);
+  const paystackSig = request.headers.get("x-paystack-signature");
+  if (paystackSig) headers.set("x-paystack-signature", paystackSig);
   const referer = request.headers.get("referer");
   if (referer) headers.set("referer", referer);
   const origin = request.headers.get("origin");

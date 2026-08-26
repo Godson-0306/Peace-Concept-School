@@ -71,6 +71,10 @@ type FeeRecord = {
   results_unlocked: boolean;
   notes: string;
   payments: Payment[];
+  paystack_enabled?: boolean;
+  virtual_account_number?: string;
+  virtual_account_bank?: string;
+  virtual_account_name?: string;
 };
 
 type GenerateResult = {
@@ -565,6 +569,13 @@ export default function AccountsPage() {
               Due {naira(record.amount_due)} · Paid {naira(record.amount_paid)} ·
               Balance <strong>{naira(record.balance)}</strong>
             </p>
+            {record.virtual_account_number ? (
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Paystack transfer: {record.virtual_account_bank || "Bank"}{" "}
+                {record.virtual_account_number}
+                {record.virtual_account_name ? ` · ${record.virtual_account_name}` : ""}
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-col items-end gap-2">
             <span className="text-xs uppercase tracking-wide text-[var(--muted)]">

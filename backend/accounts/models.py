@@ -143,6 +143,10 @@ class StudentProfile(models.Model):
         choices=PromotionStatus.choices,
         default=PromotionStatus.PENDING,
     )
+    paystack_customer_code = models.CharField(max_length=64, blank=True)
+    paystack_account_number = models.CharField(max_length=32, blank=True)
+    paystack_account_bank = models.CharField(max_length=64, blank=True)
+    paystack_account_name = models.CharField(max_length=128, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

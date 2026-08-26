@@ -54,6 +54,16 @@ class FeeRecordSerializer(serializers.ModelSerializer):
     balance = serializers.SerializerMethodField()
     payments = FeePaymentEntrySerializer(many=True, read_only=True)
     payment = FeePaymentEntrySerializer(write_only=True, required=False)
+    paystack_enabled = serializers.SerializerMethodField()
+    virtual_account_number = serializers.CharField(
+        source="student.paystack_account_number", read_only=True
+    )
+    virtual_account_bank = serializers.CharField(
+        source="student.paystack_account_bank", read_only=True
+    )
+    virtual_account_name = serializers.CharField(
+        source="student.paystack_account_name", read_only=True
+    )
 
     class Meta:
         model = FeeRecord
@@ -80,6 +90,10 @@ class FeeRecordSerializer(serializers.ModelSerializer):
             "created_at",
             "payments",
             "payment",
+            "paystack_enabled",
+            "virtual_account_number",
+            "virtual_account_bank",
+            "virtual_account_name",
         ]
         read_only_fields = [
             "status",
@@ -88,6 +102,11 @@ class FeeRecordSerializer(serializers.ModelSerializer):
             "updated_at",
             "created_at",
         ]
+
+    def get_paystack_enabled(self, obj) -> bool:
+        from .paystack import paystack_configured
+
+        return paystack_configured()
 
     def get_balance(self, obj) -> str:
         due = obj.amount_due or Decimal("0")
@@ -120,6 +139,11 @@ class FeeRecordSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if payment_data:
+            method = payment_data.get("method") or FeePaymentEntry.Method.CASH
+            if method == FeePaymentEntry.Method.PAYSTACK:
+                raise serializers.ValidationError(
+                    {"payment": "Record Paystack payments through checkout, not manually."}
+                )
             entry = FeePaymentEntry.objects.create(
                 fee_record=instance,
                 recorded_by=self.context["request"].user,

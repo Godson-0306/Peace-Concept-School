@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
 import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
+import { FeeBillList, type FeeBill } from "@/components/FeeBillList";
 
 type ResultPayload = {
   locked?: boolean;
@@ -22,21 +23,11 @@ type ResultPayload = {
   }[];
 };
 
-type FeeRecord = {
-  id: number;
-  amount_due: string;
-  amount_paid: string;
-  balance?: string;
-  status: string;
-  results_unlocked: boolean;
-  term_name?: string;
-};
-
 export default function StudentPage() {
   const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
-  const [fees, setFees] = useState<FeeRecord[]>([]);
+  const [fees, setFees] = useState<FeeBill[]>([]);
   const [error, setError] = useState("");
   const [studentPk, setStudentPk] = useState<number | null>(null);
 
@@ -51,7 +42,7 @@ export default function StudentPage() {
         if (active) setTermId(active.id);
       })
       .catch((e) => setError(e.message));
-    apiJson<{ results?: FeeRecord[] } | FeeRecord[]>("/api/fee-records/")
+    apiJson<{ results?: FeeBill[] } | FeeBill[]>("/api/fee-records/")
       .then((data) => setFees(Array.isArray(data) ? data : data.results ?? []))
       .catch(() => undefined);
   }, []);
@@ -151,34 +142,11 @@ export default function StudentPage() {
 
       <section className="border border-[var(--line)] bg-white/80 p-5">
         <h2 className="font-display text-2xl text-[var(--brand-green)]">Fee status</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {fees.map((f) => {
-            const balance =
-              f.balance != null
-                ? Number(f.balance)
-                : Number(f.amount_due) - Number(f.amount_paid);
-            return (
-              <li
-                key={f.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] py-2"
-              >
-                <span>
-                  {f.term_name ? `${f.term_name} · ` : ""}
-                  Due ₦{Number(f.amount_due).toLocaleString()} · Paid ₦
-                  {Number(f.amount_paid).toLocaleString()} · Balance ₦
-                  {balance.toLocaleString()}
-                </span>
-                <span className="uppercase text-[var(--muted)]">
-                  {f.status}
-                  {f.results_unlocked ? " · unlocked" : " · locked"}
-                </span>
-              </li>
-            );
-          })}
-          {fees.length === 0 ? (
-            <li className="text-[var(--muted)]">No fee records yet.</li>
-          ) : null}
-        </ul>
+        <FeeBillList
+          bills={fees}
+          onBillsChange={setFees}
+          emptyLabel="No fee records yet."
+        />
       </section>
 
       <style jsx global>{`

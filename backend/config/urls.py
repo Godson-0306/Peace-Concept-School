@@ -38,6 +38,7 @@ from assessments.views import (
     my_results,
 )
 from fees.views import FeePaymentEntryViewSet, FeeRecordViewSet, FeeStructureViewSet
+from fees.webhooks import paystack_webhook
 from identity.views import id_cards_batch, report_card_pdf, report_cards_batch, student_id_card
 from inventory.views import (
     InventoryAssignmentViewSet,
@@ -115,6 +116,7 @@ urlpatterns = [
     path("api/identity/id-card/<int:student_id>/", student_id_card),
     path("api/identity/report-cards/batch/", report_cards_batch),
     path("api/identity/id-cards/batch/", id_cards_batch),
+    path("api/payments/paystack/webhook/", paystack_webhook),
     path("api/", include(router.urls)),
 ]
 

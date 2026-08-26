@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth";
 import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
+import { FeeBillList, type FeeBill } from "@/components/FeeBillList";
 
 type Child = { id: number; student_id: string; full_name: string };
 type ResultPayload = {
@@ -14,18 +15,6 @@ type ResultPayload = {
   average?: number;
   position?: number | null;
   subjects?: { subject_name: string; total: number }[];
-};
-type FeeRecord = {
-  id: number;
-  student: number;
-  student_name: string;
-  student_code: string;
-  amount_due: string;
-  amount_paid: string;
-  balance?: string;
-  status: string;
-  results_unlocked: boolean;
-  term_name?: string;
 };
 type AttendanceSummary = {
   days_present: number;
@@ -40,7 +29,7 @@ export default function ParentPage() {
   const [terms, setTerms] = useState<PortalTerm[]>([]);
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
-  const [fees, setFees] = useState<FeeRecord[]>([]);
+  const [fees, setFees] = useState<FeeBill[]>([]);
   const [attendance, setAttendance] = useState<AttendanceSummary | null>(null);
   const [error, setError] = useState("");
 
@@ -57,7 +46,7 @@ export default function ParentPage() {
       const active = list.find((t) => t.is_active) ?? list[0];
       if (active) setTermId(active.id);
     });
-    apiJson<{ results?: FeeRecord[] } | FeeRecord[]>("/api/fee-records/")
+    apiJson<{ results?: FeeBill[] } | FeeBill[]>("/api/fee-records/")
       .then((data) => setFees(Array.isArray(data) ? data : data.results ?? []))
       .catch(() => undefined);
   }, []);
@@ -187,34 +176,11 @@ export default function ParentPage() {
         <h2 className="font-display text-2xl text-[var(--brand-green)]">
           Fee status
         </h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {childFees.map((f) => {
-            const balance =
-              f.balance != null
-                ? Number(f.balance)
-                : Number(f.amount_due) - Number(f.amount_paid);
-            return (
-              <li
-                key={f.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] py-2"
-              >
-                <span>
-                  {f.term_name ? `${f.term_name} · ` : ""}
-                  Due ₦{Number(f.amount_due).toLocaleString()} · Paid ₦
-                  {Number(f.amount_paid).toLocaleString()} · Balance ₦
-                  {balance.toLocaleString()}
-                </span>
-                <span className="uppercase text-[var(--muted)]">
-                  {f.status}
-                  {f.results_unlocked ? " · unlocked" : " · locked"}
-                </span>
-              </li>
-            );
-          })}
-          {childFees.length === 0 ? (
-            <li className="text-[var(--muted)]">No fee records for this child.</li>
-          ) : null}
-        </ul>
+        <FeeBillList
+          bills={childFees}
+          onBillsChange={setFees}
+          emptyLabel="No fee records for this child."
+        />
       </section>
 
       <style jsx global>{`

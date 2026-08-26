@@ -77,12 +77,13 @@ class FeeRecord(models.Model):
 
 
 class FeePaymentEntry(models.Model):
-    """Manual offline payment recorded by Accountant."""
+    """Offline (accountant) or online (Paystack) payment against a bill."""
 
     class Method(models.TextChoices):
         CASH = "cash", "Cash"
         TRANSFER = "transfer", "Bank Transfer"
         POS = "pos", "POS"
+        PAYSTACK = "paystack", "Paystack"
         OTHER = "other", "Other"
 
     fee_record = models.ForeignKey(FeeRecord, on_delete=models.CASCADE, related_name="payments")
@@ -94,3 +95,12 @@ class FeePaymentEntry(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )
     recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["reference"],
+                condition=~models.Q(reference=""),
+                name="uniq_fee_payment_reference",
+            )
+        ]

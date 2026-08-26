@@ -247,6 +247,18 @@ if EMAIL_HOST and EMAIL_BACKEND.endswith("console.EmailBackend"):
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
+# Meta WhatsApp Cloud API (optional — missing token/phone id stubs logs only)
+WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN", "")
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
+WHATSAPP_TEMPLATE_NAME = os.environ.get("WHATSAPP_TEMPLATE_NAME", "results_published")
+WHATSAPP_TEMPLATE_LANG = os.environ.get("WHATSAPP_TEMPLATE_LANG", "en")
+
+# Paystack (optional — missing secret disables Pay / virtual accounts)
+PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "")
+PAYSTACK_PUBLIC_KEY = os.environ.get("PAYSTACK_PUBLIC_KEY", "")
+PAYSTACK_WEBHOOK_SECRET = os.environ.get("PAYSTACK_WEBHOOK_SECRET", "")
+PAYSTACK_DVA_BANK = os.environ.get("PAYSTACK_DVA_BANK", "wema-bank")
+
 # School identity
 SCHOOL_NAME = "Peace Concept International Mission Schools"
 SCHOOL_STUDENT_ID_PREFIX = "PCS"

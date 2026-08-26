@@ -54,14 +54,14 @@ Staff use the **Staff** tab (Username + password). Students use the **Student** 
 
 Additional staff/students come from roster imports (`import_staff_roster`, `import_student_roster`) with password usually `school`.
 
-Fee-gated results: unpaid bills lock student/parent result views. Students with **no bill yet** stay unlocked until Accounts generates bills. Enrolling a student auto-creates a bill for the active term when a matching fee structure exists.
+- Fee-gated results: unpaid bills lock student/parent result views. Students with **no bill yet** stay unlocked until Accounts generates bills. Enrolling a student auto-creates a bill for the active term when a matching fee structure exists. Parents/students can pay online via Paystack when `PAYSTACK_SECRET_KEY` is set; accountants still record cash/POS/transfer.
 
 ## Product notes
 
 - Account Type (system role) + Position (HOD / VP / Form Teacher) layered permissions
 - Student IDs: `PCS0YYNNN` (e.g. PCS025001)
 - Grading: CA1/20 + CA2/20 + Exam/60; additional assessments count in total but not average divisor
-- Fee-gated results: Accountant marks Paid manually (no payment gateway); unlocked terms stay visible
+- Fee-gated results: Paystack checkout + dedicated transfer account (when keys are set); accountant still records cash/POS/transfer; unlocked terms stay visible
 - Inventory: `/app/inventory` for admin/accountant/store staff — catalogs, stock movements, sales (separate from tuition)
 - Result publish notifies guardians via email + WhatsApp stub
 - JAMB CBT practice: `/app/assessments/jamb` embeds the static engine under `frontend/public/jamb-cbt/` (progress only — never school report scores)

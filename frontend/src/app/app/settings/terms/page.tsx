@@ -170,7 +170,9 @@ export default function SettingsTermsPage() {
           class_arm: classArmId,
         }),
       });
-      setMessage(`Published ${res.published_count} score rows for that class.`);
+      setMessage(
+        `Published ${res.published_count} score rows for that class. Parent notices queued.`,
+      );
       await loadReadiness(selectedTerm.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Publish failed");
@@ -193,7 +195,7 @@ export default function SettingsTermsPage() {
         body: JSON.stringify({ term: selectedTerm.id }),
       });
       setMessage(
-        `Published ${res.published_count} scores across ${res.class_arms_notified} classes.`,
+        `Published ${res.published_count} scores across ${res.class_arms_notified} classes. Parent notices queued.`,
       );
       await loadReadiness(selectedTerm.id);
     } catch (e) {
