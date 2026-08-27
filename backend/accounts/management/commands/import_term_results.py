@@ -515,6 +515,8 @@ class Command(BaseCommand):
             # Replace prior scores for this class arm + term so the sheet is authoritative.
             AssessmentScore.objects.filter(term=term, class_arm=class_arm).delete()
 
+        update_class = AcademicSession.objects.filter(is_active=True, id=session.id).exists()
+
         stats = {
             "students": 0,
             "students_created": 0,
@@ -540,7 +542,11 @@ class Command(BaseCommand):
                 continue
 
             student, created = self._ensure_student(
-                student_id, full_name, class_arm=class_arm, dry_run=dry_run
+                student_id,
+                full_name,
+                class_arm=class_arm,
+                dry_run=dry_run,
+                update_class=update_class,
             )
             stats["students"] += 1
             if created:
@@ -622,6 +628,7 @@ class Command(BaseCommand):
         *,
         class_arm: ClassArm,
         dry_run: bool,
+        update_class: bool = False,
     ) -> tuple[StudentProfile | None, bool]:
         student = (
             StudentProfile.objects.select_related("user")
@@ -635,7 +642,9 @@ class Command(BaseCommand):
             if full_name and student.full_name != full_name:
                 student.full_name = full_name
                 fields.append("full_name")
-            if student.class_arm_id != class_arm.id:
+            if student.class_arm_id is None or (
+                update_class and student.class_arm_id != class_arm.id
+            ):
                 student.class_arm = class_arm
                 fields.append("class_arm")
             if not student.is_active:
