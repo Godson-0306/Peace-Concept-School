@@ -10,6 +10,7 @@ import {
   SCHOOL_NAME,
   SCHOOL_PHONE,
 } from "@/lib/brand";
+import { CAMPUS } from "@/lib/campusPhotos";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -23,6 +24,7 @@ export default function ContactPage() {
         eyebrow="Contact"
         title="We would love to welcome your family"
         description="Reach the school office for visits, fee enquiries, or admissions support — from Day Care through SS3."
+        image={CAMPUS.primaryClass}
       />
 
       <section className="section-pad">

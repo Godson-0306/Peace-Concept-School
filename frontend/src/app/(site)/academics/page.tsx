@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import PageHero from "@/components/PageHero";
 import { CLASS_BANDS, SCHOOL_NAME } from "@/lib/brand";
+import { CAMPUS } from "@/lib/campusPhotos";
 
 export const metadata: Metadata = {
   title: "Academics",
@@ -14,7 +16,8 @@ export default function AcademicsPage() {
         eyebrow="Academics"
         title="Learning that grows with your child"
         description="A clear pathway from Day Care and Nursery through Basic Education, Junior Secondary, and Senior Secondary."
-        image="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1800&q=80"
+        image={CAMPUS.scienceLab}
+        imageClassName="object-cover object-[center_40%]"
       />
 
       <section className="section-pad">
@@ -51,6 +54,33 @@ export default function AcademicsPage() {
               </p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="section-pad pt-0">
+        <div className="site-container overflow-hidden rounded-[1.75rem] bg-[var(--brand-blue-deep)] text-white">
+          <div className="grid lg:grid-cols-2">
+            <div className="relative min-h-[280px] lg:min-h-[420px]">
+              <Image
+                src={CAMPUS.microscope}
+                alt="A Peace Concept student using a microscope in the science laboratory"
+                fill
+                className="object-cover object-[center_30%]"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+            </div>
+            <div className="flex flex-col justify-center p-8 sm:p-12">
+              <p className="eyebrow text-[var(--brand-pink-soft)]">STEM on campus</p>
+              <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+                Science that students can see and touch.
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-white/80">
+                From Basic science tables to SS Chemistry, learners work in
+                white coats at the microscope — observation, experiment, and
+                careful recording, guided by their teachers.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

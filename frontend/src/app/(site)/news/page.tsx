@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import PageHero from "@/components/PageHero";
+import { CAMPUS } from "@/lib/campusPhotos";
 import { getPublicNews } from "@/lib/websiteContent";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default async function NewsPage() {
         eyebrow="News & Events"
         title="Stay in the campus loop"
         description="Announcements, academic updates, and community events across the 2025/2026 session."
+        image={CAMPUS.hero}
       />
 
       <section className="section-pad">

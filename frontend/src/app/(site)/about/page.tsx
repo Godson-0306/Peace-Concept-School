@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import PageHero from "@/components/PageHero";
 import { SCHOOL_NAME } from "@/lib/brand";
+import { CAMPUS } from "@/lib/campusPhotos";
 
 export const metadata: Metadata = {
   title: "About the School",
@@ -14,6 +16,7 @@ export default function AboutPage() {
         eyebrow="About us"
         title="A mission school for every stage of childhood"
         description={`${SCHOOL_NAME} serves families seeking faith-rooted education from Day Care and Nursery through Basic, Junior Secondary, and Senior Secondary.`}
+        image={CAMPUS.secondaryClass}
       />
 
       <section className="section-pad">
@@ -29,15 +32,38 @@ export default function AboutPage() {
             </p>
           </div>
           <div className="rounded-2xl bg-[var(--brand-pink)] p-8 text-white sm:p-10">
-            <p className="text-sm font-bold text-white/70">Vision</p>
+            <p className="text-sm font-bold text-white/70">Motto</p>
             <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-              A trusted home for learning and formation.
+              Obey &amp; Be Wise.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-white/80">
-              To be known as an international mission school where scholarship
-              and Christian character grow together at every class level.
+              Our crest — an open book and a lamp — reminds every learner that
+              knowledge and character grow together, in class and on campus.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="section-pad pt-0">
+        <div className="site-container grid gap-3 sm:grid-cols-3">
+          {[
+            { src: CAMPUS.studentSmile, label: "A Peace Concept student in uniform" },
+            { src: CAMPUS.scienceLab, label: "Hands-on science in the laboratory" },
+            { src: CAMPUS.primaryClass, label: "Class portrait with form teacher" },
+          ].map((item) => (
+            <figure
+              key={item.src}
+              className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem]"
+            >
+              <Image
+                src={item.src}
+                alt={item.label}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, 33vw"
+              />
+            </figure>
+          ))}
         </div>
       </section>
 

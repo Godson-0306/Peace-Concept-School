@@ -4,7 +4,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import JsonResponse
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve as serve_media
 from rest_framework.routers import DefaultRouter
 
 from django.db import connection
@@ -122,3 +123,12 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+elif not getattr(settings, "USE_S3_MEDIA", False):
+    # DirectAdmin Python App has no separate media vhost; serve uploads from Django.
+    urlpatterns += [
+        re_path(
+            r"^media/(?P<path>.*)$",
+            serve_media,
+            {"document_root": settings.MEDIA_ROOT},
+        ),
+    ]

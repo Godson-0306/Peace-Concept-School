@@ -21,6 +21,14 @@ export const metadata: Metadata = {
     template: `%s | ${SCHOOL_NAME}`,
   },
   description: `${SCHOOL_NAME} — Day Care, Nursery, Basic, Junior and Senior Secondary education for the 2025/2026 academic session.`,
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
+  },
   keywords: [
     SCHOOL_NAME,
     "Peace Concept",

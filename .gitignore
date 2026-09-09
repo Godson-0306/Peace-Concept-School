@@ -9,6 +9,7 @@ backend/media/
 backend/staticfiles/
 backend/accounts/data/results/*.xlsx
 backend/accounts/data/rosters/*.xlsx
+backend/accounts/data/school-magazine/
 .env
 *.log
 
@@ -17,6 +18,7 @@ frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/.env*.local
+dist-directadmin/
 
 # OS / IDE
 .DS_Store

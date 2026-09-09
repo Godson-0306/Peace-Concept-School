@@ -10,6 +10,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+_db_url_early = (os.environ.get("DATABASE_URL") or "").lower()
+if _db_url_early.startswith("mysql"):
+    from mysql_compat import enable_pymysql
+
+    enable_pymysql()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get(
@@ -103,12 +109,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-    )
-}
+_db_config = dj_database_url.config(
+    default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    conn_max_age=600,
+)
+if (_db_config.get("ENGINE") or "").endswith("mysql"):
+    options = dict(_db_config.get("OPTIONS") or {})
+    options.setdefault("charset", "utf8mb4")
+    _db_config["OPTIONS"] = options
+DATABASES = {"default": _db_config}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

@@ -42,17 +42,20 @@ async function proxy(request: NextRequest, path: string[]) {
   const upstreamType = upstream.headers.get("content-type");
   if (upstreamType) responseHeaders.set("content-type", upstreamType);
 
-  // Forward Set-Cookie so browser keeps Django session on the Next origin.
+  // Forward Set-Cookie so the browser keeps the Django session on the Next origin.
+  // Strip Domain= so cookies stay on pcism.com.ng (not api.pcism.com.ng).
+  const rewriteCookie = (value: string) =>
+    value.replace(/;\s*Domain=[^;]*/gi, "");
   const getSetCookie = (
     upstream.headers as Headers & { getSetCookie?: () => string[] }
   ).getSetCookie?.();
   if (getSetCookie?.length) {
     for (const value of getSetCookie) {
-      responseHeaders.append("set-cookie", value);
+      responseHeaders.append("set-cookie", rewriteCookie(value));
     }
   } else {
     const single = upstream.headers.get("set-cookie");
-    if (single) responseHeaders.set("set-cookie", single);
+    if (single) responseHeaders.set("set-cookie", rewriteCookie(single));
   }
 
   const body = await upstream.arrayBuffer();

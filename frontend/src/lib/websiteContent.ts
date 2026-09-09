@@ -1,4 +1,5 @@
 import { newsItems, type NewsItem } from "@/lib/news";
+import { CAMPUS_MOSAIC } from "@/lib/campusPhotos";
 import { mediaUrl } from "@/lib/media";
 
 const API_ORIGIN = process.env.API_PROXY_ORIGIN ?? "http://127.0.0.1:8000";
@@ -49,42 +50,15 @@ async function fetchApi<T>(path: string): Promise<T | null> {
   }
 }
 
-const FALLBACK_GALLERY: PublicGalleryImage[] = [
-  {
-    id: "fallback-1",
-    src: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80",
-    label: "Morning assembly",
-  },
-  {
-    id: "fallback-2",
-    src: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80",
-    label: "Classroom learning",
-  },
-  {
-    id: "fallback-3",
-    src: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1200&q=80",
-    label: "Sports day",
-  },
-  {
-    id: "fallback-4",
-    src: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80",
-    label: "Parent forum",
-  },
-  {
-    id: "fallback-5",
-    src: "https://images.unsplash.com/photo-1523050854058-8bc2c4e4cd81?auto=format&fit=crop&w=1200&q=80",
-    label: "Graduation rehearsal",
-  },
-  {
-    id: "fallback-6",
-    src: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=80",
-    label: "Library corner",
-  },
-];
+const FALLBACK_GALLERY: PublicGalleryImage[] = CAMPUS_MOSAIC.map((item, index) => ({
+  id: `fallback-${index + 1}`,
+  src: item.src,
+  label: item.label,
+}));
 
 export async function getPublicGallery(): Promise<PublicGalleryImage[]> {
   const data = await fetchApi<{ results?: ApiGallery[] } | ApiGallery[]>(
-    "/api/website/gallery/",
+    "/api/website/gallery/?page_size=500",
   );
   if (!data) return FALLBACK_GALLERY;
   const items = unwrapList(data)

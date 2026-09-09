@@ -1,17 +1,20 @@
 import Image from "next/image";
+import { CAMPUS } from "@/lib/campusPhotos";
 
 type PageHeroProps = {
   eyebrow?: string;
   title: string;
   description: string;
   image?: string;
+  imageClassName?: string;
 };
 
 export default function PageHero({
   eyebrow,
   title,
   description,
-  image = "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1800&q=80",
+  image = CAMPUS.hero,
+  imageClassName = "object-cover object-[center_22%]",
 }: PageHeroProps) {
   return (
     <section className="relative overflow-hidden text-white">
@@ -21,7 +24,7 @@ export default function PageHero({
           alt=""
           fill
           priority
-          className="animate-soft-zoom object-cover"
+          className={`animate-soft-zoom ${imageClassName}`}
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-[linear-gradient(118deg,rgba(12,47,109,0.9)_0%,rgba(22,73,160,0.72)_50%,rgba(226,59,120,0.5)_100%)]" />

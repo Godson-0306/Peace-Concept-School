@@ -1,0 +1,91 @@
+DirectAdmin deploy — pcism.com.ng
+=================================
+
+Do NOT upload into public_html. Use Extra Features:
+
+  1) Setup Python App  = Django API
+  2) Setup Node.js App = Next.js website
+
+A. Subdomain
+------------
+DirectAdmin → Domain Setup / Subdomain Managers → create:
+
+  api.pcism.com.ng
+
+Issue SSL (Let's Encrypt / AutoSSL) for:
+  pcism.com.ng
+  www.pcism.com.ng
+  api.pcism.com.ng
+
+B. MySQL
+--------
+DirectAdmin → MySQL Management → Create database + user.
+Put the URL into backend/.env as DATABASE_URL=mysql://USER:PASS@localhost:3306/DBNAME
+
+C. Python app (Django)
+----------------------
+Extra Features → Setup Python App → Create:
+
+  Python version: 3.12 (Django 6.1 will not install on 3.11)
+  Application root: /home/pcismcom/pcs-api
+      (NOT public_html; upload the contents of the Git "backend" folder here)
+  Application URL: api.pcism.com.ng  (or the api subdomain document root)
+  Application startup file: passenger_wsgi.py
+  Passenger log: /home/pcismcom/logs/pcs-api.log
+
+Upload backend zip (no .venv, no __pycache__, no db.sqlite3).
+Copy .env.production.example → .env and edit secrets.
+Configuration files → add requirements.txt → Run Pip Install.
+Open terminal / SSH if available:
+
+  cd ~/pcs-api
+  source /home/pcismcom/virtualenv/pcs-api/3.12/bin/activate
+  python manage.py migrate
+  python manage.py collectstatic --noinput
+  python manage.py createsuperuser
+
+Restart the Python app.
+
+D. Node.js app (Next.js)
+------------------------
+Extra Features → Setup Node.js App → Create:
+
+  Node.js version: 20.x (minimum 18.17)
+  Application mode: production
+  Application root: /home/pcismcom/pcs-web
+      (upload the contents of the Git "frontend" folder)
+  Application URL: pcism.com.ng  (the main domain)
+  Application startup file: server.js
+      (Passenger-compatible; listens on the Passenger socket on DirectAdmin)
+
+Environment variables in the Node.js App form:
+
+  NODE_ENV=production
+  API_PROXY_ORIGIN=https://api.pcism.com.ng
+
+Upload frontend zip (no node_modules, no .next).
+Run NPM Install.
+Build (on the server if RAM allows):
+
+  npm run build
+
+If build is killed (out of memory), run this on your PC then upload `.next`:
+
+  cd frontend
+  set API_PROXY_ORIGIN=https://api.pcism.com.ng
+  npm run build
+
+Start / Restart the Node.js app.
+
+If the Python app sits behind DirectAdmin SSL and you see a redirect loop,
+set SECURE_SSL_REDIRECT=false in backend/.env and restart the Python app.
+
+E. Smoke test
+-------------
+  https://api.pcism.com.ng/api/health/
+  https://pcism.com.ng/
+  https://pcism.com.ng/login
+  https://pcism.com.ng/api/health/
+
+Create the first staff login with createsuperuser (do not use demo passwords
+on the public domain).

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import LoginForm from "@/components/LoginForm";
 import { SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
+import { CAMPUS } from "@/lib/campusPhotos";
 
 export const metadata: Metadata = {
   title: "Login",
@@ -24,11 +25,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <section className="relative min-h-[calc(100svh-4.6rem)] overflow-hidden">
       <div className="absolute inset-0">
         <Image
-          src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=2200&q=80"
+          src={CAMPUS.hero}
           alt=""
           fill
           priority
-          className="object-cover"
+          className="object-cover object-[center_28%]"
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-[linear-gradient(118deg,rgba(12,47,109,0.92)_0%,rgba(22,73,160,0.78)_45%,rgba(226,59,120,0.55)_100%)]" />

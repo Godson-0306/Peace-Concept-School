@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import { CLASS_LEVELS, SCHOOL_NAME } from "@/lib/brand";
+import { CAMPUS } from "@/lib/campusPhotos";
 
 export const metadata: Metadata = {
   title: "Admissions",
@@ -34,7 +35,7 @@ export default function AdmissionsPage() {
         eyebrow="Admissions 2025/2026"
         title="Enrol from Day Care to SS3"
         description="Applications are open across Early Years, Basic, Junior Secondary, and Senior Secondary. Places are limited and filled on a rolling basis."
-        image="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1800&q=80"
+        image={CAMPUS.nurseryClass}
       />
 
       <section className="section-pad">

@@ -1,20 +1,28 @@
 import Link from "next/link";
 import Image from "next/image";
 import { CLASS_BANDS, SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
-import { newsItems } from "@/lib/news";
+import { CAMPUS, CAMPUS_MOSAIC } from "@/lib/campusPhotos";
+import { getPublicNews } from "@/lib/websiteContent";
 
-export default function HomePage() {
-  const latest = newsItems.slice(0, 3);
+const BAND_PHOTOS = [
+  CAMPUS.nurseryClass,
+  CAMPUS.primaryClass,
+  CAMPUS.juniorStudent,
+  CAMPUS.secondaryClass,
+] as const;
+
+export default async function HomePage() {
+  const latest = (await getPublicNews()).slice(0, 3);
 
   return (
     <>
       <section className="relative min-h-[calc(100svh-4.6rem)] overflow-hidden text-white">
         <Image
-          src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=2200&q=80"
-          alt="Students on campus at Peace Concept International Mission Schools"
+          src={CAMPUS.hero}
+          alt="Senior students of Peace Concept International Mission Schools"
           fill
           priority
-          className="animate-soft-zoom object-cover"
+          className="animate-soft-zoom object-cover object-[center_28%]"
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(12,47,109,0.88)_0%,rgba(22,73,160,0.68)_48%,rgba(226,59,120,0.4)_100%)]" />
@@ -38,12 +46,15 @@ export default function HomePage() {
               Faith-rooted education from Day Care through Senior Secondary —
               nurturing every child with care, discipline, and joy.
             </h1>
+            <p className="animate-fade-up-delay mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/70">
+              Obey &amp; Be Wise
+            </p>
             <div className="animate-fade-up-delay-2 mt-9 flex flex-wrap gap-3">
               <Link href="/admissions" className="btn-primary">
                 Start admissions
               </Link>
-              <Link href="/academics" className="btn-secondary">
-                View class levels
+              <Link href="/gallery" className="btn-secondary">
+                See campus life
               </Link>
             </div>
           </div>
@@ -69,17 +80,29 @@ export default function HomePage() {
           {CLASS_BANDS.map((band, index) => (
             <article
               key={band.title}
-              className={`rounded-2xl p-6 ${
-                index % 2 === 0
-                  ? "bg-[var(--brand-blue)] text-white"
-                  : "bg-[var(--brand-pink)] text-white"
-              }`}
+              className="group relative overflow-hidden rounded-2xl min-h-[220px]"
             >
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/75">
-                {band.range}
-              </p>
-              <h3 className="mt-3 font-display text-2xl font-semibold">{band.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-white/85">{band.copy}</p>
+              <Image
+                src={BAND_PHOTOS[index]}
+                alt={band.title}
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              />
+              <div
+                className={`absolute inset-0 ${
+                  index % 2 === 0
+                    ? "bg-[linear-gradient(180deg,rgba(12,47,109,0.2)_0%,rgba(12,47,109,0.88)_100%)]"
+                    : "bg-[linear-gradient(180deg,rgba(226,59,120,0.15)_0%,rgba(226,59,120,0.88)_100%)]"
+                }`}
+              />
+              <div className="relative flex h-full min-h-[220px] flex-col justify-end p-6 text-white">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/75">
+                  {band.range}
+                </p>
+                <h3 className="mt-2 font-display text-2xl font-semibold">{band.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/85">{band.copy}</p>
+              </div>
             </article>
           ))}
         </div>
@@ -90,10 +113,10 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2">
             <div className="relative min-h-[280px] lg:min-h-[400px]">
               <Image
-                src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1400&q=80"
-                alt="Early years learners in a bright classroom"
+                src={CAMPUS.nurseryClass}
+                alt="Nursery learners in Peace Concept uniforms"
                 fill
-                className="object-cover"
+                className="object-cover object-[center_30%]"
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
             </div>
@@ -128,6 +151,42 @@ export default function HomePage() {
           <div>
             <p className="eyebrow">Campus life</p>
             <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-[var(--brand-blue-deep)]">
+              Faces of Peace Concept
+            </h2>
+          </div>
+          <Link href="/gallery" className="btn-outline">
+            Open gallery
+          </Link>
+        </div>
+        <div className="site-container mt-10 grid grid-cols-2 gap-3 md:grid-cols-3">
+          {CAMPUS_MOSAIC.map((item, index) => (
+            <Link
+              key={item.src}
+              href="/gallery"
+              className={`relative overflow-hidden rounded-[1.25rem] ${
+                index === 0 ? "col-span-2 aspect-[16/9] md:col-span-2" : "aspect-[4/5]"
+              }`}
+            >
+              <Image
+                src={item.src}
+                alt={item.label}
+                fill
+                className="object-cover transition-transform duration-700 hover:scale-105"
+                sizes="(max-width: 768px) 100vw, 33vw"
+              />
+              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-4 pb-4 pt-10 text-sm font-bold text-white">
+                {item.label}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-pad pt-0">
+        <div className="site-container flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="eyebrow">Campus news</p>
+            <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-[var(--brand-blue-deep)]">
               News &amp; events
             </h2>
           </div>
@@ -150,6 +209,7 @@ export default function HomePage() {
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 33vw"
+                    unoptimized={item.image.startsWith("/media/")}
                   />
                 ) : null}
               </div>

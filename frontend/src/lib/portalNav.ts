@@ -242,7 +242,6 @@ export function portalNavFor(
   const canSeeAttendance =
     accountType === "admin" ||
     accountType === "principal" ||
-    accountType === "student" ||
     (accountType === "teacher" && Boolean(options?.isFormTeacher));
   if (!canSeeAttendance) {
     links = links.filter((item) => item.href !== "/app/attendance");

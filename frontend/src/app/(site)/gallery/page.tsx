@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import PageHero from "@/components/PageHero";
+import { CAMPUS } from "@/lib/campusPhotos";
 import { getPublicGallery } from "@/lib/websiteContent";
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ export default async function GalleryPage() {
         eyebrow="Gallery"
         title="Life on campus, in colour"
         description="Learning, sport, and celebration — glimpses of Peace Concept International Mission Schools."
-        image="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1800&q=80"
+        image={CAMPUS.studentSmile}
       />
 
       <section className="section-pad">
@@ -26,16 +27,16 @@ export default async function GalleryPage() {
             <figure
               key={item.id}
               className={`relative overflow-hidden rounded-[1.5rem] ${
-                index % 5 === 0
-                  ? "sm:col-span-2 sm:aspect-[21/9]"
-                  : "aspect-[4/3]"
+                index % 7 === 0
+                  ? "sm:col-span-2 aspect-[4/5] sm:aspect-[5/4]"
+                  : "aspect-[3/4]"
               }`}
             >
               <Image
                 src={item.src}
                 alt={item.label}
                 fill
-                className="object-cover transition-transform duration-700 hover:scale-105"
+                className="object-cover object-[center_18%] transition-transform duration-700 hover:scale-105"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 unoptimized={item.src.startsWith("/media/")}
               />

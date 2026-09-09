@@ -1,4 +1,5 @@
 import { SCHOOL_NAME } from "@/lib/brand";
+import { CAMPUS } from "@/lib/campusPhotos";
 
 export type NewsItem = {
   slug: string;
@@ -22,8 +23,7 @@ Day Care and Nursery learners should arrive by 8:00 a.m. Basic 1–5 students ar
 We look forward to another year of excellence, discipline, and peace-centred learning.`,
     date: "2025-08-20",
     category: "Announcement",
-    image:
-      "https://images.unsplash.com/photo-1523050854058-8bc2c4e4cd81?auto=format&fit=crop&w=1200&q=80",
+    image: CAMPUS.hero,
   },
   {
     slug: "inter-house-sports-2025",
@@ -35,8 +35,7 @@ We look forward to another year of excellence, discipline, and peace-centred lea
 Parents and guardians are cordially invited. Opening ceremony begins at 9:00 a.m. Refreshments will be available on the grounds.`,
     date: "2025-09-05",
     category: "Event",
-    image:
-      "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1200&q=80",
+    image: CAMPUS.primaryClass,
   },
   {
     slug: "waec-ssce-prep-clinic",
@@ -48,8 +47,7 @@ Parents and guardians are cordially invited. Opening ceremony begins at 9:00 a.m
 Sessions run Mondays to Thursdays after normal lessons. Parents will receive a detailed timetable via class groups. Attendance is compulsory for all registered SS3 candidates.`,
     date: "2025-11-12",
     category: "News",
-    image:
-      "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80",
+    image: CAMPUS.scienceLab,
   },
   {
     slug: "parent-teachers-forum",
@@ -61,8 +59,7 @@ Sessions run Mondays to Thursdays after normal lessons. Parents will receive a d
 Class meetings follow the general assembly. We encourage at least one parent or guardian per student to attend.`,
     date: "2025-09-18",
     category: "Event",
-    image:
-      "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80",
+    image: CAMPUS.secondaryClass,
   },
 ];
 
