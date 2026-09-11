@@ -4,7 +4,7 @@ from academics.models import ClassLevel, Subject
 
 def sync_nursery_daycare_subjects(*, replace_others: bool = True) -> dict:
     """
-    Ensure Day Care, Nursery 1, and Nursery 2 have the canonical subject list.
+    Ensure Creche, Pre-Nursery, Nursery 1, and Nursery 2 have the canonical subject list.
     When replace_others is True, remove any other subjects on those levels
     (including MaxSub / test placeholders).
     """

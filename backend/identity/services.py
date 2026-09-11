@@ -43,7 +43,7 @@ ROW_ALT = colors.HexColor("#F7F9FC")
 
 SCHOOL_NAME = "Peace Concept International Mission Schools"
 SCHOOL_ADDRESS = "No. 3 John Chukwu Crescent, Iboloji Layout, Rumuigbo, Port Harcourt"
-SCHOOL_MOTTO = "Obey & Be Wise"
+SCHOOL_MOTTO = "Unlocking Potentials, Achieving Greatness"
 
 
 def _logo_path() -> Path | None:

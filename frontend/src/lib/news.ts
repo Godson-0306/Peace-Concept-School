@@ -18,7 +18,7 @@ export const newsItems: NewsItem[] = [
     excerpt: `Students of ${SCHOOL_NAME} resume on Monday, 15 September 2025. Reporting times vary by class band.`,
     body: `The Management of ${SCHOOL_NAME} warmly welcomes all students and parents to the 2025/2026 academic session.
 
-Day Care and Nursery learners should arrive by 8:00 a.m. Basic 1–5 students are expected by 7:45 a.m. Junior Secondary (JSS1–3) and Senior Secondary (SS1–3) students should report by 7:30 a.m. New students should arrive with their admission letters and completed medical forms.
+Creche, Pre-Nursery, and Nursery learners should arrive by 8:00 a.m. Basic 1–5 students are expected by 7:45 a.m. Junior Secondary (JSS1–3) and Senior Secondary (SS1–3) students should report by 7:30 a.m. New students should arrive with their admission letters and completed medical forms.
 
 We look forward to another year of excellence, discipline, and peace-centred learning.`,
     date: "2025-08-20",
@@ -54,7 +54,7 @@ Sessions run Mondays to Thursdays after normal lessons. Parents will receive a d
     title: "First Term Parent–Teachers Forum",
     excerpt:
       "Meet class teachers, review academic expectations, and discuss pastoral care for the new session.",
-    body: `The First Term Parent–Teachers Forum will hold on Saturday, 4 October 2025 in the school hall. Agenda includes curriculum overview from Day Care through SS, fee policies, and guidance counselling updates.
+    body: `The First Term Parent–Teachers Forum will hold on Saturday, 4 October 2025 in the school hall. Agenda includes curriculum overview from Creche through SS, fee policies, and guidance counselling updates.
 
 Class meetings follow the general assembly. We encourage at least one parent or guardian per student to attend.`,
     date: "2025-09-18",

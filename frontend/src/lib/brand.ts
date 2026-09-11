@@ -1,17 +1,20 @@
 export const SCHOOL_NAME = "Peace Concept International Mission Schools";
 export const SCHOOL_SHORT = "Peace Concept";
 export const SCHOOL_INITIALS = "PCIMS";
+export const SCHOOL_MOTTO = "Unlocking Potentials, Achieving Greatness";
+export const CURRENT_SESSION = "2026/2027";
 
 /** Campus location (matches Google Maps embed) */
-export const SCHOOL_ADDRESS_LINE = "Port Harcourt, Rivers State, Nigeria";
+export const SCHOOL_ADDRESS_LINE =
+  "No. 3 John Chukwu Crescent, Iboloji Layout, Rumuigbo, Port Harcourt";
 export const SCHOOL_PHONE = "+234 801 234 5678";
 export const SCHOOL_EMAIL = "info@peaceconceptschool.ng";
 export const SCHOOL_HOURS = "Mon–Fri, 8:00 a.m. – 3:30 p.m.";
 
-
-/** Full class ladder offered by the school (Day Care → SS3). */
+/** Full class ladder offered by the school (Creche → SS3). */
 export const CLASS_LEVELS = [
-  "Day Care",
+  "Creche",
+  "Pre-Nursery",
   "Nursery 1",
   "Nursery 2",
   "Basic 1",
@@ -70,7 +73,7 @@ export const NIGERIAN_STATES = [
 export const CLASS_BANDS = [
   {
     title: "Early Years",
-    range: "Day Care · Nursery 1–2",
+    range: "Creche · Pre-Nursery · Nursery 1–2",
     copy: "Warm care, play-based learning, and first steps in literacy and social skills.",
   },
   {
@@ -89,3 +92,5 @@ export const CLASS_BANDS = [
     copy: "Focused pathways for WAEC, NECO, and life after secondary school.",
   },
 ] as const;
+
+export const CLASS_LADDER_SHORT = "Creche · Pre-Nursery · Nursery · Basic · JSS · SS";

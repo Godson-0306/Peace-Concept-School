@@ -7,6 +7,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from academics.defaults import CLASS_LADDER
 from academics.models import ClassArm, ClassLevel, StudentIdSequence
 from accounts.models import AccountType, ParentProfile, StudentProfile, User
 from accounts.passwords import DEFAULT_PASSWORD
@@ -23,9 +24,13 @@ DEFAULT_ROSTER_DIR = Path(__file__).resolve().parents[2] / "data" / "rosters"
 
 # Legacy spreadsheet class labels → canonical class levels in this app.
 CLASS_MAP = {
-    "NURSERYPRE": "Day Care",
-    "DAYCARE": "Day Care",
-    "DAY CARE": "Day Care",
+    "CRECHE": "Creche",
+    "PRENURSERY": "Pre-Nursery",
+    "PRE-NURSERY": "Pre-Nursery",
+    "PRE NURSERY": "Pre-Nursery",
+    "NURSERYPRE": "Pre-Nursery",
+    "DAYCARE": "Pre-Nursery",
+    "DAY CARE": "Pre-Nursery",
     "NURSERY1": "Nursery 1",
     "NURSERY 1": "Nursery 1",
     "NURSERY2": "Nursery 2",
@@ -139,7 +144,7 @@ def clean_phone(value: str) -> str:
 class Command(BaseCommand):
     help = (
         "Import real students from User List Excel rosters, map classes to "
-        "Day Care → SS3, assign Arm A, and remove placeholder students."
+        "Creche → SS3, assign Arm A, and remove placeholder students."
     )
 
     def add_arguments(self, parser):
@@ -241,22 +246,7 @@ class Command(BaseCommand):
                 )
             )
         self.stdout.write(f"Ex-students: {ex_count}")
-        for level in (
-            "Day Care",
-            "Nursery 1",
-            "Nursery 2",
-            "Basic 1",
-            "Basic 2",
-            "Basic 3",
-            "Basic 4",
-            "Basic 5",
-            "JSS1",
-            "JSS2",
-            "JSS3",
-            "SS1",
-            "SS2",
-            "SS3",
-        ):
+        for level in CLASS_LADDER:
             if by_class.get(level):
                 self.stdout.write(f"  {level}A: {by_class[level]}")
 
@@ -293,27 +283,7 @@ class Command(BaseCommand):
                 # Later files / later rows win on duplicate IDs (none expected).
                 by_id[regno] = payload
         # Stable ordering: by class ladder then name.
-        level_rank = {
-            label: i
-            for i, label in enumerate(
-                [
-                    "Day Care",
-                    "Nursery 1",
-                    "Nursery 2",
-                    "Basic 1",
-                    "Basic 2",
-                    "Basic 3",
-                    "Basic 4",
-                    "Basic 5",
-                    "JSS1",
-                    "JSS2",
-                    "JSS3",
-                    "SS1",
-                    "SS2",
-                    "SS3",
-                ]
-            )
-        }
+        level_rank = {label: i for i, label in enumerate(CLASS_LADDER)}
 
         def sort_key(item: dict):
             level = CLASS_MAP.get(item["klass_raw"])

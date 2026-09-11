@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
+import { CLASS_LADDER_SHORT, SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -41,7 +41,7 @@ export default function SiteHeader() {
               <span className="hidden sm:inline">{SCHOOL_NAME}</span>
             </span>
             <span className="hidden text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[var(--muted)] md:block">
-              Day Care · Nursery · Basic · JSS · SS
+              {CLASS_LADDER_SHORT}
             </span>
           </span>
         </Link>

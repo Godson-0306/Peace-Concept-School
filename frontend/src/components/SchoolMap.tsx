@@ -1,13 +1,15 @@
+import { SCHOOL_ADDRESS_LINE } from "@/lib/brand";
+
 type SchoolMapProps = {
   className?: string;
   title?: string;
 };
 
-const MAP_EMBED_SRC =
-  "https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d841.560257750101!2d6.991745034862992!3d4.854520074522954!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sng!4v1786384234962!5m2!1sen!2sng";
+const MAP_QUERY = encodeURIComponent(SCHOOL_ADDRESS_LINE);
 
-export const MAP_DIRECTIONS_URL =
-  "https://www.google.com/maps?q=4.854520074522954,6.991745034862992";
+const MAP_EMBED_SRC = `https://maps.google.com/maps?q=${MAP_QUERY}&z=17&output=embed`;
+
+export const MAP_DIRECTIONS_URL = `https://www.google.com/maps/search/?api=1&query=${MAP_QUERY}`;
 
 export default function SchoolMap({
   className = "",

@@ -4,6 +4,7 @@ import EnquiryForm from "@/components/EnquiryForm";
 import ApplicationForm from "@/components/ApplicationForm";
 import SchoolMap, { MAP_DIRECTIONS_URL } from "@/components/SchoolMap";
 import {
+  CURRENT_SESSION,
   SCHOOL_ADDRESS_LINE,
   SCHOOL_EMAIL,
   SCHOOL_HOURS,
@@ -23,7 +24,7 @@ export default function ContactPage() {
       <PageHero
         eyebrow="Contact"
         title="We would love to welcome your family"
-        description="Reach the school office for visits, fee enquiries, or admissions support — from Day Care through SS3."
+        description="Reach the school office for visits, fee enquiries, or admissions support — from Creche through SS3."
         image={CAMPUS.primaryClass}
       />
 
@@ -129,8 +130,9 @@ export default function ContactPage() {
             Admission application
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-            Apply for Day Care, Nursery, Basic, JSS, or SS for the 2025/2026
-            academic session. Required fields must be completed for processing.
+            Apply for Creche, Pre-Nursery, Nursery, Basic, JSS, or SS for the{" "}
+            {CURRENT_SESSION} academic session. Required fields must be completed
+            for processing.
           </p>
           <div className="mt-8 rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[0_14px_34px_rgba(26,34,51,0.05)] sm:p-8">
             <ApplicationForm />

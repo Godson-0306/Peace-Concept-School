@@ -86,7 +86,7 @@ type GenerateResult = {
 };
 
 const FEE_SECTIONS: { key: FeeSection; label: string; hint: string }[] = [
-  { key: "day_care", label: "Day Care", hint: "Day Care only" },
+  { key: "day_care", label: "Creche / Pre-Nursery", hint: "Creche and Pre-Nursery" },
   { key: "nursery", label: "Nursery", hint: "Nursery 1–2" },
   { key: "primary", label: "Primary", hint: "Basic 1–5" },
   { key: "jss", label: "JSS", hint: "JSS1–3" },
@@ -857,7 +857,7 @@ export default function AccountsPage() {
 
             <p className="text-xs text-[var(--muted)]">
               New vs returning is based on admission year matching the session
-              start year (e.g. admitted in 2025 for session 2025/2026 = new).
+              start year (e.g. admitted in 2026 for session 2026/2027 = new).
             </p>
 
             <button

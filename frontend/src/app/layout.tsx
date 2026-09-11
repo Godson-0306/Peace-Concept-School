@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Karla } from "next/font/google";
-import { SCHOOL_NAME } from "@/lib/brand";
+import { CURRENT_SESSION, SCHOOL_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     default: SCHOOL_NAME,
     template: `%s | ${SCHOOL_NAME}`,
   },
-  description: `${SCHOOL_NAME} — Day Care, Nursery, Basic, Junior and Senior Secondary education for the 2025/2026 academic session.`,
+  description: `${SCHOOL_NAME} — Creche, Pre-Nursery, Nursery, Basic, Junior and Senior Secondary education for the ${CURRENT_SESSION} academic session.`,
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "48x48" },
@@ -32,13 +32,14 @@ export const metadata: Metadata = {
   keywords: [
     SCHOOL_NAME,
     "Peace Concept",
-    "Day Care",
+    "Creche",
+    "Pre-Nursery",
     "Nursery",
     "Basic",
     "JSS",
     "SS",
     "admissions",
-    "2025/2026",
+    CURRENT_SESSION,
   ],
 };
 

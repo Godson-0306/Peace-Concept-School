@@ -84,7 +84,8 @@ class Command(BaseCommand):
                     term.save()
 
         level_names = [
-            "Day Care",
+            "Creche",
+            "Pre-Nursery",
             "Nursery 1",
             "Nursery 2",
             "Basic 1",

@@ -28,8 +28,10 @@ SKIP_HEADERS = {"NAME", "TOTAL", "AVERAGE", "POSITION", "POS", "AVG"}
 
 # Filename token → canonical class level name.
 FILE_CLASS_MAP = {
-    "NURSERYPRE": "Day Care",
-    "DAYCARE": "Day Care",
+    "CRECHE": "Creche",
+    "PRENURSERY": "Pre-Nursery",
+    "NURSERYPRE": "Pre-Nursery",
+    "DAYCARE": "Pre-Nursery",
     "NURSERY1": "Nursery 1",
     "NURSERY2": "Nursery 2",
     "NURSERY3": "Nursery 2",
@@ -174,9 +176,15 @@ def resolve_subject_names(headers: list[str], *, class_level_name: str) -> list[
     """
     Map Excel headers to canonical subject names for a class level.
     Handles duplicate BASIC → Basic Science / Basic Technology and other duplicates.
-    Nursery/Day Care keep short Social / Health names.
+    Nursery / Creche / Pre-Nursery keep short Social / Health names.
     """
-    nursery_band = class_level_name in {"Day Care", "Nursery 1", "Nursery 2"}
+    nursery_band = class_level_name in {
+        "Creche",
+        "Pre-Nursery",
+        "Day Care",
+        "Nursery 1",
+        "Nursery 2",
+    }
     names: list[str] = []
     basic_count = 0
     seen: dict[str, int] = {}
@@ -262,7 +270,7 @@ def parse_file_meta(path: Path) -> tuple[str, str, str, int, int]:
     start_year = int(session_match.group(1))
 
     class_match = re.search(
-        r"(NURSERYPRE|DAYCARE|NURSERY\d+|PRIMARY\d+|BASIC\d+|JSS\d+|SSS?\d+)([A-Z])?",
+        r"(CRECHE|PRENURSERY|NURSERYPRE|DAYCARE|NURSERY\d+|PRIMARY\d+|BASIC\d+|JSS\d+|SSS?\d+)([A-Z])?",
         stem.upper(),
     )
     if not class_match:
@@ -292,6 +300,12 @@ class Command(BaseCommand):
             type=str,
             default=str(DEFAULT_RESULTS_DIR),
             help="Directory containing 2025_2026_*_*_TERM*.xlsx files",
+        )
+        parser.add_argument(
+            "--glob",
+            type=str,
+            default="*.xlsx",
+            help="Filename glob within --dir (default: *.xlsx)",
         )
         parser.add_argument(
             "--term",
@@ -324,6 +338,12 @@ class Command(BaseCommand):
             help="Do not change which session/term is active",
         )
         parser.add_argument(
+            "--only-session",
+            type=str,
+            default="",
+            help="Only import files whose filename session matches (e.g. 2025/2026)",
+        )
+        parser.add_argument(
             "--publish",
             action="store_true",
             default=True,
@@ -341,7 +361,7 @@ class Command(BaseCommand):
         if not results_dir.exists():
             raise CommandError(f"Results directory not found: {results_dir}")
 
-        files = sorted(results_dir.glob("*.xlsx"))
+        files = sorted(results_dir.glob(options["glob"]))
         if not files:
             raise CommandError(f"No .xlsx files in {results_dir}")
 
@@ -370,6 +390,8 @@ class Command(BaseCommand):
         parsed_files: list[tuple[Path, tuple]] = []
         for path in files:
             meta = parse_file_meta(path)
+            if options["only_session"] and meta[0] != options["only_session"]:
+                continue
             if term_wanted is not None and meta[3] != term_wanted:
                 continue
             if options["session"]:

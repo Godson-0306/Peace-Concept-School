@@ -1,6 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CLASS_BANDS, SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
+import {
+  CLASS_BANDS,
+  CURRENT_SESSION,
+  SCHOOL_MOTTO,
+  SCHOOL_NAME,
+  SCHOOL_SHORT,
+} from "@/lib/brand";
 import { CAMPUS, CAMPUS_MOSAIC } from "@/lib/campusPhotos";
 import { getPublicNews } from "@/lib/websiteContent";
 
@@ -30,7 +36,7 @@ export default async function HomePage() {
         <div className="site-container relative flex min-h-[calc(100svh-4.6rem)] flex-col justify-end pb-16 pt-20 sm:justify-center sm:pb-24">
           <div className="max-w-4xl">
             <p className="animate-fade-up eyebrow text-[var(--brand-pink-soft)]">
-              Admissions open · Session 2025/2026
+              Admissions open · Session {CURRENT_SESSION}
             </p>
             <p className="animate-fade-up mt-5 font-display text-[2.6rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl md:text-7xl">
               {SCHOOL_SHORT}
@@ -43,11 +49,11 @@ export default async function HomePage() {
               className="animate-gold-line mt-6 block h-1 w-24 rounded-full bg-[var(--brand-pink-soft)]"
             />
             <h1 className="animate-fade-up-delay mt-6 max-w-2xl text-lg font-medium leading-relaxed text-white/90 sm:text-xl">
-              Faith-rooted education from Day Care through Senior Secondary —
+              Faith-rooted education from Creche through Senior Secondary —
               nurturing every child with care, discipline, and joy.
             </h1>
             <p className="animate-fade-up-delay mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/70">
-              Obey &amp; Be Wise
+              {SCHOOL_MOTTO}
             </p>
             <div className="animate-fade-up-delay-2 mt-9 flex flex-wrap gap-3">
               <Link href="/admissions" className="btn-primary">
@@ -70,9 +76,9 @@ export default async function HomePage() {
             </h2>
           </div>
           <p className="max-w-xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-            {SCHOOL_NAME} welcomes children at every stage — Day Care, Nursery,
-            Basic, Junior Secondary, and Senior Secondary — with teaching that is
-            warm, structured, and mission-minded.
+            {SCHOOL_NAME} welcomes children at every stage — Creche, Pre-Nursery,
+            Nursery, Basic, Junior Secondary, and Senior Secondary — with teaching
+            that is warm, structured, and mission-minded.
           </p>
         </div>
 
@@ -121,14 +127,14 @@ export default async function HomePage() {
               />
             </div>
             <div className="flex flex-col justify-center p-8 sm:p-12">
-              <p className="eyebrow text-[var(--brand-pink-soft)]">Session 2025/2026</p>
+              <p className="eyebrow text-[var(--brand-pink-soft)]">Session {CURRENT_SESSION}</p>
               <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight">
                 Enrolment is open across every class.
               </h2>
               <p className="mt-4 max-w-md text-base leading-relaxed text-white/75">
-                Apply online for Day Care, Nursery 1–2, Basic 1–5, JSS1–3, or
-                SS1–3. Our admissions team will guide your family through the next
-                steps.
+                Apply online for Creche, Pre-Nursery, Nursery 1–2, Basic 1–5,
+                JSS1–3, or SS1–3. Our admissions team will guide your family
+                through the next steps.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/contact#application" className="btn-primary">

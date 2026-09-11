@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import PageHero from "@/components/PageHero";
+import { CURRENT_SESSION } from "@/lib/brand";
 import { CAMPUS } from "@/lib/campusPhotos";
 import { getPublicNews } from "@/lib/websiteContent";
 
@@ -19,7 +20,7 @@ export default async function NewsPage() {
       <PageHero
         eyebrow="News & Events"
         title="Stay in the campus loop"
-        description="Announcements, academic updates, and community events across the 2025/2026 session."
+        description={`Announcements, academic updates, and community events across the ${CURRENT_SESSION} session.`}
         image={CAMPUS.hero}
       />
 

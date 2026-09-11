@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import PageHero from "@/components/PageHero";
-import { SCHOOL_NAME } from "@/lib/brand";
+import { CURRENT_SESSION, SCHOOL_MOTTO, SCHOOL_NAME } from "@/lib/brand";
 import { CAMPUS } from "@/lib/campusPhotos";
 
 export const metadata: Metadata = {
   title: "About the School",
-  description: `Learn about ${SCHOOL_NAME} — Day Care through Senior Secondary.`,
+  description: `Learn about ${SCHOOL_NAME} — Creche through Senior Secondary.`,
 };
 
 export default function AboutPage() {
@@ -15,7 +15,7 @@ export default function AboutPage() {
       <PageHero
         eyebrow="About us"
         title="A mission school for every stage of childhood"
-        description={`${SCHOOL_NAME} serves families seeking faith-rooted education from Day Care and Nursery through Basic, Junior Secondary, and Senior Secondary.`}
+        description={`${SCHOOL_NAME} serves families seeking faith-rooted education from Creche and Pre-Nursery through Nursery, Basic, Junior Secondary, and Senior Secondary.`}
         image={CAMPUS.secondaryClass}
       />
 
@@ -34,7 +34,7 @@ export default function AboutPage() {
           <div className="rounded-2xl bg-[var(--brand-pink)] p-8 text-white sm:p-10">
             <p className="text-sm font-bold text-white/70">Motto</p>
             <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-              Obey &amp; Be Wise.
+              {SCHOOL_MOTTO}
             </h2>
             <p className="mt-4 text-base leading-relaxed text-white/80">
               Our crest — an open book and a lamp — reminds every learner that
@@ -77,7 +77,7 @@ export default function AboutPage() {
             {[
               {
                 title: "Excellence",
-                copy: "High expectations with patient support — in Day Care playrooms and SS examination halls alike.",
+                copy: "High expectations with patient support — in Creche playrooms and SS examination halls alike.",
               },
               {
                 title: "Discipline",
@@ -114,8 +114,8 @@ export default function AboutPage() {
             celebration.
           </p>
           <p className="mt-4 text-base leading-relaxed text-[var(--muted)]">
-            Session 2025/2026 continues our promise: every child known by name —
-            from Day Care to SS3.
+            Session {CURRENT_SESSION} continues our promise: every child known by
+            name — from Creche to SS3.
           </p>
         </div>
       </section>

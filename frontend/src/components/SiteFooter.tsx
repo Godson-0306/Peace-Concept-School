@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { MAP_DIRECTIONS_URL } from "@/components/SchoolMap";
 import {
+  CLASS_LADDER_SHORT,
+  CURRENT_SESSION,
   SCHOOL_ADDRESS_LINE,
   SCHOOL_EMAIL,
   SCHOOL_NAME,
@@ -40,11 +42,11 @@ export default function SiteFooter() {
               </p>
             </div>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-white/75">
-              From Day Care through Senior Secondary — a mission school where
+              From Creche through Senior Secondary — a mission school where
               faith, learning, and character grow together.
             </p>
             <Link href="/contact#application" className="btn-primary mt-7 inline-flex">
-              Apply for 2025/2026
+              Apply for {CURRENT_SESSION}
             </Link>
           </div>
 
@@ -96,7 +98,7 @@ export default function SiteFooter() {
           <p>
             © {new Date().getFullYear()} {SCHOOL_NAME}
           </p>
-          <p>Day Care · Nursery · Basic · JSS · SS</p>
+          <p>{CLASS_LADDER_SHORT}</p>
         </div>
       </div>
     </footer>

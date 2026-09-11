@@ -15,6 +15,7 @@ BACKEND_SKIP_DIRS = {
     "staticfiles",
     "media",
     "school-magazine",
+    "results",
 }
 BACKEND_SKIP_FILES = {"db.sqlite3", ".env"}
 FRONTEND_SKIP_DIRS = {"node_modules", ".next", "out"}

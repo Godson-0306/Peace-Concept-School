@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-# Canonical fee sections (Day Care separate from Nursery).
+# Canonical fee sections (Creche / Pre-Nursery separate from Nursery).
 FEE_SECTIONS = (
-    ("day_care", "Day Care"),
+    ("day_care", "Creche / Pre-Nursery"),
     ("nursery", "Nursery"),
     ("primary", "Primary"),
     ("jss", "JSS"),
@@ -15,6 +15,8 @@ FEE_SECTION_LABELS = dict(FEE_SECTIONS)
 
 # Class-level display names → fee section key.
 CLASS_LEVEL_TO_SECTION: dict[str, str] = {
+    "Creche": "day_care",
+    "Pre-Nursery": "day_care",
     "Day Care": "day_care",
     "Daycare": "day_care",
     "Nursery 1": "nursery",

@@ -90,9 +90,10 @@ const ASSESSMENTS_ROLES = new Set<AccountType>([
 
 export type ClassLevelNav = { id: number; name: string; order: number };
 
-/** Canonical Users hierarchy class order (Day Care → SS3). */
+/** Canonical Users hierarchy class order (Creche → SS3). */
 export const CLASS_LEVEL_ORDER = [
-  "Day Care",
+  "Creche",
+  "Pre-Nursery",
   "Nursery 1",
   "Nursery 2",
   "Basic 1",
@@ -118,6 +119,9 @@ const CLASS_LEVEL_ALIASES: Record<string, string> = {
   "SS 1": "SS1",
   "SS 2": "SS2",
   "SS 3": "SS3",
+  "Day Care": "Pre-Nursery",
+  Daycare: "Pre-Nursery",
+  "Pre Nursery": "Pre-Nursery",
 };
 
 function normalizeLevelName(name: string): string {
@@ -256,8 +260,8 @@ export function portalNavFor(
 export const SUBJECT_LEVEL_BANDS = [
   {
     id: "nursery",
-    label: "Nursery",
-    levels: ["Day Care", "Nursery 1", "Nursery 2"],
+    label: "Early Years",
+    levels: ["Creche", "Pre-Nursery", "Nursery 1", "Nursery 2"],
   },
   {
     id: "primary",

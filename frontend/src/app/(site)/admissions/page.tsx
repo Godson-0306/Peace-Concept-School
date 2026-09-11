@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
-import { CLASS_LEVELS, SCHOOL_NAME } from "@/lib/brand";
+import { CLASS_LEVELS, CURRENT_SESSION, SCHOOL_NAME } from "@/lib/brand";
 import { CAMPUS } from "@/lib/campusPhotos";
 
 export const metadata: Metadata = {
   title: "Admissions",
-  description: `Admissions for ${SCHOOL_NAME} — Day Care to SS3, session 2025/2026.`,
+  description: `Admissions for ${SCHOOL_NAME} — Creche to SS3, session ${CURRENT_SESSION}.`,
 };
 
 const steps = [
@@ -32,8 +32,8 @@ export default function AdmissionsPage() {
   return (
     <>
       <PageHero
-        eyebrow="Admissions 2025/2026"
-        title="Enrol from Day Care to SS3"
+        eyebrow={`Admissions ${CURRENT_SESSION}`}
+        title="Enrol from Creche to SS3"
         description="Applications are open across Early Years, Basic, Junior Secondary, and Senior Secondary. Places are limited and filled on a rolling basis."
         image={CAMPUS.nurseryClass}
       />

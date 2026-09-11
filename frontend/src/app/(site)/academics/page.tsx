@@ -6,7 +6,7 @@ import { CAMPUS } from "@/lib/campusPhotos";
 
 export const metadata: Metadata = {
   title: "Academics",
-  description: `Academic programmes at ${SCHOOL_NAME} — Day Care, Nursery, Basic, JSS, and SS.`,
+  description: `Academic programmes at ${SCHOOL_NAME} — Creche, Pre-Nursery, Nursery, Basic, JSS, and SS.`,
 };
 
 export default function AcademicsPage() {
@@ -15,7 +15,7 @@ export default function AcademicsPage() {
       <PageHero
         eyebrow="Academics"
         title="Learning that grows with your child"
-        description="A clear pathway from Day Care and Nursery through Basic Education, Junior Secondary, and Senior Secondary."
+        description="A clear pathway from Creche and Pre-Nursery through Nursery, Basic Education, Junior Secondary, and Senior Secondary."
         image={CAMPUS.scienceLab}
         imageClassName="object-cover object-[center_40%]"
       />
@@ -91,7 +91,8 @@ export default function AcademicsPage() {
               Early Years &amp; Basic
             </h2>
             <ul className="mt-5 space-y-2 text-sm font-medium text-[var(--brand-blue-deep)]">
-              <li>• Day Care: nurturing care and sensory play</li>
+              <li>• Creche: nurturing care for the youngest learners</li>
+              <li>• Pre-Nursery: play, routine, and first social skills</li>
               <li>• Nursery 1–2: phonics, number sense, social skills</li>
               <li>• Basic 1–5: literacy, numeracy, science, civic values</li>
               <li>• Continuous observation and termly progress notes</li>
