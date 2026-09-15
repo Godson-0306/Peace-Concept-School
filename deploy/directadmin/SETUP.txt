@@ -6,6 +6,37 @@ Do NOT upload into public_html. Use Extra Features:
   1) Setup Python App  = Django API
   2) Setup Node.js App = Next.js website
 
+Scripted update (preferred — no File Manager)
+---------------------------------------------
+From the repo root, with the FTP password in the environment only:
+
+  $env:PCS_FTP_PASSWORD = "<password>"
+  $env:API_PROXY_ORIGIN = "https://api.pcism.com.ng"
+  powershell -File deploy/directadmin/deploy.ps1
+
+That builds Next.js, FTPs into pcs-api and pcs-web (skips .env, .venv,
+db.sqlite3), then prints migrate/restart commands.
+
+On the server (DirectAdmin Terminal / SSH):
+
+  cd ~/pcs-api
+  source ~/virtualenv/pcs-api/3.12/bin/activate
+  python manage.py migrate --noinput
+  python manage.py collectstatic --noinput
+
+Restart the Python app and the Node.js app. Then:
+
+  python deploy/directadmin/warm.py
+
+DirectAdmin cron every 5 minutes to keep Passenger warm:
+
+  curl -fsS https://api.pcism.com.ng/api/health/ >/dev/null
+  curl -fsS https://pcism.com.ng/api/health/ >/dev/null
+
+Never run seed_demo or sync_class_lists on production.
+After migrate, import missing years with --no-activate, then
+promote_from_result_sheets if 2026/2027 classes still need applying.
+
 A. Subdomain
 ------------
 DirectAdmin → Domain Setup / Subdomain Managers → create:

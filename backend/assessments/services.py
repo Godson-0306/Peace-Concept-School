@@ -90,47 +90,33 @@ def resolve_term_for_report(student=None, term_id=None, class_arm_id=None):
     """
     Pick the term a report card should use.
 
-    Prefer an explicit term_id. Otherwise prefer the latest term in the active
-    (or student's) session that actually has scores for this student/class,
-    then the session's active term, then the latest session term.
+    Prefer an explicit term_id. Otherwise use the school-wide active session
+    and that session's active term (else First Term).
     """
-    from academics.models import AcademicSession, Term
+    from academics.models import Term
+    from academics.services.terms import active_session_and_term
 
     if term_id:
         term = Term.objects.select_related("session").filter(id=term_id).first()
         if term:
             return term
 
-    session = AcademicSession.objects.filter(is_active=True).first()
-    if session is None:
-        session = AcademicSession.objects.order_by("-start_year", "-id").first()
-    if session is None:
-        return Term.objects.filter(is_active=True).select_related("session").first()
+    _session, term = active_session_and_term()
+    return term
 
-    session_terms = list(
-        Term.objects.filter(session=session).select_related("session").order_by("number")
+
+def class_arm_for_student_term(student, term):
+    """Class arm recorded on scores for this term, else the student's current class."""
+    arm_id = (
+        AssessmentScore.objects.filter(student_id=student.id, term_id=term.id)
+        .values_list("class_arm_id", flat=True)
+        .first()
     )
-    if not session_terms:
-        return None
-
-    score_filter = {"term_id__in": [t.id for t in session_terms]}
-    if student is not None:
-        score_filter["student_id"] = student.id
-    elif class_arm_id:
-        score_filter["class_arm_id"] = class_arm_id
-
-    scored_term_ids = set(
-        AssessmentScore.objects.filter(**score_filter)
-        .values_list("term_id", flat=True)
-        .distinct()
-    )
-    if scored_term_ids:
-        for term in reversed(session_terms):
-            if term.id in scored_term_ids:
-                return term
-
-    active = next((t for t in session_terms if t.is_active), None)
-    return active or session_terms[-1]
+    if arm_id:
+        return (
+            ClassArm.objects.select_related("class_level").filter(id=arm_id).first()
+        )
+    return getattr(student, "class_arm", None)
 
 
 def grade_for_score(score) -> tuple[str, str]:
@@ -166,7 +152,13 @@ def ordinal(n: int) -> str:
 
 def report_band_title(class_level_name: str) -> str:
     name = (class_level_name or "").strip().lower()
-    if "day care" in name or "nursery" in name:
+    if (
+        "day care" in name
+        or "creche" in name
+        or "pre-nursery" in name
+        or "pre nursery" in name
+        or "nursery" in name
+    ):
         return "Pupil's Progressive Report (Nursery)"
     if name.startswith("basic") or "primary" in name:
         return "Pupil's Progressive Report (Primary)"
@@ -260,10 +252,11 @@ def compute_progressive_report(student, term, published_only: bool = False):
             "status": score.status,
         }
 
-    # Prefer class subject order; fall back to scored subjects.
+    # Prefer class subject order from the class the student was in this term.
+    class_arm = class_arm_for_student_term(student, term)
     class_subjects = []
-    if student.class_arm_id:
-        class_subjects = class_subjects_for_arm(student.class_arm)
+    if class_arm:
+        class_subjects = class_subjects_for_arm(class_arm)
     if class_subjects:
         ordered_ids = [s.id for s in class_subjects]
         for subject in class_subjects:
@@ -285,9 +278,10 @@ def compute_progressive_report(student, term, published_only: bool = False):
         )
 
     positions = {}
-    if student.class_arm_id:
+    class_arm_id = class_arm.id if class_arm else None
+    if class_arm_id:
         positions = subject_positions_for_arm(
-            student.class_arm_id,
+            class_arm_id,
             term.id,
             published_only=published_only,
         )
@@ -350,8 +344,8 @@ def compute_progressive_report(student, term, published_only: bool = False):
 
     average = (current_total / scored_count) if scored_count else Decimal("0")
     class_rankings = (
-        rank_class_arm(student.class_arm_id, term.id, published_only=True)
-        if student.class_arm_id
+        rank_class_arm(class_arm_id, term.id, published_only=True)
+        if class_arm_id
         else []
     )
     position = next(
@@ -371,8 +365,13 @@ def compute_progressive_report(student, term, published_only: bool = False):
         "class_position": ordinal(position) if position else "—",
         "subjects": rows,
         "band_title": report_band_title(
-            getattr(getattr(student.class_arm, "class_level", None), "name", "") or ""
+            getattr(getattr(class_arm, "class_level", None), "name", "")
+            or getattr(getattr(student.class_arm, "class_level", None), "name", "")
+            or ""
         ),
+        "class_arm_label": (class_arm.label if class_arm else "")
+        or getattr(student.class_arm, "label", "")
+        or "",
     }
 
 

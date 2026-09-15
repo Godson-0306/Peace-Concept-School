@@ -3,21 +3,28 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from academics.models import Term
+from academics.services.terms import active_session_and_term
 from accounts.models import AccountType, StudentProfile
 from accounts.permissions import IsAccountantOrAdmin, can_manage_fees
 
 from .models import FeePaymentEntry, FeeRecord, FeeStructure
-from .sections import FEE_SECTIONS, section_for_class_level_name, student_fee_type
+from .sections import (
+    FEE_SECTIONS,
+    fee_sections_catalog,
+    section_for_class_level,
+    section_for_class_level_name,
+    student_fee_type,
+)
 from .serializers import FeePaymentEntrySerializer, FeeRecordSerializer, FeeStructureSerializer
 
 
 def ensure_session_fee_structures(session) -> list[FeeStructure]:
-    """Create the 5×2 fee grid for a session if missing (amounts default to 0)."""
+    """Create the section × student-type fee grid for a session if missing."""
     created = []
     for section_key, _label in FEE_SECTIONS:
         for student_type, _ in FeeStructure.StudentType.choices:
@@ -40,12 +47,7 @@ def ensure_bill_for_student(student, *, term=None, updated_by=None) -> FeeRecord
     Returns the record when created or already present; None when no term/structure.
     """
     if term is None:
-        term = (
-            Term.objects.filter(is_active=True)
-            .select_related("session")
-            .order_by("-id")
-            .first()
-        )
+        _session, term = active_session_and_term()
     if term is None:
         return None
 
@@ -57,7 +59,12 @@ def ensure_bill_for_student(student, *, term=None, updated_by=None) -> FeeRecord
         and student.class_arm.class_level_id
         else None
     )
-    section = section_for_class_level_name(level_name)
+    level = (
+        student.class_arm.class_level
+        if getattr(student, "class_arm_id", None) and student.class_arm
+        else None
+    )
+    section = section_for_class_level(level) or section_for_class_level_name(level_name)
     if not section:
         return None
     stype = student_fee_type(
@@ -106,11 +113,15 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
         rows = ensure_session_fee_structures(session)
         return Response(FeeStructureSerializer(rows, many=True).data)
 
+    @action(detail=False, methods=["get"], url_path="catalog")
+    def catalog(self, request):
+        return Response(fee_sections_catalog())
+
     @action(detail=False, methods=["post"], url_path="generate-bills")
     def generate_bills(self, request):
         """
         Generate FeeRecords for a term using the session's section fee grid.
-        Optional: section filter (day_care|nursery|primary|jss|ss).
+        Optional: section filter (creche|pre_nursery|nursery|primary|jss|ss).
         """
         term_id = request.data.get("term")
         section_filter = request.data.get("section") or None
@@ -133,8 +144,10 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
             students = [
                 st
                 for st in students
-                if section_for_class_level_name(
-                    st.class_arm.class_level.name if st.class_arm_id and st.class_arm.class_level_id else None
+                if section_for_class_level(
+                    st.class_arm.class_level
+                    if st.class_arm_id and st.class_arm and st.class_arm.class_level_id
+                    else None
                 )
                 == section_filter
             ]
@@ -153,7 +166,11 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
                     if student.class_arm_id and student.class_arm.class_level_id
                     else None
                 )
-                section = section_for_class_level_name(level_name)
+                section = section_for_class_level(
+                    student.class_arm.class_level
+                    if student.class_arm_id and student.class_arm and student.class_arm.class_level_id
+                    else None
+                ) or section_for_class_level_name(level_name)
                 if not section:
                     missing += 1
                     continue
@@ -206,6 +223,12 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
                 "total_students": len(students),
             }
         )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def fee_sections_view(_request):
+    return Response(fee_sections_catalog())
 
 
 class FeeRecordViewSet(viewsets.ModelViewSet):

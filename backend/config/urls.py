@@ -29,6 +29,7 @@ from academics.views import (
     SubjectViewSet,
     TeacherAssignmentViewSet,
     TermViewSet,
+    public_class_levels,
 )
 from assessments.views import (
     AssessmentScoreViewSet,
@@ -37,8 +38,9 @@ from assessments.views import (
     StudentFormRecordViewSet,
     dashboard_summary,
     my_results,
+    results_archive,
 )
-from fees.views import FeePaymentEntryViewSet, FeeRecordViewSet, FeeStructureViewSet
+from fees.views import FeePaymentEntryViewSet, FeeRecordViewSet, FeeStructureViewSet, fee_sections_view
 from fees.webhooks import paystack_webhook
 from identity.views import id_cards_batch, report_card_pdf, report_cards_batch, student_id_card
 from inventory.views import (
@@ -110,7 +112,10 @@ urlpatterns = [
     path("api/auth/change-password/", change_password_view),
     path("api/auth/csrf/", csrf_view),
     path("api/results/me/", my_results),
+    path("api/results/archive/", results_archive),
     path("api/dashboard/", dashboard_summary),
+    path("api/public/class-levels/", public_class_levels),
+    path("api/fee-sections/", fee_sections_view),
     path("api/cbt/jamb/progress/", jamb_progress),
     path("api/cbt/options/", cbt_options),
     path("api/identity/report-card/<int:student_id>/", report_card_pdf),

@@ -10,7 +10,12 @@ import {
   SCORE_LIMITS,
 } from "@/lib/assessments";
 import { AuthUser, getStoredUser } from "@/lib/auth";
-import { loadActiveSessionTerms, preferredReportTerm, type PortalTerm } from "@/lib/terms";
+import {
+  loadAcademicCalendar,
+  type PortalSession,
+  type PortalTerm,
+} from "@/lib/terms";
+import SessionTermPickers from "@/components/SessionTermPickers";
 
 type Student = {
   id: number;
@@ -51,7 +56,9 @@ export default function StudentReportEntryPage() {
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
+  const [sessions, setSessions] = useState<PortalSession[]>([]);
   const [terms, setTerms] = useState<PortalTerm[]>([]);
+  const [sessionId, setSessionId] = useState<number | "">("");
   const [termId, setTermId] = useState<number | "">("");
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [scores, setScores] = useState<Record<number, ScoreDraft>>({});
@@ -73,11 +80,12 @@ export default function StudentReportEntryPage() {
   }, [studentId]);
 
   const loadTerms = useCallback(async () => {
-    const list = await loadActiveSessionTerms();
-    setTerms(list);
-    const preferred = preferredReportTerm(list);
-    setTermId((prev) => prev || preferred?.id || list[0]?.id || "");
-    return list;
+    const calendar = await loadAcademicCalendar();
+    setSessions(calendar.sessions);
+    setTerms(calendar.terms);
+    setSessionId((prev) => prev || calendar.defaultSession?.id || "");
+    setTermId((prev) => prev || calendar.defaultTerm?.id || "");
+    return calendar.terms;
   }, []);
 
   useEffect(() => {
@@ -280,21 +288,14 @@ export default function StudentReportEntryPage() {
       ) : null}
 
       <div className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="mb-1 block text-[var(--muted)]">Term</span>
-          <select
-            className="field-input min-w-[14rem]"
-            value={termId}
-            onChange={(e) => setTermId(Number(e.target.value))}
-          >
-            {terms.map((term) => (
-              <option key={term.id} value={term.id}>
-                {term.name}
-                {term.is_active ? " (active)" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SessionTermPickers
+          sessions={sessions}
+          terms={terms}
+          sessionId={sessionId}
+          termId={termId}
+          onSessionChange={setSessionId}
+          onTermChange={setTermId}
+        />
         <p className="pb-2 text-sm text-[var(--muted)]">
           Total {totals.total} · Average {totals.average} · {totals.count} subjects
         </p>

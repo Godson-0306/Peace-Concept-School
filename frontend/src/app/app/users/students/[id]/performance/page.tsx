@@ -5,7 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
-import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
+import {
+  loadAcademicCalendar,
+  type PortalSession,
+  type PortalTerm,
+} from "@/lib/terms";
+import SessionTermPickers from "@/components/SessionTermPickers";
 
 type Student = {
   id: number;
@@ -44,7 +49,9 @@ export default function StudentPerformancePage() {
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
+  const [sessions, setSessions] = useState<PortalSession[]>([]);
   const [terms, setTerms] = useState<PortalTerm[]>([]);
+  const [sessionId, setSessionId] = useState<number | "">("");
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [error, setError] = useState("");
@@ -54,14 +61,15 @@ export default function StudentPerformancePage() {
     user?.account_type === "admin" || user?.account_type === "principal";
 
   const loadBase = useCallback(async () => {
-    const [studentData, termList] = await Promise.all([
+    const [studentData, calendar] = await Promise.all([
       apiJson<Student>(`/api/students/${studentId}/`),
-      loadActiveSessionTerms(),
+      loadAcademicCalendar(),
     ]);
     setStudent(studentData);
-    setTerms(termList);
-    const active = termList.find((t) => t.is_active);
-    setTermId((prev) => prev || active?.id || termList[0]?.id || "");
+    setSessions(calendar.sessions);
+    setTerms(calendar.terms);
+    setSessionId((prev) => prev || calendar.defaultSession?.id || "");
+    setTermId((prev) => prev || calendar.defaultTerm?.id || "");
   }, [studentId]);
 
   useEffect(() => {
@@ -142,21 +150,16 @@ export default function StudentPerformancePage() {
         </div>
       </header>
 
-      <label className="block max-w-xs text-sm">
-        <span className="mb-1 block text-[var(--muted)]">Term</span>
-        <select
-          className="field-input w-full"
-          value={termId}
-          onChange={(e) => setTermId(Number(e.target.value))}
-        >
-          {terms.map((term) => (
-            <option key={term.id} value={term.id}>
-              {term.name}
-              {term.is_active ? " (active)" : ""}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="flex flex-wrap gap-3">
+        <SessionTermPickers
+          sessions={sessions}
+          terms={terms}
+          sessionId={sessionId}
+          termId={termId}
+          onSessionChange={setSessionId}
+          onTermChange={setTermId}
+        />
+      </div>
 
       {error ? (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">

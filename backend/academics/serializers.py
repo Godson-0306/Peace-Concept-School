@@ -10,7 +10,7 @@ from .models import (
     Term,
 )
 from .services.promotion import promote_students_for_new_session
-from .services.terms import ensure_session_terms
+from .services.terms import activate_session_and_term, ensure_session_terms
 
 
 class AcademicSessionSerializer(serializers.ModelSerializer):
@@ -67,6 +67,8 @@ class AcademicSessionSerializer(serializers.ModelSerializer):
         session.graduated_count = summary["graduated_count"]
         session.skipped_count = summary["skipped_count"]
         session.promotion_ran = summary["promotion_ran"]
+        if session.is_active:
+            activate_session_and_term(session, term_number=1)
         return session
 
     def update(self, instance, validated_data):
@@ -89,6 +91,8 @@ class AcademicSessionSerializer(serializers.ModelSerializer):
         session.graduated_count = summary["graduated_count"]
         session.skipped_count = summary["skipped_count"]
         session.promotion_ran = summary["promotion_ran"]
+        if becoming_active and not was_active:
+            activate_session_and_term(session, term_number=1)
         return session
 
 
@@ -128,7 +132,7 @@ class TermSerializer(serializers.ModelSerializer):
 class ClassLevelSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClassLevel
-        fields = ["id", "name", "order"]
+        fields = ["id", "name", "order", "fee_section"]
 
 
 class ClassArmSerializer(serializers.ModelSerializer):

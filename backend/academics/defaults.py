@@ -22,6 +22,26 @@ CLASS_LADDER = (
 # Creche, Pre-Nursery, Nursery 1, and Nursery 2 — order matches the General Report Sheet.
 NURSERY_DAYCARE_LEVELS = ("Creche", "Pre-Nursery", "Nursery 1", "Nursery 2")
 
+# ClassLevel.name → bursary fee section key.
+CLASS_LEVEL_FEE_SECTION = {
+    "Creche": "creche",
+    "Pre-Nursery": "pre_nursery",
+    "Day Care": "pre_nursery",
+    "Nursery 1": "nursery",
+    "Nursery 2": "nursery",
+    "Basic 1": "primary",
+    "Basic 2": "primary",
+    "Basic 3": "primary",
+    "Basic 4": "primary",
+    "Basic 5": "primary",
+    "JSS1": "jss",
+    "JSS2": "jss",
+    "JSS3": "jss",
+    "SS1": "ss",
+    "SS2": "ss",
+    "SS3": "ss",
+}
+
 NURSERY_DAYCARE_SUBJECTS = (
     "Letter",
     "Number",

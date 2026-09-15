@@ -6,7 +6,13 @@ import { apiFetch, apiJson, errorFromUnknown, formatApiError } from "@/lib/api";
 import { getStoredUser, type AuthUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
 import type { ClassLevelNav } from "@/lib/portalNav";
-import { loadActiveSessionTerms, preferredReportTerm, type PortalTerm } from "@/lib/terms";
+import {
+  loadAcademicCalendar,
+  preferredReportTerm,
+  type PortalSession,
+  type PortalTerm,
+} from "@/lib/terms";
+import SessionTermPickers from "@/components/SessionTermPickers";
 
 type ClassArm = {
   id: number;
@@ -66,6 +72,8 @@ export default function ReportsPage() {
   const [levels, setLevels] = useState<ClassLevelNav[]>([]);
   const [arms, setArms] = useState<ClassArm[]>([]);
   const [terms, setTerms] = useState<PortalTerm[]>([]);
+  const [sessions, setSessions] = useState<PortalSession[]>([]);
+  const [sessionId, setSessionId] = useState<number | "">("");
   const [levelId, setLevelId] = useState<number | "">("");
   const [armId, setArmId] = useState<number | "">("");
   const [termId, setTermId] = useState<number | "">("");
@@ -93,20 +101,21 @@ export default function ReportsPage() {
       setLoading(true);
       setError("");
       try {
-        const [levelList, armData, termList] = await Promise.all([
+        const [levelList, armData, calendar] = await Promise.all([
           loadClassLevels(),
           apiJson<{ results?: ClassArm[] } | ClassArm[]>(
             "/api/class-arms/?page_size=500",
           ),
-          loadActiveSessionTerms(),
+          loadAcademicCalendar(),
         ]);
         if (cancelled) return;
         setLevels(levelList);
         setArms(unwrapList(armData));
-        setTerms(termList);
+        setSessions(calendar.sessions);
+        setTerms(calendar.terms);
         if (levelList[0]) setLevelId(levelList[0].id);
-        const preferred = preferredReportTerm(termList);
-        if (preferred) setTermId(preferred.id);
+        setSessionId(calendar.defaultSession?.id ?? "");
+        setTermId(calendar.defaultTerm?.id ?? "");
       } catch (e) {
         if (!cancelled) setError(errorFromUnknown(e, "Failed to load filters"));
       } finally {
@@ -176,7 +185,7 @@ export default function ReportsPage() {
         const preferred = preferredReportTerm(terms, scored);
         if (preferred) {
           setTermId((prev) => {
-            if (prev && scored.includes(prev)) return prev;
+            if (prev) return prev;
             return preferred.id;
           });
         }
@@ -317,22 +326,16 @@ export default function ReportsPage() {
               )}
             </select>
           </label>
-          <label className="text-sm">
-            <span className="mb-1 block text-[var(--muted)]">Term</span>
-            <select
-              className={fieldClass}
-              value={termId}
-              onChange={(e) =>
-                setTermId(e.target.value ? Number(e.target.value) : "")
-              }
-            >
-              {terms.map((term) => (
-                <option key={term.id} value={term.id}>
-                  {term.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex flex-wrap gap-3">
+            <SessionTermPickers
+              sessions={sessions}
+              terms={terms}
+              sessionId={sessionId}
+              termId={termId}
+              onSessionChange={setSessionId}
+              onTermChange={setTermId}
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2 pt-1">

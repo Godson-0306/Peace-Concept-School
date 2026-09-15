@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
-import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
+import {
+  loadAcademicCalendar,
+  type PortalSession,
+  type PortalTerm,
+} from "@/lib/terms";
 import { FeeBillList, type FeeBill } from "@/components/FeeBillList";
+import SessionTermPickers from "@/components/SessionTermPickers";
 
 type ResultPayload = {
   locked?: boolean;
@@ -13,6 +18,8 @@ type ResultPayload = {
   total?: number;
   average?: number;
   position?: number | null;
+  class_arm_label?: string;
+  class_level_name?: string;
   subjects?: {
     subject_name: string;
     ca1: number;
@@ -24,7 +31,9 @@ type ResultPayload = {
 };
 
 export default function StudentPage() {
+  const [sessions, setSessions] = useState<PortalSession[]>([]);
   const [terms, setTerms] = useState<PortalTerm[]>([]);
+  const [sessionId, setSessionId] = useState<number | "">("");
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [fees, setFees] = useState<FeeBill[]>([]);
@@ -35,11 +44,12 @@ export default function StudentPage() {
     apiJson<{ student_profile_id?: number }>("/api/auth/me/")
       .then((me) => setStudentPk(me.student_profile_id ?? null))
       .catch(() => undefined);
-    loadActiveSessionTerms()
-      .then((list) => {
-        setTerms(list);
-        const active = list.find((t) => t.is_active) ?? list[0];
-        if (active) setTermId(active.id);
+    loadAcademicCalendar()
+      .then((calendar) => {
+        setSessions(calendar.sessions);
+        setTerms(calendar.terms);
+        setSessionId(calendar.defaultSession?.id ?? "");
+        setTermId(calendar.defaultTerm?.id ?? "");
       })
       .catch((e) => setError(e.message));
     apiJson<{ results?: FeeBill[] } | FeeBill[]>("/api/fee-records/")
@@ -69,17 +79,16 @@ export default function StudentPage() {
         <p className="bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
 
-      <select
-        className="field-input"
-        value={termId}
-        onChange={(e) => setTermId(Number(e.target.value))}
-      >
-        {terms.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </select>
+      <div className="flex flex-wrap gap-3">
+        <SessionTermPickers
+          sessions={sessions}
+          terms={terms}
+          sessionId={sessionId}
+          termId={termId}
+          onSessionChange={setSessionId}
+          onTermChange={setTermId}
+        />
+      </div>
 
       {result?.locked ? (
         <div className="border border-[var(--line)] bg-white/80 p-5">
@@ -101,6 +110,7 @@ export default function StudentPage() {
             Total: <strong>{Number(result.total).toFixed(1)}</strong> · Average:{" "}
             <strong>{Number(result.average).toFixed(2)}</strong> · Position:{" "}
             <strong>{result.position ?? "—"}</strong>
+            {result.class_arm_label ? ` · ${result.class_arm_label}` : ""}
           </p>
           <table className="mt-4 min-w-full text-sm">
             <thead>

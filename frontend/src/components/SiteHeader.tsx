@@ -33,6 +33,7 @@ export default function SiteHeader() {
             width={48}
             height={48}
             className="h-11 w-11 shrink-0 rounded-full bg-white object-contain p-0.5 shadow-sm"
+            unoptimized
             priority
           />
           <span className="min-w-0 leading-tight">

@@ -2,33 +2,41 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { apiJson } from "@/lib/api";
-import { clearUser, storeUser, type AuthUser } from "@/lib/auth";
+import { apiJson, prefetchCsrfToken } from "@/lib/api";
+import { clearUser, getStoredUser, storeUser, type AuthUser } from "@/lib/auth";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(() =>
+    typeof window === "undefined" ? null : getStoredUser(),
+  );
 
   useEffect(() => {
     let cancelled = false;
+    const existing = getStoredUser();
+    if (existing) setUser(existing);
+    prefetchCsrfToken().catch(() => undefined);
     apiJson<AuthUser>("/api/auth/me/")
       .then((me) => {
         if (cancelled) return;
         storeUser(me);
-        setReady(true);
+        setUser(me);
       })
       .catch(() => {
         if (cancelled) return;
         clearUser();
+        setUser(null);
         router.replace(`/login?next=${encodeURIComponent(pathname)}`);
       });
     return () => {
       cancelled = true;
     };
-  }, [pathname, router]);
+    // Authenticate once per layout mount — not on every /app route change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
-  if (!ready) {
+  if (!user) {
     return (
       <div className="grid min-h-[50vh] place-items-center text-sm text-[var(--muted)]">
         Checking session...

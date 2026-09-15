@@ -63,11 +63,22 @@ class Term(models.Model):
         if self.is_active:
             Term.objects.exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
+        if self.is_active and self.session_id:
+            session = self.session
+            if not session.is_active:
+                session.is_active = True
+                session.save(update_fields=["is_active"])
 
 
 class ClassLevel(models.Model):
     name = models.CharField(max_length=32, unique=True)  # JSS1, SSS2
     order = models.PositiveSmallIntegerField(default=0)
+    fee_section = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="Bursary band: creche, pre_nursery, nursery, primary, jss, ss.",
+    )
 
     class Meta:
         ordering = ["order", "name"]

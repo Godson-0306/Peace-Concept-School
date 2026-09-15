@@ -10,6 +10,7 @@ import {
   SCHOOL_HOURS,
   SCHOOL_NAME,
   SCHOOL_PHONE,
+  SCHOOL_WEBSITE_URL,
 } from "@/lib/brand";
 import { CAMPUS } from "@/lib/campusPhotos";
 
@@ -74,9 +75,9 @@ export default function ContactPage() {
                     </a>
                   </p>
                   <p>
-                    Email:{" "}
+                    Web:{" "}
                     <a
-                      href={`mailto:${SCHOOL_EMAIL}`}
+                      href={SCHOOL_WEBSITE_URL}
                       className="font-semibold text-white underline-offset-2 hover:underline"
                     >
                       {SCHOOL_EMAIL}
@@ -92,10 +93,7 @@ export default function ContactPage() {
                   Send an enquiry below and our office will help you schedule a
                   campus tour.
                 </p>
-                <a
-                  href="#enquiry"
-                  className="mt-4 inline-flex rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[var(--brand-blue-deep)] transition hover:bg-white/90"
-                >
+                <a href="#enquiry" className="btn-primary mt-4 inline-flex">
                   Make an enquiry
                 </a>
               </div>

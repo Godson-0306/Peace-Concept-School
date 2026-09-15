@@ -22,9 +22,9 @@ export const STAFF_PORTAL_NAV: PortalNavItem[] = [
     href: "/app/settings",
     label: "Settings",
     children: [
+      { href: "/app/settings/classes", label: "Classes" },
       { href: "/app/settings/subjects", label: "Subjects Settings" },
-      { href: "/app/settings/session", label: "Session" },
-      { href: "/app/settings/terms", label: "Session Term" },
+      { href: "/app/settings/session", label: "Session and terms" },
     ],
   },
   { href: "/app/gallery", label: "Gallery" },
@@ -49,6 +49,7 @@ export const STAFF_PORTAL_NAV: PortalNavItem[] = [
       { href: "/app/results/subject-results", label: "Subject Results" },
       { href: "/app/results/form-class", label: "Form Class" },
       { href: "/app/results/general-report-sheet", label: "General Report Sheet" },
+      { href: "/app/results/archive", label: "Results archive" },
     ],
   },
   { href: "/app/accounts", label: "Accounts" },
@@ -88,7 +89,7 @@ const ASSESSMENTS_ROLES = new Set<AccountType>([
   "parent",
 ]);
 
-export type ClassLevelNav = { id: number; name: string; order: number };
+export type ClassLevelNav = { id: number; name: string; order: number; fee_section?: string };
 
 /** Canonical Users hierarchy class order (Creche → SS3). */
 export const CLASS_LEVEL_ORDER = [
@@ -134,25 +135,13 @@ export function sortClassLevelsForUsers(levels: ClassLevelNav[]): ClassLevelNav[
   for (const level of levels) {
     const key = normalizeLevelName(level.name);
     const existing = preferred.get(key);
-    // Prefer canonical names (SS1 over SSS1) when duplicates exist.
     if (!existing || level.name === key) {
       preferred.set(key, { ...level, name: key });
     }
   }
-
-  const ordered: ClassLevelNav[] = [];
-  for (const name of CLASS_LEVEL_ORDER) {
-    const match = preferred.get(name);
-    if (match) {
-      ordered.push(match);
-      preferred.delete(name);
-    }
-  }
-  // Any unexpected levels last, by API order then name.
-  const extras = [...preferred.values()].sort(
+  return [...preferred.values()].sort(
     (a, b) => a.order - b.order || a.name.localeCompare(b.name),
   );
-  return [...ordered, ...extras];
 }
 
 function newUserNavFor(accountType: AccountType | null | undefined): PortalNavItem {
@@ -237,7 +226,9 @@ export function portalNavFor(
         ? {
             ...item,
             children: item.children.filter(
-              (child) => child.href !== "/app/results/general-report-sheet",
+              (child) =>
+                child.href !== "/app/results/general-report-sheet" &&
+                child.href !== "/app/results/archive",
             ),
           }
         : item,

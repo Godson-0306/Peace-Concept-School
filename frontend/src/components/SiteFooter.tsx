@@ -8,6 +8,7 @@ import {
   SCHOOL_EMAIL,
   SCHOOL_NAME,
   SCHOOL_PHONE,
+  SCHOOL_WEBSITE_URL,
 } from "@/lib/brand";
 
 const footerNav = [
@@ -35,7 +36,8 @@ export default function SiteFooter() {
                 alt={`${SCHOOL_NAME} logo`}
                 width={72}
                 height={72}
-                className="h-16 w-16 shrink-0 rounded-full bg-white object-contain p-1"
+                unoptimized
+                className="relative z-10 h-16 w-16 shrink-0 rounded-full bg-white object-contain p-0.5 shadow-sm"
               />
               <p className="font-display text-2xl font-semibold tracking-tight sm:text-[1.85rem]">
                 {SCHOOL_NAME}
@@ -74,7 +76,7 @@ export default function SiteFooter() {
                 </a>
               </p>
               <p>
-                <a href={`mailto:${SCHOOL_EMAIL}`} className="hover:text-white">
+                <a href={SCHOOL_WEBSITE_URL} className="hover:text-white">
                   {SCHOOL_EMAIL}
                 </a>
               </p>

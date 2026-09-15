@@ -14,14 +14,14 @@ export type NewsItem = {
 export const newsItems: NewsItem[] = [
   {
     slug: "resumption-2025-2026",
-    title: "Resumption for the 2025/2026 Academic Session",
-    excerpt: `Students of ${SCHOOL_NAME} resume on Monday, 15 September 2025. Reporting times vary by class band.`,
-    body: `The Management of ${SCHOOL_NAME} warmly welcomes all students and parents to the 2025/2026 academic session.
+    title: "Resumption for the 2026/2027 Academic Session",
+    excerpt: `Students of ${SCHOOL_NAME} resume on Monday, 7 September 2026. Reporting times vary by class band.`,
+    body: `The Management of ${SCHOOL_NAME} warmly welcomes all students and parents to the 2026/2027 academic session.
 
 Creche, Pre-Nursery, and Nursery learners should arrive by 8:00 a.m. Basic 1–5 students are expected by 7:45 a.m. Junior Secondary (JSS1–3) and Senior Secondary (SS1–3) students should report by 7:30 a.m. New students should arrive with their admission letters and completed medical forms.
 
 We look forward to another year of excellence, discipline, and peace-centred learning.`,
-    date: "2025-08-20",
+    date: "2026-09-07",
     category: "Announcement",
     image: CAMPUS.hero,
   },

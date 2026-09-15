@@ -1,8 +1,10 @@
 from rest_framework import status, viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.permissions import IsAdminAccount, IsAdminOrPrincipal, can_manage_accounts
+from academics.defaults import CLASS_LEVEL_FEE_SECTION, CLASS_LADDER
 
 from .models import (
     AcademicSession,
@@ -22,7 +24,11 @@ from .serializers import (
     TeacherAssignmentSerializer,
     TermSerializer,
 )
-from .services.terms import ensure_all_session_terms, ensure_session_terms
+from .services.terms import (
+    activate_session_and_term,
+    ensure_all_session_terms,
+    ensure_session_terms,
+)
 
 
 class AdminOrReadAuthenticated(viewsets.ModelViewSet):
@@ -44,6 +50,33 @@ class AcademicSessionViewSet(AdminOrReadAuthenticated):
         instance = self.get_object()
         ensure_session_terms(instance)
         return super().retrieve(request, *args, **kwargs)
+
+    @action(detail=True, methods=["post"], url_path="activate-with-term")
+    def activate_with_term(self, request, pk=None):
+        """Activate this session together with one of its three terms."""
+        session = self.get_object()
+        try:
+            term_number = int(request.data.get("term_number") or 1)
+        except (TypeError, ValueError):
+            term_number = 1
+        previous_active = (
+            AcademicSession.objects.filter(is_active=True).exclude(pk=session.pk).first()
+        )
+        becoming = not session.is_active
+        term = activate_session_and_term(session, term_number=term_number)
+        session.refresh_from_db()
+        summary = self.get_serializer(session)._maybe_promote(
+            session,
+            becoming,
+            previous_active.id if previous_active else None,
+        )
+        session.promoted_count = summary["promoted_count"]
+        session.graduated_count = summary["graduated_count"]
+        session.skipped_count = summary["skipped_count"]
+        session.promotion_ran = summary["promotion_ran"]
+        data = AcademicSessionSerializer(session).data
+        data["active_term"] = TermSerializer(term).data
+        return Response(data)
 
 
 class TermViewSet(viewsets.ModelViewSet):
@@ -94,6 +127,42 @@ class TermViewSet(viewsets.ModelViewSet):
 class ClassLevelViewSet(AdminOrReadAuthenticated):
     queryset = ClassLevel.objects.all()
     serializer_class = ClassLevelSerializer
+
+    def _ensure_arms(self, level: ClassLevel):
+        for arm_name in ("A", "B"):
+            expected = f"{level.name}{arm_name}"
+            arm, _created = ClassArm.objects.get_or_create(
+                class_level=level,
+                name=arm_name,
+                defaults={"label": expected},
+            )
+            if arm.label != expected:
+                arm.label = expected
+                arm.save(update_fields=["label"])
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        if not instance.fee_section:
+            instance.fee_section = CLASS_LEVEL_FEE_SECTION.get(instance.name, "")
+            if instance.fee_section:
+                instance.save(update_fields=["fee_section"])
+        self._ensure_arms(instance)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        self._ensure_arms(instance)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def public_class_levels(_request):
+    """Public class ladder for enrol/admissions pages (name + order only)."""
+    rows = ClassLevel.objects.order_by("order", "name").values("id", "name", "order")
+    if rows.exists():
+        return Response(list(rows))
+    return Response(
+        [{"id": index, "name": name, "order": index} for index, name in enumerate(CLASS_LADDER, start=1)]
+    )
 
 
 class ClassArmViewSet(AdminOrReadAuthenticated):

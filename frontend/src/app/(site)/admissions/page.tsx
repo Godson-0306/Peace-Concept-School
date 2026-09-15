@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
-import { CLASS_LEVELS, CURRENT_SESSION, SCHOOL_NAME } from "@/lib/brand";
+import { CURRENT_SESSION, SCHOOL_NAME } from "@/lib/brand";
 import { CAMPUS } from "@/lib/campusPhotos";
+import { fetchPublicClassLevelNames } from "@/lib/publicClassLevels";
 
 export const metadata: Metadata = {
   title: "Admissions",
@@ -28,7 +29,8 @@ const steps = [
   },
 ];
 
-export default function AdmissionsPage() {
+export default async function AdmissionsPage() {
+  const classNames = await fetchPublicClassLevelNames();
   return (
     <>
       <PageHero
@@ -86,7 +88,7 @@ export default function AdmissionsPage() {
               We currently accept applications into:
             </p>
             <p className="mt-3 text-sm font-semibold leading-relaxed text-[var(--brand-blue-deep)]">
-              {CLASS_LEVELS.join(" · ")}
+              {classNames.join(" · ")}
             </p>
             <p className="mt-4 text-sm leading-relaxed text-[var(--muted)]">
               Transfer students may be assessed for class placement based on age

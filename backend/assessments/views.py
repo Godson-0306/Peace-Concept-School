@@ -26,6 +26,7 @@ from .serializers import (
 )
 from .services import (
     build_general_report,
+    class_arm_for_student_term,
     class_publish_blockers,
     compute_student_result,
     rank_class_arm,
@@ -302,8 +303,12 @@ def my_results(request):
         return Response({"detail": "Not allowed."}, status=403)
 
     from academics.models import Term
+    from academics.services.terms import active_session_and_term
 
-    term = Term.objects.filter(id=term_id).first() if term_id else Term.objects.filter(is_active=True).first()
+    if term_id:
+        term = Term.objects.filter(id=term_id).select_related("session").first()
+    else:
+        _session, term = active_session_and_term()
     if not term:
         return Response({"detail": "Term not found."}, status=404)
 
@@ -319,12 +324,24 @@ def my_results(request):
         )
 
     result = compute_student_result(student.id, term.id)
-    rankings = rank_class_arm(student.class_arm_id, term.id, published_only=True)
+    score_arm = class_arm_for_student_term(student, term)
+    arm_id = score_arm.id if score_arm else student.class_arm_id
+    rankings = rank_class_arm(arm_id, term.id, published_only=True) if arm_id else []
     position = next((r["position"] for r in rankings if r["student_id"] == student.id), None)
     result["position"] = position
     result["locked"] = False
     result["student_name"] = student.full_name
     result["student_code"] = student.student_id
+    result["class_arm_label"] = (
+        (score_arm.label if score_arm else "")
+        or getattr(student.class_arm, "label", "")
+        or ""
+    )
+    result["class_level_name"] = (
+        getattr(getattr(score_arm, "class_level", None), "name", "")
+        or getattr(getattr(student.class_arm, "class_level", None), "name", "")
+        or ""
+    )
     return Response(result)
 
 
@@ -707,3 +724,44 @@ def dashboard_summary(request):
             "term_blockers": term_blockers,
         }
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def results_archive(request):
+    """Admin/principal: score counts by session × term × class arm."""
+    if not (
+        can_view_all_results(request.user)
+        or request.user.account_type == AccountType.ADMIN
+    ):
+        return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+
+    from django.db.models import Count
+
+    rows = (
+        AssessmentScore.objects.values(
+            "term_id",
+            "term__number",
+            "term__name",
+            "term__session_id",
+            "term__session__name",
+            "term__session__start_year",
+            "class_arm_id",
+            "class_arm__name",
+            "class_arm__label",
+            "class_arm__class_level_id",
+            "class_arm__class_level__name",
+            "class_arm__class_level__order",
+        )
+        .annotate(
+            score_count=Count("id"),
+            student_count=Count("student_id", distinct=True),
+        )
+        .order_by(
+            "-term__session__start_year",
+            "term__number",
+            "class_arm__class_level__order",
+            "class_arm__name",
+        )
+    )
+    return Response({"results": list(rows)})

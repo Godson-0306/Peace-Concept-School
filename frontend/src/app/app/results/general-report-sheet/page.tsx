@@ -6,6 +6,7 @@ import { apiJson } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
 import { GENERAL_REPORT_ROLES, type ClassLevelNav } from "@/lib/portalNav";
+import { defaultSessionAndTerm } from "@/lib/terms";
 
 type ClassArm = { id: number; name: string; label: string; class_level: number };
 type Session = { id: number; name: string; is_active: boolean; start_year: number };
@@ -67,16 +68,11 @@ export default function GeneralReportSheetPage() {
         setSessions(sessionList);
         setTerms(termList);
 
-        const activeSession =
-          sessionList.find((s) => s.is_active) || sessionList[0] || null;
+        const { session: activeSession, term: activeTerm } = defaultSessionAndTerm(
+          sessionList,
+          termList,
+        );
         if (activeSession) setSessionId(activeSession.id);
-
-        const activeTerm =
-          termList.find((t) => t.is_active) ||
-          (activeSession
-            ? termList.find((t) => t.session === activeSession.id)
-            : null) ||
-          null;
         if (activeTerm) {
           setTermId(activeTerm.id);
           setSessionId(activeTerm.session);

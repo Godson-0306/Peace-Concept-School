@@ -155,6 +155,11 @@ async function ensureCsrfToken(): Promise<string> {
   return readCsrfToken();
 }
 
+/** Prefetch CSRF after login so the first mutating request is not blocked. */
+export async function prefetchCsrfToken(): Promise<string> {
+  return ensureCsrfToken();
+}
+
 export async function apiFetch(
   path: string,
   options: RequestInit = {},

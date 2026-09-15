@@ -208,7 +208,8 @@ class Command(BaseCommand):
         from fees.sections import FEE_SECTIONS
 
         demo_amounts = {
-            "day_care": {"new": 80000, "returning": 70000},
+            "creche": {"new": 80000, "returning": 70000},
+            "pre_nursery": {"new": 80000, "returning": 70000},
             "nursery": {"new": 90000, "returning": 80000},
             "primary": {"new": 110000, "returning": 100000},
             "jss": {"new": 150000, "returning": 140000},

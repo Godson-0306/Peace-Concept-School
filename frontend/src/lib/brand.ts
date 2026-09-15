@@ -7,8 +7,9 @@ export const CURRENT_SESSION = "2026/2027";
 /** Campus location (matches Google Maps embed) */
 export const SCHOOL_ADDRESS_LINE =
   "No. 3 John Chukwu Crescent, Iboloji Layout, Rumuigbo, Port Harcourt";
-export const SCHOOL_PHONE = "+234 801 234 5678";
-export const SCHOOL_EMAIL = "info@peaceconceptschool.ng";
+export const SCHOOL_PHONE = "+234 706 883 6146";
+export const SCHOOL_EMAIL = "pcism.com.ng";
+export const SCHOOL_WEBSITE_URL = "https://pcism.com.ng";
 export const SCHOOL_HOURS = "Mon–Fri, 8:00 a.m. – 3:30 p.m.";
 
 /** Full class ladder offered by the school (Creche → SS3). */

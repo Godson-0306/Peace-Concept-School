@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-# Canonical fee sections (Creche / Pre-Nursery separate from Nursery).
+from academics.defaults import CLASS_LEVEL_FEE_SECTION
+
 FEE_SECTIONS = (
-    ("day_care", "Creche / Pre-Nursery"),
+    ("creche", "Creche"),
+    ("pre_nursery", "Pre-Nursery"),
     ("nursery", "Nursery"),
     ("primary", "Primary"),
     ("jss", "JSS"),
@@ -13,42 +15,49 @@ FEE_SECTIONS = (
 
 FEE_SECTION_LABELS = dict(FEE_SECTIONS)
 
-# Class-level display names → fee section key.
+FEE_SECTION_HINTS = {
+    "creche": "Creche only",
+    "pre_nursery": "Pre-Nursery only",
+    "nursery": "Nursery 1–2",
+    "primary": "Basic 1–5",
+    "jss": "JSS1–3",
+    "ss": "SS1–3",
+}
+
+# Class-level display names → fee section key (includes legacy aliases).
 CLASS_LEVEL_TO_SECTION: dict[str, str] = {
-    "Creche": "day_care",
-    "Pre-Nursery": "day_care",
-    "Day Care": "day_care",
-    "Daycare": "day_care",
-    "Nursery 1": "nursery",
-    "Nursery 2": "nursery",
+    **CLASS_LEVEL_FEE_SECTION,
+    "Daycare": "pre_nursery",
     "Nursery1": "nursery",
     "Nursery2": "nursery",
-    "Basic 1": "primary",
-    "Basic 2": "primary",
-    "Basic 3": "primary",
-    "Basic 4": "primary",
-    "Basic 5": "primary",
     "Primary 1": "primary",
     "Primary 2": "primary",
     "Primary 3": "primary",
     "Primary 4": "primary",
     "Primary 5": "primary",
-    "JSS1": "jss",
-    "JSS2": "jss",
-    "JSS3": "jss",
     "JSS 1": "jss",
     "JSS 2": "jss",
     "JSS 3": "jss",
-    "SS1": "ss",
-    "SS2": "ss",
-    "SS3": "ss",
     "SS 1": "ss",
     "SS 2": "ss",
     "SS 3": "ss",
     "SSS1": "ss",
     "SSS2": "ss",
     "SSS3": "ss",
+    "day_care": "pre_nursery",
 }
+
+
+def section_for_class_level(level) -> str | None:
+    """Prefer the ClassLevel.fee_section column; fall back to name mapping."""
+    if level is None:
+        return None
+    stored = (getattr(level, "fee_section", None) or "").strip()
+    if stored == "day_care":
+        return "pre_nursery"
+    if stored:
+        return stored
+    return section_for_class_level_name(getattr(level, "name", None))
 
 
 def section_for_class_level_name(name: str | None) -> str | None:
@@ -57,7 +66,6 @@ def section_for_class_level_name(name: str | None) -> str | None:
     key = name.strip()
     if key in CLASS_LEVEL_TO_SECTION:
         return CLASS_LEVEL_TO_SECTION[key]
-    # Soft match: ignore spaces / case for common patterns.
     compact = key.replace(" ", "").lower()
     for label, section in CLASS_LEVEL_TO_SECTION.items():
         if label.replace(" ", "").lower() == compact:
@@ -70,3 +78,23 @@ def student_fee_type(*, admission_year: int, session_start_year: int) -> str:
     if admission_year == session_start_year:
         return "new"
     return "returning"
+
+
+def fee_sections_catalog() -> list[dict]:
+    from academics.models import ClassLevel
+
+    levels = list(ClassLevel.objects.order_by("order", "name"))
+    by_section: dict[str, list[str]] = {key: [] for key, _label in FEE_SECTIONS}
+    for level in levels:
+        section = section_for_class_level(level)
+        if section in by_section:
+            by_section[section].append(level.name)
+    return [
+        {
+            "key": key,
+            "label": label,
+            "hint": FEE_SECTION_HINTS.get(key, label),
+            "class_names": by_section.get(key, []),
+        }
+        for key, label in FEE_SECTIONS
+    ]

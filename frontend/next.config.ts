@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
   // Less UI chrome overhead in Simple Browser / port-forwarded previews.
   devIndicators: false,
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",

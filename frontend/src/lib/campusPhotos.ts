@@ -4,7 +4,7 @@ export const CAMPUS = {
   hero: "/campus/hero.jpg",
   nurseryClass: "/campus/nursery-class.jpg",
   primaryClass: "/campus/primary-class.jpg",
-  secondaryClass: "/campus/secondary-class.jpg",
+  secondaryClass: "/campus/hero.jpg",
   scienceLab: "/campus/science-lab.jpg",
   microscope: "/campus/microscope.jpg",
   studentSmile: "/campus/student-smile.jpg",

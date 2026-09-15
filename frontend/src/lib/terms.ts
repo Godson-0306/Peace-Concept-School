@@ -64,10 +64,50 @@ export async function loadTerms(sessionId?: number): Promise<PortalTerm[]> {
 
 /** Load First/Second/Third for the currently active academic session only. */
 export async function loadActiveSessionTerms(): Promise<PortalTerm[]> {
-  const sessions = await loadSessions();
-  const active = sessions.find((s) => s.is_active) ?? sessions[0];
-  if (!active) return [];
-  return loadTerms(active.id);
+  const calendar = await loadAcademicCalendar();
+  if (!calendar.defaultSession) return [];
+  return termsForOneSession(calendar.terms, calendar.defaultSession.id);
+}
+
+export type AcademicCalendar = {
+  sessions: PortalSession[];
+  terms: PortalTerm[];
+  defaultSession: PortalSession | null;
+  defaultTerm: PortalTerm | null;
+};
+
+/** Active session, and the active term that belongs to that session (else First Term). */
+export function defaultSessionAndTerm(
+  sessions: PortalSession[],
+  terms: PortalTerm[],
+): { session: PortalSession | null; term: PortalTerm | null } {
+  const session = sessions.find((s) => s.is_active) ?? sessions[0] ?? null;
+  if (!session) return { session: null, term: null };
+  const inSession = termsForOneSession(terms, session.id);
+  const term =
+    inSession.find((t) => t.is_active) ??
+    inSession.find((t) => t.number === 1) ??
+    inSession[0] ??
+    null;
+  return { session, term };
+}
+
+export function termsForSessionId(
+  terms: PortalTerm[],
+  sessionId?: number | null,
+): PortalTerm[] {
+  return termsForOneSession(terms, sessionId);
+}
+
+export async function loadAcademicCalendar(): Promise<AcademicCalendar> {
+  const [sessions, terms] = await Promise.all([loadSessions(), loadTerms()]);
+  const { session, term } = defaultSessionAndTerm(sessions, terms);
+  return {
+    sessions,
+    terms,
+    defaultSession: session,
+    defaultTerm: term,
+  };
 }
 
 /** Prefer the latest term that has scores; else last term in the session. */

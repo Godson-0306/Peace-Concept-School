@@ -41,7 +41,8 @@ function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
 async function fetchApi<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(`${API_ORIGIN}${path}`, {
-      next: { revalidate: 30 },
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(1000),
     });
     if (!response.ok) return null;
     return (await response.json()) as T;

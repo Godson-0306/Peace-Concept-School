@@ -3,8 +3,13 @@
 import { useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth";
-import { loadActiveSessionTerms, type PortalTerm } from "@/lib/terms";
+import {
+  loadAcademicCalendar,
+  type PortalSession,
+  type PortalTerm,
+} from "@/lib/terms";
 import { FeeBillList, type FeeBill } from "@/components/FeeBillList";
+import SessionTermPickers from "@/components/SessionTermPickers";
 
 type Child = { id: number; student_id: string; full_name: string };
 type ResultPayload = {
@@ -26,7 +31,9 @@ type AttendanceSummary = {
 export default function ParentPage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [childId, setChildId] = useState<number | "">("");
+  const [sessions, setSessions] = useState<PortalSession[]>([]);
   const [terms, setTerms] = useState<PortalTerm[]>([]);
+  const [sessionId, setSessionId] = useState<number | "">("");
   const [termId, setTermId] = useState<number | "">("");
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [fees, setFees] = useState<FeeBill[]>([]);
@@ -41,10 +48,11 @@ export default function ParentPage() {
         if (list[0]) setChildId(list[0].id);
       })
       .catch((e) => setError(e.message));
-    loadActiveSessionTerms().then((list) => {
-      setTerms(list);
-      const active = list.find((t) => t.is_active) ?? list[0];
-      if (active) setTermId(active.id);
+    loadAcademicCalendar().then((calendar) => {
+      setSessions(calendar.sessions);
+      setTerms(calendar.terms);
+      setSessionId(calendar.defaultSession?.id ?? "");
+      setTermId(calendar.defaultTerm?.id ?? "");
     });
     apiJson<{ results?: FeeBill[] } | FeeBill[]>("/api/fee-records/")
       .then((data) => setFees(Array.isArray(data) ? data : data.results ?? []))
@@ -97,17 +105,14 @@ export default function ParentPage() {
             </option>
           ))}
         </select>
-        <select
-          className="field-input"
-          value={termId}
-          onChange={(e) => setTermId(Number(e.target.value))}
-        >
-          {terms.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        <SessionTermPickers
+          sessions={sessions}
+          terms={terms}
+          sessionId={sessionId}
+          termId={termId}
+          onSessionChange={setSessionId}
+          onTermChange={setTermId}
+        />
       </div>
 
       {result?.locked ? (

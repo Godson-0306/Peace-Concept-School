@@ -852,7 +852,7 @@ export default function StudentEnrollForm({
               </label>
               {!levels.length ? (
                 <p className="text-sm text-[var(--muted)] sm:col-span-2">
-                  Expected classes: {CLASS_LEVELS.join(", ")}
+                  Expected classes: {levels.map((level) => level.name).join(", ") || CLASS_LEVELS.join(", ")}
                 </p>
               ) : null}
             </div>

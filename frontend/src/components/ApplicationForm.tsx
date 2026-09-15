@@ -1,12 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { CLASS_LEVELS } from "@/lib/brand";
+import { loadPublicClassLevels } from "@/lib/publicClassLevels";
 
 type Status = { type: "success" | "error"; message: string } | null;
-
-const classOptions = [...CLASS_LEVELS];
 
 function errorMessage(err: unknown): string {
   if (!err || typeof err !== "object") return "Unable to submit application.";
@@ -25,6 +24,16 @@ function errorMessage(err: unknown): string {
 export default function ApplicationForm() {
   const [status, setStatus] = useState<Status>(null);
   const [pending, setPending] = useState(false);
+  const [classOptions, setClassOptions] = useState<string[]>([...CLASS_LEVELS]);
+
+  useEffect(() => {
+    loadPublicClassLevels()
+      .then((list) => {
+        const names = list.map((row) => row.name).filter(Boolean);
+        if (names.length) setClassOptions(names);
+      })
+      .catch(() => undefined);
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,7 +47,6 @@ export default function ApplicationForm() {
       data.delete("passport_photo");
     }
 
-    // Mirror guardian email onto student email when useful for later enroll.
     const guardianEmail = String(data.get("guardian_email") ?? "").trim();
     if (guardianEmail && !String(data.get("email") ?? "").trim()) {
       data.set("email", guardianEmail);

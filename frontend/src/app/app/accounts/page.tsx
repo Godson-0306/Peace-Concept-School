@@ -5,7 +5,10 @@ import { apiJson, errorFromUnknown } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth";
 import { loadClassLevels } from "@/lib/classLevels";
 import type { ClassLevelNav } from "@/lib/portalNav";
-import { termsForOneSession } from "@/lib/terms";
+import {
+  defaultSessionAndTerm,
+  termsForOneSession,
+} from "@/lib/terms";
 
 type Tab = "structures" | "bills" | "debtors";
 
@@ -24,18 +27,18 @@ type ClassArm = {
   class_level: number;
 };
 
-type FeeSection =
-  | "day_care"
-  | "nursery"
-  | "primary"
-  | "jss"
-  | "ss";
+type FeeSectionCatalog = {
+  key: string;
+  label: string;
+  hint: string;
+  class_names?: string[];
+};
 
 type FeeStructure = {
   id: number;
   session: number;
   session_name: string;
-  section: FeeSection;
+  section: string;
   section_label: string;
   student_type: "new" | "returning";
   student_type_label: string;
@@ -85,8 +88,9 @@ type GenerateResult = {
   total_students: number;
 };
 
-const FEE_SECTIONS: { key: FeeSection; label: string; hint: string }[] = [
-  { key: "day_care", label: "Creche / Pre-Nursery", hint: "Creche and Pre-Nursery" },
+const FEE_SECTION_FALLBACK: FeeSectionCatalog[] = [
+  { key: "creche", label: "Creche", hint: "Creche only" },
+  { key: "pre_nursery", label: "Pre-Nursery", hint: "Pre-Nursery only" },
   { key: "nursery", label: "Nursery", hint: "Nursery 1–2" },
   { key: "primary", label: "Primary", hint: "Basic 1–5" },
   { key: "jss", label: "JSS", hint: "JSS1–3" },
@@ -113,6 +117,9 @@ export default function AccountsPage() {
   const [arms, setArms] = useState<ClassArm[]>([]);
   const [structures, setStructures] = useState<FeeStructure[]>([]);
   const [records, setRecords] = useState<FeeRecord[]>([]);
+  const [feeSections, setFeeSections] = useState<FeeSectionCatalog[]>(
+    FEE_SECTION_FALLBACK,
+  );
   const [loading, setLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -163,21 +170,24 @@ export default function AccountsPage() {
     return arm?.label || arm?.name || "";
   }, [arms, filterArm]);
 
-  const amountKey = (section: FeeSection, studentType: "new" | "returning") =>
+  const amountKey = (section: string, studentType: "new" | "returning") =>
     `${section}:${studentType}`;
 
-  const syncAmountsFromStructures = useCallback((rows: FeeStructure[]) => {
-    const next: Record<string, string> = {};
-    for (const section of FEE_SECTIONS) {
-      for (const studentType of ["new", "returning"] as const) {
-        const row = rows.find(
-          (r) => r.section === section.key && r.student_type === studentType,
-        );
-        next[amountKey(section.key, studentType)] = row?.amount ?? "0";
+  const syncAmountsFromStructures = useCallback(
+    (rows: FeeStructure[], catalog: FeeSectionCatalog[]) => {
+      const next: Record<string, string> = {};
+      for (const section of catalog) {
+        for (const studentType of ["new", "returning"] as const) {
+          const row = rows.find(
+            (r) => r.section === section.key && r.student_type === studentType,
+          );
+          next[amountKey(section.key, studentType)] = row?.amount ?? "0";
+        }
       }
-    }
-    setAmounts(next);
-  }, []);
+      setAmounts(next);
+    },
+    [],
+  );
 
   const loadStructuresForSession = useCallback(
     async (sessionId: number) => {
@@ -189,10 +199,10 @@ export default function AccountsPage() {
         },
       );
       setStructures(rows);
-      syncAmountsFromStructures(rows);
+      syncAmountsFromStructures(rows, feeSections);
       return rows;
     },
-    [syncAmountsFromStructures],
+    [syncAmountsFromStructures, feeSections],
   );
 
   const loadRecords = useCallback(async () => {
@@ -223,7 +233,8 @@ export default function AccountsPage() {
       setLoading(true);
       setError("");
       try {
-        const [sessionData, termData, levelList, armData] = await Promise.all([
+        const [sessionData, termData, levelList, armData, sectionData] =
+          await Promise.all([
           apiJson<{ results?: Session[] } | Session[]>(
             "/api/sessions/?page_size=100",
           ),
@@ -232,32 +243,41 @@ export default function AccountsPage() {
           apiJson<{ results?: ClassArm[] } | ClassArm[]>(
             "/api/class-arms/?page_size=500",
           ),
+          apiJson<FeeSectionCatalog[]>("/api/fee-sections/").catch(
+            () => FEE_SECTION_FALLBACK,
+          ),
         ]);
         if (cancelled) return;
         const sessionList = unwrapList(sessionData);
         const termList = unwrapList(termData);
+        const catalog = Array.isArray(sectionData) && sectionData.length
+          ? sectionData
+          : FEE_SECTION_FALLBACK;
+        setFeeSections(catalog);
         setSessions(sessionList);
         setTerms(termList);
         setLevels(levelList);
         setArms(unwrapList(armData));
-        const activeSession =
-          sessionList.find((s) => s.is_active) ?? sessionList[0];
-        const activeTerm = termList.find((t) => t.is_active) ?? termList[0];
+        const { session: activeSession, term: activeTerm } = defaultSessionAndTerm(
+          sessionList,
+          termList,
+        );
         if (activeTerm) {
           setFilterTerm(activeTerm.id);
           setGenerateTerm(activeTerm.id);
         }
         if (activeSession) {
           setFeeSession(activeSession.id);
-          await loadStructuresForSession(activeSession.id);
-          const termForSession =
-            termList.find(
-              (t) => t.session === activeSession.id && t.is_active,
-            ) ?? termList.find((t) => t.session === activeSession.id);
-          if (termForSession) {
-            setGenerateTerm(termForSession.id);
-            setFilterTerm(termForSession.id);
-          }
+          const rows = await apiJson<FeeStructure[]>(
+            "/api/fee-structures/ensure/",
+            {
+              method: "POST",
+              body: JSON.stringify({ session: activeSession.id }),
+            },
+          );
+          if (cancelled) return;
+          setStructures(rows);
+          syncAmountsFromStructures(rows, catalog);
         }
       } catch (e) {
         if (!cancelled) {
@@ -816,7 +836,7 @@ export default function AccountsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {FEE_SECTIONS.map((section) => (
+                  {feeSections.map((section) => (
                     <tr
                       key={section.key}
                       className="border-b border-[var(--line)]"

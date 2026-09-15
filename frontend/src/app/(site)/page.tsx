@@ -1,14 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import {
-  CLASS_BANDS,
-  CURRENT_SESSION,
-  SCHOOL_MOTTO,
-  SCHOOL_NAME,
-  SCHOOL_SHORT,
-} from "@/lib/brand";
+import { CLASS_BANDS, CURRENT_SESSION, SCHOOL_MOTTO, SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
 import { CAMPUS, CAMPUS_MOSAIC } from "@/lib/campusPhotos";
 import { getPublicNews } from "@/lib/websiteContent";
+import { fetchPublicClassLevelNames } from "@/lib/publicClassLevels";
 
 const BAND_PHOTOS = [
   CAMPUS.nurseryClass,
@@ -18,7 +13,12 @@ const BAND_PHOTOS = [
 ] as const;
 
 export default async function HomePage() {
-  const latest = (await getPublicNews()).slice(0, 3);
+  const [latestNews, classNames] = await Promise.all([
+    getPublicNews(),
+    fetchPublicClassLevelNames(),
+  ]);
+  const latest = latestNews.slice(0, 3);
+  const classList = classNames.join(" · ");
 
   return (
     <>
@@ -76,8 +76,7 @@ export default async function HomePage() {
             </h2>
           </div>
           <p className="max-w-xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-            {SCHOOL_NAME} welcomes children at every stage — Creche, Pre-Nursery,
-            Nursery, Basic, Junior Secondary, and Senior Secondary — with teaching
+            {SCHOOL_NAME} welcomes children at every stage — {classList} — with teaching
             that is warm, structured, and mission-minded.
           </p>
         </div>
@@ -132,8 +131,7 @@ export default async function HomePage() {
                 Enrolment is open across every class.
               </h2>
               <p className="mt-4 max-w-md text-base leading-relaxed text-white/75">
-                Apply online for Creche, Pre-Nursery, Nursery 1–2, Basic 1–5,
-                JSS1–3, or SS1–3. Our admissions team will guide your family
+                Apply online for {classList}. Our admissions team will guide your family
                 through the next steps.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
