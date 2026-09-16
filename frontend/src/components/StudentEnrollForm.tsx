@@ -146,6 +146,7 @@ type StudentRecord = {
   guardian_name: string;
   guardian_phone: string;
   passport_photo: string | null;
+  is_active?: boolean;
 };
 
 function unwrapList<T>(data: { results?: T[] } | T[]): T[] {
@@ -202,8 +203,18 @@ function formFromStudent(student: StudentRecord): FormState {
     genotype: student.genotype || "",
     disability: student.disability || "",
     date_of_admission: student.date_of_admission || todayISO(),
-    class_level_id: student.class_level ? String(student.class_level) : "",
-    class_arm_id: student.class_arm ? String(student.class_arm) : "",
+    class_level_id:
+      student.is_active === false
+        ? "ex"
+        : student.class_level
+          ? String(student.class_level)
+          : "",
+    class_arm_id:
+      student.is_active === false
+        ? ""
+        : student.class_arm
+          ? String(student.class_arm)
+          : "",
     address: student.address || "",
     city_of_residence: student.city_of_residence || "",
     lga: student.lga || "",
@@ -312,17 +323,19 @@ export default function StudentEnrollForm({
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [created, setCreated] = useState<CreatedStudent | null>(null);
+  const [loadedAsEx, setLoadedAsEx] = useState(false);
 
   const canAccess =
     user?.account_type === "admin" || user?.account_type === "principal";
 
   const levelArms = useMemo(
     () =>
-      form.class_level_id
+      form.class_level_id && form.class_level_id !== "ex"
         ? arms.filter((arm) => arm.class_level === Number(form.class_level_id))
         : [],
     [arms, form.class_level_id],
   );
+  const isExStudent = form.class_level_id === "ex";
 
   const setField = useCallback(<K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -366,6 +379,7 @@ export default function StudentEnrollForm({
           if (cancelled) return;
           setApplication(null);
           setForm(formFromStudent(student));
+          setLoadedAsEx(student.is_active === false);
           setLockedStudentId(student.student_id);
           setLockedAdmissionYear(student.admission_year);
           setExistingPhoto(student.passport_photo);
@@ -383,12 +397,14 @@ export default function StudentEnrollForm({
           }
           setApplication(app);
           setForm(formFromApplication(app, levelList, armList));
+          setLoadedAsEx(false);
           setLockedStudentId("");
           setLockedAdmissionYear(null);
           setExistingPhoto(app.passport_photo);
         } else {
           setApplication(null);
           setForm(emptyForm());
+          setLoadedAsEx(false);
           setLockedStudentId("");
           setLockedAdmissionYear(null);
           setExistingPhoto(null);
@@ -408,6 +424,10 @@ export default function StudentEnrollForm({
   }, [canAccess, applicationId, studentId]);
 
   useEffect(() => {
+    if (form.class_level_id === "ex") {
+      if (form.class_arm_id) setField("class_arm_id", "");
+      return;
+    }
     if (!form.class_level_id) return;
     if (
       form.class_arm_id &&
@@ -422,7 +442,7 @@ export default function StudentEnrollForm({
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!form.class_arm_id) {
+    if (!isExStudent && !form.class_arm_id) {
       setError("Select the class and arm the student is admitted into.");
       return;
     }
@@ -453,8 +473,6 @@ export default function StudentEnrollForm({
       if (!isEdit) {
         data.set("admission_year", String(admissionYear));
         data.set("create_portal_account", "true");
-        data.set("is_active", "true");
-        data.set("promotion_status", "pending");
         data.set("password", portalPassword);
       } else if (password.trim()) {
         // Edit: only reset password when the field is non-empty.
@@ -463,7 +481,17 @@ export default function StudentEnrollForm({
       if (form.date_of_admission) {
         data.set("date_of_admission", form.date_of_admission);
       }
-      data.set("class_arm", form.class_arm_id);
+      if (isExStudent) {
+        data.set("class_arm", "");
+        data.set("is_active", "false");
+        data.set("promotion_status", "graduated");
+      } else {
+        data.set("class_arm", form.class_arm_id);
+        data.set("is_active", "true");
+        if (!isEdit || loadedAsEx) {
+          data.set("promotion_status", "pending");
+        }
+      }
       data.set("state_of_origin", form.state_of_origin);
       data.set("blood_group", form.blood_group);
       data.set("genotype", form.genotype);
@@ -630,6 +658,7 @@ export default function StudentEnrollForm({
                 onClick={() => {
                   setCreated(null);
                   setForm(emptyForm());
+                  setLoadedAsEx(false);
                   setPassword("school");
                   setPhotoFile(null);
                   setExistingPhoto(null);
@@ -819,7 +848,7 @@ export default function StudentEnrollForm({
                 />
               </label>
               <label className="field">
-                <span>Class admitted into</span>
+                <span>Class</span>
                 <select
                   className="field-input"
                   required
@@ -828,21 +857,25 @@ export default function StudentEnrollForm({
                 >
                   <option value="">Select class</option>
                   {levels.map((level) => (
-                      <option key={level.id} value={level.id}>
-                        {level.name}
-                      </option>
-                    ))}
+                    <option key={level.id} value={level.id}>
+                      {level.name}
+                    </option>
+                  ))}
+                  <option value="ex">Ex-Students</option>
                 </select>
               </label>
               <label className="field">
                 <span>Arm</span>
                 <select
                   className="field-input"
-                  required
+                  required={!isExStudent}
+                  disabled={isExStudent}
                   value={form.class_arm_id}
                   onChange={(e) => setField("class_arm_id", e.target.value)}
                 >
-                  <option value="">Select arm</option>
+                  <option value="">
+                    {isExStudent ? "Not in a class" : "Select arm"}
+                  </option>
                   {levelArms.map((arm) => (
                     <option key={arm.id} value={arm.id}>
                       {arm.name}

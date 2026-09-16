@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiJson } from "@/lib/api";
 import { AuthUser, getStoredUser } from "@/lib/auth";
@@ -53,7 +53,7 @@ function initials(name: string): string {
 
 function statusLabel(student: StudentRow): string {
   if (!student.is_active || student.promotion_status === "graduated") {
-    return "GRADUATED";
+    return "EX-STUDENT";
   }
   switch (student.promotion_status) {
     case "promoted":
@@ -72,6 +72,7 @@ function statusClasses(label: string): string {
     case "RETAINED":
       return "bg-amber-50 text-amber-800";
     case "GRADUATED":
+    case "EX-STUDENT":
       return "bg-[var(--brand-pink-wash)] text-[var(--brand-pink)]";
     default:
       return "bg-[var(--mist)] text-[var(--muted)]";
@@ -231,6 +232,7 @@ export default function UsersStudentsPanel({
   const [arms, setArms] = useState<ClassArm[]>([]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
 
@@ -243,10 +245,12 @@ export default function UsersStudentsPanel({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const path = query ? `/api/students/?${query}` : "/api/students/";
+      const path = query
+        ? `/api/students/?${query}&page_size=500`
+        : "/api/students/?page_size=500";
       const [studentData, armData] = await Promise.all([
         apiJson<{ results?: StudentRow[] } | StudentRow[]>(path),
-        apiJson<{ results?: ClassArm[] } | ClassArm[]>("/api/class-arms/"),
+        apiJson<{ results?: ClassArm[] } | ClassArm[]>("/api/class-arms/?page_size=500"),
       ]);
       setStudents(unwrapList(studentData));
       setArms(unwrapList(armData));
@@ -271,6 +275,22 @@ export default function UsersStudentsPanel({
     }
     load();
   }, [router, load]);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((student) => {
+      const haystack = [
+        student.full_name,
+        student.student_id,
+        student.class_arm_label || "",
+        student.class_level_name || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [students, search]);
 
   async function savePhoto() {
     if (!photoStudent || !photoFile) return;
@@ -385,11 +405,34 @@ export default function UsersStudentsPanel({
         </p>
       ) : null}
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-[var(--muted)]">
+          {loading
+            ? "Loading…"
+            : `${visible.length} student${visible.length === 1 ? "" : "s"}`}
+          {!loading && search.trim() ? ` matching “${search.trim()}”` : ""}
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          Search
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Name or student ID"
+            className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm outline-none focus:border-[var(--brand-blue)]"
+          />
+        </label>
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white/90">
         {loading ? (
           <p className="px-5 py-8 text-sm text-[var(--muted)]">Loading students…</p>
         ) : students.length === 0 ? (
           <p className="px-5 py-8 text-sm text-[var(--muted)]">No students found.</p>
+        ) : visible.length === 0 ? (
+          <p className="px-5 py-8 text-sm text-[var(--muted)]">
+            No students match that search.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[48rem] text-left text-sm">
@@ -407,7 +450,7 @@ export default function UsersStudentsPanel({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
-                {students.map((student, index) => {
+                {visible.map((student, index) => {
                   const badge = statusLabel(student);
                   return (
                     <tr key={student.id} className="align-middle hover:bg-[var(--mist)]/40">

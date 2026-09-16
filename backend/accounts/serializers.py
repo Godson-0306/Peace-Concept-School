@@ -426,12 +426,22 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "create_portal_account",
             "created_at",
         ]
+        extra_kwargs = {
+            "class_arm": {"required": False, "allow_null": True},
+        }
         read_only_fields = [
             "student_id",
             "created_at",
             "session_attendance_days",
             "total_attendance_days",
         ]
+
+    def to_internal_value(self, data):
+        if hasattr(data, "copy"):
+            data = data.copy()
+            if data.get("class_arm") in ("", "null"):
+                data["class_arm"] = None
+        return super().to_internal_value(data)
 
     def get_session_attendance_days(self, obj):
         value = getattr(obj, "annotated_session_attendance", None)
