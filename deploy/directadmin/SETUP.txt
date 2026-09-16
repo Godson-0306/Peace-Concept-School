@@ -34,8 +34,7 @@ DirectAdmin cron every 5 minutes to keep Passenger warm:
   curl -fsS https://pcism.com.ng/api/health/ >/dev/null
 
 Never run seed_demo or sync_class_lists on production.
-After migrate, import missing years with --no-activate, then
-promote_from_result_sheets if 2026/2027 classes still need applying.
+Historical marks live in MySQL (AssessmentScore). Do not keep or re-load Excel result sheets.
 
 A. Subdomain
 ------------

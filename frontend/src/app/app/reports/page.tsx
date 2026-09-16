@@ -78,6 +78,7 @@ export default function ReportsPage() {
   const [armId, setArmId] = useState<number | "">("");
   const [termId, setTermId] = useState<number | "">("");
   const [students, setStudents] = useState<StudentRow[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [rosterLoading, setRosterLoading] = useState(false);
   const [batchBusy, setBatchBusy] = useState<string | null>(null);
@@ -143,20 +144,18 @@ export default function ReportsPage() {
     if (!match) setArmId(armsForClass[0]?.id ?? "");
   }, [levelId, armsForClass, armId]);
 
-  const loadRoster = useCallback(async (arm: number) => {
+  const loadRoster = useCallback(async (arm: number, term: number) => {
     setRosterLoading(true);
     setError("");
     try {
       const data = await apiJson<{ results?: StudentRow[] } | StudentRow[]>(
-        `/api/students/?class_arm=${arm}&page_size=500`,
+        `/api/scores/report_roster/?class_arm=${arm}&term=${term}`,
       );
-      const list = unwrapList(data)
-        .filter((s) => s.is_active !== false)
-        .sort(
-          (a, b) =>
-            a.full_name.localeCompare(b.full_name) ||
-            a.student_id.localeCompare(b.student_id),
-        );
+      const list = unwrapList(data).sort(
+        (a, b) =>
+          a.full_name.localeCompare(b.full_name) ||
+          a.student_id.localeCompare(b.student_id),
+      );
       setStudents(list);
     } catch (e) {
       setStudents([]);
@@ -199,12 +198,22 @@ export default function ReportsPage() {
   }, [armId, allowed, terms]);
 
   useEffect(() => {
-    if (!armId || !allowed) {
+    if (!armId || !termId || !allowed) {
       setStudents([]);
       return;
     }
-    void loadRoster(armId);
-  }, [armId, allowed, loadRoster]);
+    void loadRoster(armId, termId);
+  }, [armId, termId, allowed, loadRoster]);
+
+  const visibleStudents = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter(
+      (s) =>
+        s.full_name.toLowerCase().includes(q) ||
+        s.student_id.toLowerCase().includes(q),
+    );
+  }, [students, search]);
 
   async function runBatch(
     key: string,
@@ -252,7 +261,7 @@ export default function ReportsPage() {
   }
 
   const canBatchReports = Boolean(armId && termId && students.length > 0);
-  const canBatchIds = Boolean(armId && students.length > 0);
+  const canBatchIds = Boolean(armId);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -406,17 +415,35 @@ export default function ReportsPage() {
           <p className="text-sm text-[var(--muted)]">
             {rosterLoading
               ? "Loading…"
-              : `${students.length} active student${students.length === 1 ? "" : "s"}`}
+              : `${students.length} student${students.length === 1 ? "" : "s"} with results`}
           </p>
         </div>
 
-        {!armId ? (
-          <p className="text-sm text-[var(--muted)]">Select a class arm.</p>
+        <label className="block max-w-sm text-sm">
+          <span className="mb-1 block text-[var(--muted)]">Search name or ID</span>
+          <input
+            type="search"
+            className={fieldClass}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Type a student name"
+            disabled={!armId || !termId}
+          />
+        </label>
+
+        {!armId || !termId ? (
+          <p className="text-sm text-[var(--muted)]">
+            Select a class arm and term.
+          </p>
         ) : rosterLoading ? (
           <p className="text-sm text-[var(--muted)]">Loading roster…</p>
         ) : students.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">
-            No active students in this arm.
+            No results for this class in this term.
+          </p>
+        ) : visibleStudents.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">
+            No students match that search.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -429,7 +456,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
-                {students.map((student) => (
+                {visibleStudents.map((student) => (
                   <tr key={student.id}>
                     <td className="py-3 pr-4 font-mono text-xs">
                       {student.student_id}

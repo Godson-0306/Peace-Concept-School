@@ -413,6 +413,23 @@ def compute_student_result(student_id: int, term_id: int, scores=None):
     }
 
 
+def students_for_class_term(
+    class_arm_id: int, term_id: int, published_only: bool = True
+):
+    """Students who have scores for this class arm in this term (historical class)."""
+    qs = AssessmentScore.objects.filter(class_arm_id=class_arm_id, term_id=term_id)
+    if published_only:
+        qs = qs.filter(status=AssessmentScore.Status.PUBLISHED)
+    student_ids = list(qs.values_list("student_id", flat=True).distinct())
+    if not student_ids:
+        return []
+    return list(
+        StudentProfile.objects.filter(id__in=student_ids)
+        .select_related("class_arm", "class_arm__class_level")
+        .order_by("full_name", "student_id")
+    )
+
+
 def rank_class_arm(class_arm_id: int, term_id: int, published_only: bool = True):
     qs = AssessmentScore.objects.filter(class_arm_id=class_arm_id, term_id=term_id).select_related(
         "student", "subject"

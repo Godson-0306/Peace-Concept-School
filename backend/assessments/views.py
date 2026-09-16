@@ -30,6 +30,7 @@ from .services import (
     class_publish_blockers,
     compute_student_result,
     rank_class_arm,
+    students_for_class_term,
     term_publish_blockers,
 )
 
@@ -247,6 +248,38 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
             published_only = False
         data = rank_class_arm(int(class_arm_id), int(term_id), published_only=published_only)
         return Response(data)
+
+    @action(detail=False, methods=["get"])
+    def report_roster(self, request):
+        """Students with scores for a class arm in a term (historical class)."""
+        if not can_view_all_results(request.user):
+            return Response(
+                {"detail": "Not allowed."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        term_id = request.query_params.get("term")
+        class_arm_id = request.query_params.get("class_arm")
+        if not term_id or not class_arm_id:
+            return Response(
+                {"detail": "term and class_arm are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        published_only = not can_view_all_results(request.user)
+        if request.user.account_type == AccountType.ADMIN:
+            published_only = False
+        students = students_for_class_term(
+            int(class_arm_id), int(term_id), published_only=published_only
+        )
+        return Response(
+            [
+                {
+                    "id": student.id,
+                    "student_id": student.student_id,
+                    "full_name": student.full_name,
+                }
+                for student in students
+            ]
+        )
 
     @action(detail=False, methods=["get"])
     def general_report(self, request):

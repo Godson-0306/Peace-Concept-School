@@ -140,7 +140,7 @@ def student_id_card(request, student_id):
 @permission_classes([IsAuthenticated, IsAdminOrPrincipal])
 def report_cards_batch(request):
     from academics.models import ClassArm
-    from assessments.services import resolve_term_for_report
+    from assessments.services import resolve_term_for_report, students_for_class_term
 
     pack, err = _batch_pack(request)
     if err:
@@ -161,9 +161,12 @@ def report_cards_batch(request):
     if not term:
         return Response({"detail": "Term required."}, status=400)
 
-    students = list(_students_for_arm(arm.id))
+    students = students_for_class_term(arm.id, term.id, published_only=False)
     if not students:
-        return Response({"detail": "No active students in this class arm."}, status=400)
+        return Response(
+            {"detail": "No results for this class in this term."},
+            status=400,
+        )
 
     entries: list[tuple[str, bytes]] = []
     for student in students:

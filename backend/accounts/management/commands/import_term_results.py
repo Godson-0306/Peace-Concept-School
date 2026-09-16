@@ -392,6 +392,8 @@ class Command(BaseCommand):
             meta = parse_file_meta(path)
             if options["only_session"] and meta[0] != options["only_session"]:
                 continue
+            if meta[0] == "2026/2027":
+                continue
             if term_wanted is not None and meta[3] != term_wanted:
                 continue
             if options["session"]:
@@ -405,6 +407,20 @@ class Command(BaseCommand):
             raise CommandError(
                 f"No matching result files in {results_dir}"
                 + (f" for term={term_filter}" if term_wanted else "")
+            )
+
+        newest_by_key: dict[tuple, tuple[Path, tuple, float]] = {}
+        for path, meta in parsed_files:
+            key = (meta[0], meta[1], meta[2], meta[3])
+            mtime = path.stat().st_mtime
+            prev = newest_by_key.get(key)
+            if prev is None or mtime >= prev[2]:
+                newest_by_key[key] = (path, meta, mtime)
+        skipped_dupes = len(parsed_files) - len(newest_by_key)
+        parsed_files = [(path, meta) for path, meta, _mtime in newest_by_key.values()]
+        if skipped_dupes:
+            self.stdout.write(
+                f"Skipping {skipped_dupes} duplicate sheet(s); using newest per class+term."
             )
 
         with transaction.atomic():

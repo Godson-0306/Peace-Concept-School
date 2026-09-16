@@ -40,8 +40,7 @@ Then Extra Features → Setup Python App → Restart
 and Setup Node.js App → Restart.
 
 Do NOT run seed_demo or sync_class_lists on production.
-Historical results: python manage.py import_result_sheets --no-activate
-Promotion if needed: python manage.py promote_from_result_sheets
+Historical marks live in MySQL. Do not re-load Excel result sheets.
 
 Then warm:
 
