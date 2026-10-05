@@ -1,9 +1,19 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { CLASS_BANDS, CURRENT_SESSION, SCHOOL_MOTTO, SCHOOL_NAME, SCHOOL_SHORT } from "@/lib/brand";
 import { CAMPUS, CAMPUS_MOSAIC } from "@/lib/campusPhotos";
 import { getPublicNews } from "@/lib/websiteContent";
 import { fetchPublicClassLevelNames } from "@/lib/publicClassLevels";
+import { SCHOOL_CITY, SCHOOL_LOCALITY, SCHOOL_SEO_DESCRIPTION } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: `${SCHOOL_NAME} | Peace Concept School in ${SCHOOL_LOCALITY}, ${SCHOOL_CITY}`,
+  },
+  description: SCHOOL_SEO_DESCRIPTION,
+  alternates: { canonical: "/" },
+};
 
 const BAND_PHOTOS = [
   CAMPUS.nurseryClass,

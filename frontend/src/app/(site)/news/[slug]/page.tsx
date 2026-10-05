@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import JsonLd from "@/components/JsonLd";
+import { SCHOOL_NAME, SCHOOL_WEBSITE_URL } from "@/lib/brand";
 import {
   getPublicNewsBySlug,
   getPublicNewsSlugs,
 } from "@/lib/websiteContent";
+import { absoluteUrl } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -23,6 +26,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: item.title,
     description: item.excerpt,
+    alternates: { canonical: `/news/${item.slug}` },
+    openGraph: {
+      type: "article",
+      title: item.title,
+      description: item.excerpt,
+      url: `/news/${item.slug}`,
+    },
   };
 }
 
@@ -31,8 +41,26 @@ export default async function NewsDetailPage({ params }: Props) {
   const item = await getPublicNewsBySlug(slug);
   if (!item) notFound();
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: item.title,
+    description: item.excerpt,
+    datePublished: item.date,
+    image: item.image ? absoluteUrl(item.image) : absoluteUrl("/campus/hero.jpg"),
+    mainEntityOfPage: absoluteUrl(`/news/${item.slug}`),
+    author: { "@type": "Organization", name: SCHOOL_NAME },
+    publisher: {
+      "@type": "Organization",
+      name: SCHOOL_NAME,
+      url: SCHOOL_WEBSITE_URL,
+      logo: { "@type": "ImageObject", url: absoluteUrl("/pcims-logo.jpeg") },
+    },
+  };
+
   return (
     <article>
+      <JsonLd data={articleJsonLd} />
       <section className="relative min-h-[42vh] overflow-hidden bg-[var(--brand-green-deep)] text-white">
         {item.image ? (
           <Image

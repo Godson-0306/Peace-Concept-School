@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Fraunces, Karla } from "next/font/google";
-import { CURRENT_SESSION, SCHOOL_NAME } from "@/lib/brand";
+import { SCHOOL_NAME, SCHOOL_SHORT, SCHOOL_WEBSITE_URL } from "@/lib/brand";
+import {
+  SCHOOL_OG_IMAGE,
+  SCHOOL_SEO_DESCRIPTION,
+  SCHOOL_SEO_KEYWORDS,
+} from "@/lib/seo";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -16,11 +21,32 @@ const karla = Karla({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SCHOOL_WEBSITE_URL),
   title: {
     default: SCHOOL_NAME,
     template: `%s | ${SCHOOL_NAME}`,
   },
-  description: `${SCHOOL_NAME} — Creche, Pre-Nursery, Nursery, Basic, Junior and Senior Secondary education for the ${CURRENT_SESSION} academic session.`,
+  description: SCHOOL_SEO_DESCRIPTION,
+  applicationName: SCHOOL_SHORT,
+  keywords: [...SCHOOL_SEO_KEYWORDS],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    url: SCHOOL_WEBSITE_URL,
+    siteName: SCHOOL_SHORT,
+    title: SCHOOL_NAME,
+    description: SCHOOL_SEO_DESCRIPTION,
+    images: [{ url: SCHOOL_OG_IMAGE, alt: `${SCHOOL_NAME} campus` }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SCHOOL_NAME,
+    description: SCHOOL_SEO_DESCRIPTION,
+    images: [SCHOOL_OG_IMAGE],
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "48x48" },
@@ -29,18 +55,6 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
     shortcut: "/favicon.ico",
   },
-  keywords: [
-    SCHOOL_NAME,
-    "Peace Concept",
-    "Creche",
-    "Pre-Nursery",
-    "Nursery",
-    "Basic",
-    "JSS",
-    "SS",
-    "admissions",
-    CURRENT_SESSION,
-  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

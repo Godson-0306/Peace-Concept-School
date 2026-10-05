@@ -8,6 +8,7 @@ import { CAMPUS } from "@/lib/campusPhotos";
 export const metadata: Metadata = {
   title: "Login",
   description: `Sign in to the ${SCHOOL_NAME} management portal.`,
+  robots: { index: false, follow: false },
 };
 
 type LoginPageProps = {

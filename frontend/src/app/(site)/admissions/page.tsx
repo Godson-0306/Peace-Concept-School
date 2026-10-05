@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
+import JsonLd from "@/components/JsonLd";
 import { CURRENT_SESSION, SCHOOL_NAME } from "@/lib/brand";
 import { CAMPUS } from "@/lib/campusPhotos";
 import { fetchPublicClassLevelNames } from "@/lib/publicClassLevels";
+import { ADMISSIONS_FAQS } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Admissions",
-  description: `Admissions for ${SCHOOL_NAME} — Creche to SS3, session ${CURRENT_SESSION}.`,
+  description: `Admissions at Peace Concept School (${SCHOOL_NAME}) — Creche to SS3, session ${CURRENT_SESSION}. Apply at pcism.com.ng.`,
 };
 
 const steps = [
@@ -31,8 +33,18 @@ const steps = [
 
 export default async function AdmissionsPage() {
   const classNames = await fetchPublicClassLevelNames();
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: ADMISSIONS_FAQS.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  };
   return (
     <>
+      <JsonLd data={faqJsonLd} />
       <PageHero
         eyebrow={`Admissions ${CURRENT_SESSION}`}
         title="Enrol from Creche to SS3"
@@ -95,6 +107,30 @@ export default async function AdmissionsPage() {
               and prior performance.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="section-pad pt-0">
+        <div className="site-container">
+          <p className="eyebrow">Questions</p>
+          <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-[var(--brand-blue-deep)]">
+            Peace Concept School FAQs
+          </h2>
+          <dl className="mt-10 grid gap-5 md:grid-cols-2">
+            {ADMISSIONS_FAQS.map((item) => (
+              <div
+                key={item.question}
+                className="rounded-2xl border border-[var(--line)] bg-white p-7 shadow-[0_14px_34px_rgba(26,34,51,0.05)]"
+              >
+                <dt className="font-display text-xl font-semibold text-[var(--brand-blue-deep)]">
+                  {item.question}
+                </dt>
+                <dd className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+                  {item.answer}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 
