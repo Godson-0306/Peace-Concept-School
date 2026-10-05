@@ -6,6 +6,7 @@ import {
   SCHOOL_SEO_DESCRIPTION,
   SCHOOL_SEO_KEYWORDS,
 } from "@/lib/seo";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -63,7 +64,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${fraunces.variable} ${karla.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        <GoogleAnalytics />
+        {children}
+      </body>
     </html>
   );
 }
